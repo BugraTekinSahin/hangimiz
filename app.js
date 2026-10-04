@@ -69,9 +69,69 @@ const GAMES = {
       { key: 'showAuthor', label: 'Cümleyi kimin yazdığı görünsün', type: 'bool', def: false },
     ],
   },
+  komik: {
+    name: 'Komik Cevap',
+    emoji: '😂',
+    desc: 'Herkese aynı boşluk doldurmalı sorular gelir. Cevaplar isimsiz oylanır, en komik olan puanı kapar!',
+    minPlayers: 3,
+    defs: [
+      { key: 'writeTime', label: 'Cevap yazma süresi', type: 'num', def: 60, min: 20, max: 240, step: 10, unit: 'sn' },
+      { key: 'qPerPlayer', label: 'Soru sayısı', type: 'num', def: 3, min: 1, max: 5, step: 1, unit: 'soru' },
+      { key: 'answerTime', label: 'Soru başına oylama süresi', type: 'num', def: 20, min: 0, max: 60, step: 5, unit: 'sn', zero: 'Sınırsız' },
+      { key: 'showVoters', label: 'Kim kime oy verdi görünsün', type: 'bool', def: true },
+    ],
+  },
 };
-const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla'];
-const COMING_SOON = [['😂', 'Komik Cevap'], ['🤥', 'Yalancıyı Bul']];
+const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik'];
+const COMING_SOON = [['🤥', 'Yalancıyı Bul']];
+
+const KOMIK_VOTE_POINTS = 100;   // per vote your answer gets
+const KOMIK_SWEEP_BONUS = 100;   // everyone who voted picked your answer
+
+const KOMIK_PROMPTS = [
+  'Okulda yasaklanması gereken şey: ___',
+  'Bir süper kahramanın en işe yaramaz gücü: ___',
+  'Annemin telefonda en çok söylediği cümle: ___',
+  'Bir uzaylı Dünya\'ya gelse ilk şaşıracağı şey: ___',
+  'İlk buluşmada asla söylenmemesi gereken cümle: ___',
+  'Kedimin gizli mesleği: ___',
+  'Bir restoran için en kötü isim: ___',
+  'WhatsApp grubundaki en gereksiz mesaj: ___',
+  'Ünlü olsam ilk yapacağım saçma şey: ___',
+  'Bir korku filmi için en komik isim: ___',
+  'Öğretmenin "Bugün ders yok" demesinin gerçek sebebi: ___',
+  'Bir parfüme verilebilecek en kötü isim: ___',
+  'Zombi kıyametinde yanıma alacağım tek eşya: ___',
+  'Robotların isyan etmesinin gerçek sebebi: ___',
+  'Asla dondurma olmaması gereken tat: ___',
+  'Babamın her soruna bulduğu çözüm: ___',
+  'Bir uygulamanın gönderebileceği en saçma bildirim: ___',
+  'Tarih kitaplarında yazmayan bir icat: ___',
+  'Olimpiyatlara eklenmesi gereken yeni spor: ___',
+  'Dünyanın en sıkıcı YouTube videosunun başlığı: ___',
+  'Bir köpeğin günlüğüne yazdığı ilk cümle: ___',
+  'Hayatımın filmi olsa adı: ___',
+  'Bir oyundaki en saçma son boss: ___',
+  'Sınavda çıkabilecek en saçma soru: ___',
+  'Bir ninjanın asla yapmaması gereken şey: ___',
+  'Aşçı olsam imza yemeğim: ___',
+  'Bir masalın en kötü sonu: ___',
+  'Bir otobüs şoförünün gizli süper gücü: ___',
+  'Çok zengin olsam alacağım en gereksiz şey: ___',
+  'Pizzanın üstüne asla konmaması gereken şey: ___',
+  'Bir otel için yazılmış en kötü yorum: ___',
+  'Bir şarkıdaki en saçma söz: ___',
+  'Uzaya giderken çantama koyacağım ilk şey: ___',
+  'Bir ayakkabı markasının en kötü sloganı: ___',
+  'Dünyanın en gereksiz meslek unvanı: ___',
+  'Okul servisinde yaşanabilecek en garip olay: ___',
+  'Bir penguenin en büyük derdi: ___',
+  'Bu grubun gizli marşının adı: ___',
+  'Yapay zekânın bana söylediği en tuhaf şey: ___',
+  'Bir dedektifin en kötü ipucu: ___',
+  'Annemin "Ben senin yaşındayken…" diye başlayıp anlattığı şey: ___',
+  'Telefonumun şarjı biterse olacak en kötü şey: ___',
+];
 
 const ASLA_STATEMENTS = [
   'Hiç uçağa binmedim',
@@ -529,7 +589,9 @@ const Host = {
 
       case 'drafts':
         if (S.phase !== 'writing' || !r || !r.roster.includes(pid)) return;
-        r.drafts[pid] = sanitizeDrafts(msg.list, r.cfg.qPerPlayer);
+        r.drafts[pid] = r.game === 'komik'
+          ? sanitizeDrafts(msg.list, r.prompts.length, true)
+          : sanitizeDrafts(msg.list, r.cfg.qPerPlayer);
         if (r.game === 'kimyazdi') {
           // A dice starter nobody finished ("Çocukken") is not a confession.
           const bare = new Set(KY_STARTERS.map((x) => lower(x.trim()).replace(/:$/, '')));
@@ -549,6 +611,9 @@ const Host = {
         const target = msg.target == null ? null : String(msg.target);
         if (r.game === 'asla') {
           if (target && target !== 'yes' && target !== 'no') return;
+        } else if (r.game === 'komik') {
+          const a = target && q.answers.find((x) => x.aid === target);
+          if (target && (!a || a.author === pid)) return;
         } else if (target && !r.roster.includes(target)) {
           return;
         }
@@ -664,6 +729,7 @@ const Host = {
       deadline: now + cfg.writeTime * 1000,
       deadlineTotal: cfg.writeTime * 1000,
     };
+    if (S.game === 'komik') S.round.prompts = shuffle(KOMIK_PROMPTS).slice(0, cfg.qPerPlayer);
     for (const id of S.order) S.players[id].ready = false;
     S.phase = 'writing';
     this.changed();
@@ -679,6 +745,7 @@ const Host = {
     const S = this.S;
     const r = S.round;
     if (S.phase !== 'writing') return;
+    if (r.game === 'komik') { this.endKomikWriting(); return; }
     const seen = new Set();
     const qs = [];
     for (const id of r.roster) {
@@ -712,6 +779,40 @@ const Host = {
     this.changed();
   },
 
+  endKomikWriting() {
+    const S = this.S;
+    const r = S.round;
+    r.questions = r.prompts.map((text, i) => ({
+      id: 'q' + i,
+      text,
+      answers: shuffle(r.roster
+        .filter((id) => (r.drafts[id] || [])[i])
+        .map((id) => ({ aid: randomId(6), author: id, text: r.drafts[id][i] }))),
+    })).filter((q) => q.answers.length > 0);
+    if (!r.questions.length) {
+      S.phase = 'lobby';
+      S.round = null;
+      S.notice = 'Kimse cevap yazmadı 😅 Bir daha deneyin!';
+      this.changed();
+      return;
+    }
+    r.drafts = {};
+    // Someone who has nothing but their own answer to pick from just skips that prompt.
+    for (const q of r.questions) {
+      for (const id of r.roster) {
+        if (!q.answers.some((a) => a.author !== id)) {
+          r.answered[id] = r.answered[id] || {};
+          r.answered[id][q.id] = true;
+        }
+      }
+    }
+    const per = r.cfg.answerTime;
+    r.deadline = per > 0 ? Date.now() + r.questions.length * per * 1000 + 4000 : null;
+    r.deadlineTotal = per > 0 ? r.questions.length * per * 1000 + 4000 : 0;
+    S.phase = 'answering';
+    this.changed();
+  },
+
   allAnswered() {
     const r = this.S.round;
     const live = r.roster.filter((id) => this.S.players[id] && this.S.players[id].connected);
@@ -728,6 +829,9 @@ const Host = {
     } else if (r.game === 'asla') {
       r.results = computeAslaResults(r);
       r.final = computeAslaFinal(r);
+    } else if (r.game === 'komik') {
+      r.results = computeKomikResults(r);
+      r.final = computeKomikFinal(r);
     } else {
       r.results = computeResults(r, r.cfg);
       r.final = computeFinal(r);
@@ -855,8 +959,8 @@ const Host = {
     pub.names = r.names;
     if (S.phase === 'writing') {
       const counts = {};
-      for (const id of r.roster) counts[id] = r.game === 'kimyazdi' ? 0 : (r.drafts[id] || []).length;
-      pub.writing = { counts, done: r.done };
+      for (const id of r.roster) counts[id] = r.game === 'kimyazdi' ? 0 : (r.drafts[id] || []).filter(Boolean).length;
+      pub.writing = { counts, done: r.done, prompts: r.prompts || null };
       pub.me = { drafts: r.drafts[pid] || [] };
     } else if (S.phase === 'answering') {
       // Kim Yazdı? is all about the author being secret — never send it here.
@@ -870,6 +974,15 @@ const Host = {
       }
       pub.progress = progress;
       pub.me = { answered: Object.keys(r.answered[pid] || {}) };
+      if (r.game === 'komik') {
+        // Answers go out without their authors; each player only learns which one is theirs.
+        pub.questions = r.questions.map((q) => ({ id: q.id, text: q.text, answers: q.answers.map((a) => ({ aid: a.aid, text: a.text })) }));
+        pub.me.own = {};
+        for (const q of r.questions) {
+          const mine = q.answers.find((a) => a.author === pid);
+          if (mine) pub.me.own[q.id] = mine.aid;
+        }
+      }
     } else if (S.phase === 'results') {
       const item = { ...r.results[r.revealIndex] };
       if (r.game !== 'kimyazdi' && !r.cfg.showAuthor) delete item.author;
@@ -915,12 +1028,10 @@ function settingDefs(game) {
   return GAMES[game].defs.concat(COMMON_DEFS);
 }
 
-function sanitizeDrafts(list, max) {
+function sanitizeDrafts(list, max, keepSlots = false) {
   if (!Array.isArray(list)) return [];
-  return list
-    .slice(0, max)
-    .map((x) => String(x ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_Q_LEN))
-    .filter(Boolean);
+  const out = list.slice(0, max).map((x) => String(x ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_Q_LEN));
+  return keepSlots ? out : out.filter(Boolean);
 }
 
 function computeResults(r, settings) {
@@ -972,6 +1083,64 @@ function computeFinal(r) {
     questionCount: r.results.length,
     totalVotes,
     recap: r.results.map((res) => ({ text: res.text, winners: res.winners, top: res.bars[0] ? res.bars[0].count : 0, total: res.total })),
+  };
+}
+
+/* ---------- Komik Cevap ---------- */
+
+function computeKomikResults(r) {
+  const score = {};
+  for (const id of r.roster) score[id] = 0;
+  return r.questions.map((q) => {
+    const voters = {};
+    for (const a of q.answers) voters[a.aid] = [];
+    for (const [voter, aid] of Object.entries(r.votes[q.id] || {})) {
+      if (voters[aid]) voters[aid].push(voter);
+    }
+    const bars = q.answers
+      .map((a) => ({ aid: a.aid, author: a.author, text: a.text, count: voters[a.aid].length, voters: r.cfg.showVoters ? voters[a.aid] : null }))
+      .sort((a, b) => b.count - a.count);
+    const total = bars.reduce((x, b) => x + b.count, 0);
+    const max = bars.length ? bars[0].count : 0;
+    const winners = max > 0 ? bars.filter((b) => b.count === max).map((b) => b.aid) : [];
+    const sweep = total >= 2 && bars[0].count === total ? bars[0].aid : null;
+    const delta = {};
+    for (const b of bars) if (b.count) delta[b.author] = (delta[b.author] || 0) + b.count * KOMIK_VOTE_POINTS;
+    if (sweep) delta[bars[0].author] += KOMIK_SWEEP_BONUS;
+    for (const id of Object.keys(delta)) score[id] += delta[id];
+    return { qid: q.id, text: q.text, total, bars, winners, sweep, delta, scores: { ...score } };
+  });
+}
+
+function computeKomikFinal(r) {
+  const scores = {};
+  const votes = {};
+  const wins = {};
+  for (const id of r.roster) { scores[id] = 0; votes[id] = 0; wins[id] = 0; }
+  const last = r.results[r.results.length - 1];
+  if (last) Object.assign(scores, last.scores);
+  let best = null;
+  let sweeps = 0;
+  for (const res of r.results) {
+    for (const b of res.bars) {
+      votes[b.author] += b.count;
+      if (res.winners.includes(b.aid)) wins[b.author]++;
+      if (b.count > 0 && (!best || b.count > best.count)) best = { prompt: res.text, text: b.text, author: b.author, count: b.count };
+    }
+    if (res.sweep) sweeps++;
+  }
+  return {
+    ranking: r.roster.slice().sort((a, b) => scores[b] - scores[a] || votes[b] - votes[a]),
+    scores,
+    votes,
+    wins,
+    best,
+    sweeps,
+    count: r.results.length,
+    recap: r.results.map((res) => {
+      const top = res.bars.filter((b) => res.winners.includes(b.aid));
+      return { prompt: res.text, answers: top.map((b) => ({ text: b.text, author: b.author })), count: top.length ? top[0].count : 0, total: res.total };
+    }),
   };
 }
 
@@ -1515,6 +1684,18 @@ const GAME_UI = {
     skip: '⏭ Tahminleri bitir, sonuçlara geç',
     doneAll: 'Hepsini tahmin ettin!',
   },
+  komik: {
+    writeTitle: 'Komik cevaplarını yaz! 😂',
+    writeHint: (n) => n + ' soruya da en komik cevabını yaz. Cevaplar isimsiz oylanacak!',
+    writeTimer: 'Cevap yazma süresi',
+    progressTitle: 'Kim kaç cevap yazdı?',
+    placeholders: ['En komik cevabın…'],
+    itemWord: 'Soru',
+    ask: 'En komik cevap hangisi? 😂',
+    pass: '🤷 Hiçbiri',
+    skip: '⏭ Oylamayı bitir, sonuçlara geç',
+    doneAll: 'Hepsini oyladın!',
+  },
   asla: {
     writeTitle: 'Asla yapmadım! 🙊',
     writeHint: (n) => 'Hiç yapmadığın ama başkalarının yapmış olabileceği ' + n + ' şey yaz. Örn: "Hiç uçağa binmedim". Takılırsan 🎲 bas.',
@@ -1539,15 +1720,20 @@ Views.writing = {
   mount(s) {
     App.wDone = false;
     const U = ui();
-    const n = s.settings.qPerPlayer;
+    const prompts = s.game === 'komik' ? s.writing.prompts : null;
+    const n = prompts ? prompts.length : s.settings.qPerPlayer;
     const saved = (s.me && s.me.drafts) || [];
     const local = (App.wDrafts && App.wDrafts.roundId === s.roundId) ? App.wDrafts.list : [];
     const rows = [];
     for (let i = 0; i < n; i++) {
       const val = local[i] ?? saved[i] ?? '';
-      rows.push('<div class="qrow"><span class="num">' + (i + 1) + '</span>' +
-        '<input class="field q-input grow" data-i="' + i + '" maxlength="' + MAX_Q_LEN + '" placeholder="' + esc(U.placeholders[i % U.placeholders.length]) + '" value="' + esc(val) + '" autocomplete="off">' +
-        '<button class="dice" data-act="dice" data-i="' + i + '" title="' + esc(U.diceTitle) + '">🎲</button></div>');
+      const input = '<input class="field q-input grow" data-i="' + i + '" maxlength="' + MAX_Q_LEN + '" placeholder="' + esc(U.placeholders[i % U.placeholders.length]) + '" value="' + esc(val) + '" autocomplete="off">';
+      if (prompts) {
+        rows.push('<div class="prow"><div class="ptext"><span class="num">' + (i + 1) + '</span><span>' + promptHTML(prompts[i]) + '</span></div>' + input + '</div>');
+      } else {
+        rows.push('<div class="qrow"><span class="num">' + (i + 1) + '</span>' + input +
+          '<button class="dice" data-act="dice" data-i="' + i + '" title="' + esc(U.diceTitle) + '">🎲</button></div>');
+      }
     }
     mount(
       header() +
@@ -1563,7 +1749,7 @@ Views.writing = {
     if (first && window.matchMedia('(pointer:fine)').matches) first.focus();
   },
   update(s) {
-    const n = s.settings.qPerPlayer;
+    const n = s.writing.prompts ? s.writing.prompts.length : s.settings.qPerPlayer;
     $('#wprog').innerHTML = s.roster.map((id) => {
       const p = nameOf(id);
       const live = s.players.find((x) => x.id === id);
@@ -1573,6 +1759,11 @@ Views.writing = {
     }).join('');
   },
 };
+
+// Prompts carry a "___" blank; draw it as a highlighted gap.
+function promptHTML(text) {
+  return esc(text).replace('___', '<span class="blank"></span>');
+}
 
 function collectDrafts() {
   return $$('.q-input').map((x) => x.value);
@@ -1661,7 +1852,13 @@ function showNextQuestion() {
   const ky = s.game === 'kimyazdi';
   const asla = s.game === 'asla';
   const options = s.roster.filter((id) => id !== s.you || (!ky && s.settings.selfVote));
-  const choices = asla
+  const komik = s.game === 'komik';
+  const own = komik && s.me && s.me.own ? s.me.own[q.id] : null;
+  const choices = komik
+    ? '<div class="answers">' + q.answers.map((a) => a.aid === own
+        ? '<div class="ansb mine">' + esc(a.text) + '<small>senin cevabın</small></div>'
+        : '<button class="ansb" data-act="vote" data-id="' + esc(a.aid) + '">' + esc(a.text) + '</button>').join('') + '</div>'
+    : asla
     ? '<div class="yn">' +
         '<button class="ynb yes" data-act="vote" data-id="yes"><span>✋</span>Ben yaptım</button>' +
         '<button class="ynb no" data-act="vote" data-id="no"><span>😇</span>Hiç yapmadım</button>' +
@@ -1674,7 +1871,7 @@ function showNextQuestion() {
     '<div class="card qcard"><div class="meta">' + esc(U.itemWord) + ' ' + (idx + 1) + ' / ' + total + '</div>' +
       '<div class="minibar"><i style="width:' + (A.answered.size / total * 100) + '%"></i></div>' +
       (U.ask ? '<div class="ask">' + esc(U.ask) + '</div>' : '') +
-      '<div class="qtext">' + (ky ? '“' + esc(q.text) + '”' : esc(q.text)) + '</div>' +
+      '<div class="qtext">' + (ky ? '“' + esc(q.text) + '”' : komik ? promptHTML(q.text) : esc(q.text)) + '</div>' +
       (by ? '<div class="by">' + esc(by.av) + ' ' + esc(by.name) + ' ' + (U.byWord || 'sordu') + '</div>' : '') +
     '</div>' +
     choices +
@@ -1717,6 +1914,7 @@ Views.results = {
   mount(s) {
     if (s.game === 'kimyazdi') kyResultsMount(s);
     else if (s.game === 'asla') aslaResultsMount(s);
+    else if (s.game === 'komik') komikResultsMount(s);
     else hangimizResultsMount(s);
     // setTimeout (not rAF) so it also runs while the tab is in the background.
     setTimeout(() => {
@@ -1777,6 +1975,49 @@ function hangimizResultsMount(s) {
         body +
       '</div>' + C.ctrl
     );
+}
+
+function komikResultsMount(s) {
+  const R = s.reveal;
+  const it = R.item;
+  const max = it.bars.length ? Math.max(1, it.bars[0].count) : 1;
+  const answers = it.bars.map((b) => {
+    const p = nameOf(b.author);
+    const win = it.winners.includes(b.aid);
+    const voters = b.voters && b.voters.length ? '<div class="voters">' + b.voters.map((v) => esc(nameOf(v).name)).join(', ') + '</div>' : '';
+    return '<div class="kans ' + (win ? 'win' : '') + '">' +
+      '<div class="ktext">' + (win ? '<span class="crown">👑</span> ' : '') + esc(b.text) + '</div>' +
+      '<div class="late kwho">' + avatarHTML(p, 'sm') + '<b>' + esc(p.name) + '</b><span class="kv">' + b.count + ' oy</span></div>' +
+      '<div class="track"><i style="--c:' + esc(p.col) + '" data-w="' + (b.count / max * 100) + '"></i></div>' + voters +
+    '</div>';
+  }).join('');
+
+  let verdict;
+  if (!it.total) verdict = 'Kimse oy vermedi 🤷';
+  else if (it.sweep) verdict = '💯 Herkes aynı cevabı seçti! +' + KOMIK_SWEEP_BONUS + ' bonus';
+  else if (it.winners.length > 1) verdict = '🤝 Berabere!';
+  else verdict = '😂 ' + nameOf(it.bars[0].author).name + ' kazandı!';
+
+  const points = Object.entries(it.delta).sort((a, b) => b[1] - a[1])
+    .map(([id, d]) => '<span class="pt">' + esc(nameOf(id).name) + ' <b>+' + d + '</b></span>').join('');
+  const board = s.roster.slice().sort((a, b) => it.scores[b] - it.scores[a]).map((id, i) => {
+    const d = it.delta[id];
+    return '<div class="srow"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) + '</span>' +
+      (d ? '<span class="dl">+' + d + '</span>' : '') + '<b>' + it.scores[id] + '</b></div>';
+  }).join('');
+
+  const C = revealChrome(s);
+  mount(
+    C.top +
+    '<div class="card rescard" id="rescard"><div class="meta">Soru ' + (R.index + 1) + ' / ' + R.total + '</div>' +
+      '<div class="qtext">' + promptHTML(it.text) + '</div>' +
+      '<div class="kanswers">' + answers + '</div>' +
+      '<div class="winline">' + esc(verdict) + '</div>' +
+      (points ? '<div class="pts late">' + points + '</div>' : '') +
+    '</div>' +
+    '<div class="card late"><h2>Puan durumu</h2><div class="board">' + board + '</div></div>' +
+    C.ctrl
+  );
 }
 
 function aslaResultsMount(s) {
@@ -1878,6 +2119,7 @@ Views.final = {
   mount(s) {
     if (s.game === 'kimyazdi') kyFinalMount(s);
     else if (s.game === 'asla') aslaFinalMount(s);
+    else if (s.game === 'komik') komikFinalMount(s);
     else hangimizFinalMount(s);
     confetti();
     Sound.fanfare();
@@ -1938,6 +2180,42 @@ function kyFinalMount(s) {
       '<p class="muted" style="margin:10px 0 0;font-size:14px">Doğru tahmin: +' + KY_CORRECT_POINTS + ' puan · Seni bilemeyen her kişi için: +' + KY_FOOL_POINTS + ' puan</p></div>' +
     '<div class="card"><h2>Sayılarla bu tur</h2>' + statsHTML(stats) + '</div>' +
     '<div class="card"><h2>Bütün itiraflar</h2><div class="recap">' + recap + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
+function komikFinalMount(s) {
+  const F = s.final;
+  const lead = F.ranking[0];
+  const champs = F.ranking.filter((id) => F.scores[id] === F.scores[lead]);
+  let headline;
+  if (!F.scores[lead]) headline = '<h1>Kimse oy almadı 😅</h1><p>Bir dahaki sefere daha komik olun!</p>';
+  else if (champs.length > 1) headline = '<h1>🤝 Berabere!</h1><p>' + esc(champs.map((id) => nameOf(id).name).join(' & ')) + ' eşit puan topladı.</p>';
+  else headline = '<h1>' + esc(nameOf(lead).av) + ' ' + esc(nameOf(lead).name) + ' en komik!</h1><p>' + F.scores[lead] + ' puanla turun şampiyonu 😂</p>';
+
+  const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.votes[id] + ' oy · ' + F.wins[id] + ' kez en komik</small></span><b>' + F.scores[id] + '</b></div>').join('');
+
+  const best = F.best
+    ? '<div class="card"><h2>Turun en komik cevabı 🏆</h2><div class="bestq">' + promptHTML(F.best.prompt) + '</div>' +
+      '<div class="besta">“' + esc(F.best.text) + '”</div><div class="center muted"><b>' + esc(nameOf(F.best.author).name) + '</b> · ' + F.best.count + ' oy</div></div>'
+    : '';
+
+  const stats = [['📝', F.count, 'soru soruldu'], ['💯', F.sweeps, 'soruda herkes aynı cevabı seçti']];
+
+  const recap = F.recap.map((r) => '<div><span class="q">' + promptHTML(r.prompt) + '</span><span class="w">' +
+    (r.answers.length ? r.answers.map((a) => '“' + esc(a.text) + '” (' + esc(nameOf(a.author).name) + ')').join(' & ') : '—') + '</span></div>').join('');
+
+  mount(
+    header() +
+    '<div class="phase-title">' + headline + '</div>' +
+    podiumHTML(F.ranking, (id) => F.scores[id] + ' puan') +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Aldığın her oy: +' + KOMIK_VOTE_POINTS + ' puan · Herkes seni seçerse: +' + KOMIK_SWEEP_BONUS + ' bonus</p></div>' +
+    best +
+    '<div class="card"><h2>Sayılarla bu tur</h2>' + statsHTML(stats) + '</div>' +
+    '<div class="card"><h2>Kazanan cevaplar</h2><div class="recap">' + recap + '</div></div>' +
     finalFooter(),
     true
   );

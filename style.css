@@ -430,3 +430,38 @@ button.gcard:not(:disabled):hover { transform: translateY(-2px); border-color: #
 .ynlists { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
 .ynlists h3 { margin: 0 0 6px; font-size: 16px; }
 @media (max-width: 420px) { .ynlists { grid-template-columns: 1fr; } }
+
+/* ---------- Komik Cevap ---------- */
+.blank { display: inline-block; width: 3.2em; height: .9em; border-bottom: 4px solid var(--accent); vertical-align: baseline; }
+.prow { display: grid; gap: 8px; padding-bottom: 12px; border-bottom: 2px dashed var(--line); }
+.prow:last-child { border-bottom: 0; padding-bottom: 0; }
+.ptext { display: flex; gap: 10px; align-items: flex-start; font-weight: 800; font-size: 18px; line-height: 1.25; }
+.ptext .num {
+  flex: none; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
+  display: grid; place-items: center; font-size: 15px;
+}
+.answers { display: grid; gap: 10px; }
+.ansb {
+  border: 0; border-radius: 18px; background: #fff; padding: 14px 16px; font-size: 19px; font-weight: 700; text-align: left;
+  box-shadow: var(--shadow); transition: transform .1s; word-break: break-word;
+}
+button.ansb:hover { transform: translateY(-2px); }
+button.ansb:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(30,10,80,.18); }
+.ansb.picked { background: var(--accent); }
+.ansb.mine { background: rgba(255,255,255,.55); color: var(--muted); box-shadow: none; border: 2px dashed rgba(255,255,255,.8); }
+.ansb.mine small { display: block; font-size: 13px; font-weight: 700; margin-top: 2px; }
+.kanswers { display: grid; gap: 10px; margin-top: 14px; }
+.kans { background: var(--soft); border-radius: 16px; padding: 10px 12px; }
+.kans { transition: background .4s ease 1.2s; }
+.revealed .kans.win { background: #fff4cc; }
+.ktext { font-size: 19px; font-weight: 800; line-height: 1.25; word-break: break-word; }
+.kwho { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.kwho .kv { margin-left: auto; font-weight: 800; color: var(--purple); }
+.kans .track { margin-top: 6px; height: 12px; background: #fff; border-radius: 999px; overflow: hidden; }
+.kans .track i {
+  display: block; height: 100%; width: 0; border-radius: 999px; background: var(--c, var(--purple));
+  transition: width 1s cubic-bezier(.2,.9,.3,1);
+}
+.kans .voters { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.bestq { text-align: center; font-weight: 700; color: var(--muted); }
+.besta { text-align: center; font-size: 26px; font-weight: 800; line-height: 1.2; margin: 6px 0; word-break: break-word; }
