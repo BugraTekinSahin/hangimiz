@@ -84,9 +84,38 @@ const GAMES = {
       { key: 'showVoters', label: 'Kim kime oy verdi görünsün', type: 'bool', def: true },
     ],
   },
+  yalanci: {
+    name: 'Yalancıyı Bul',
+    emoji: '🤥',
+    desc: 'Herkes gizli kelimeyi bilir, biri hariç! Sırayla ipucu verin, yalancıyı yakalayın.',
+    minPlayers: 3,
+    hideCommon: ['revealMode'],
+    defs: [
+      { key: 'category', label: 'Kategori', type: 'choice', def: 'mix', options: [['mix', 'Karışık'], ['yer', 'Yerler'], ['yemek', 'Yiyecekler'], ['hayvan', 'Hayvanlar'], ['meslek', 'Meslekler'], ['esya', 'Eşyalar'], ['hobi', 'Spor & Hobi']] },
+      { key: 'clueRounds', label: 'İpucu turu', type: 'num', def: 2, min: 1, max: 3, step: 1, unit: 'tur' },
+      { key: 'clueTime', label: 'İpucu süresi', type: 'num', def: 30, min: 10, max: 90, step: 5, unit: 'sn' },
+      { key: 'voteTime', label: 'Oylama süresi', type: 'num', def: 45, min: 15, max: 120, step: 5, unit: 'sn' },
+      { key: 'showCategory', label: 'Yalancı kategoriyi görsün', type: 'bool', def: true },
+    ],
+  },
 };
-const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik'];
-const COMING_SOON = [['🤥', 'Yalancıyı Bul']];
+const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci'];
+const COMING_SOON = [];
+
+const LIE_ROLE_MS = 20000;      // time to read the secret card
+const LIE_CATCH_POINTS = 100;   // per player who voted for the liar
+const LIE_ESCAPE_POINTS = 200;  // liar not caught
+const LIE_GUESS_POINTS = 100;   // liar guessed the word
+const LIE_MAX_CLUE = 40;
+
+const LIE_WORDS = {
+  yer: { name: 'Yerler', words: ['Plaj', 'Hastane', 'Okul', 'Sinema', 'Havalimanı', 'Süpermarket', 'Kütüphane', 'Hayvanat bahçesi', 'Uzay istasyonu', 'Lunapark', 'Restoran', 'Kamp alanı', 'Müze', 'Spor salonu', 'Berber', 'Tren', 'Gemi', 'Kale', 'Çiftlik', 'Düğün salonu', 'Otel', 'Banka', 'Karakol'] },
+  yemek: { name: 'Yiyecekler', words: ['Pizza', 'Lahmacun', 'Mantı', 'Sushi', 'Hamburger', 'Baklava', 'Dondurma', 'Döner', 'Kumpir', 'Menemen', 'Simit', 'Pilav', 'Çorba', 'Patlamış mısır', 'Çikolata', 'Karpuz', 'Köfte', 'İskender', 'Waffle', 'Makarna'] },
+  hayvan: { name: 'Hayvanlar', words: ['Kedi', 'Köpek', 'Penguen', 'Zürafa', 'Fil', 'Aslan', 'Yunus', 'Kartal', 'Tavşan', 'Kaplumbağa', 'Ahtapot', 'Maymun', 'Timsah', 'Baykuş', 'Arı', 'Köpekbalığı', 'At', 'Panda', 'Koala', 'Deve'] },
+  meslek: { name: 'Meslekler', words: ['Doktor', 'Öğretmen', 'Aşçı', 'Pilot', 'Polis', 'İtfaiyeci', 'Astronot', 'Berber', 'Futbolcu', 'YouTuber', 'Avukat', 'Garson', 'Ressam', 'Dişçi', 'Şoför', 'Çiftçi', 'Mühendis', 'Hemşire', 'Postacı', 'Sihirbaz'] },
+  esya: { name: 'Eşyalar', words: ['Telefon', 'Şemsiye', 'Diş fırçası', 'Kulaklık', 'Gözlük', 'Saat', 'Sırt çantası', 'Anahtar', 'Yastık', 'Ayna', 'Makas', 'Kumanda', 'Mum', 'Termos', 'Bisiklet', 'Kamera', 'Cüzdan', 'Şarj aleti', 'Tava', 'Balon'] },
+  hobi: { name: 'Spor & Hobi', words: ['Futbol', 'Basketbol', 'Yüzme', 'Satranç', 'Kayak', 'Bowling', 'Gitar çalmak', 'Resim yapmak', 'Kamp yapmak', 'Dans', 'Boks', 'Tenis', 'Okçuluk', 'Yoga', 'Balık tutmak', 'Bilardo', 'Kaykay', 'Örgü örmek', 'Dağcılık', 'Voleybol'] },
+};
 
 const KOMIK_VOTE_POINTS = 100;   // per vote your answer gets
 const KOMIK_SWEEP_BONUS = 100;   // everyone who voted picked your answer
@@ -610,6 +639,39 @@ const Host = {
         if (this.allWritersDone()) this.endWriting();
         return;
 
+      case 'lready':
+        if (S.phase !== 'lie' || r.step !== 'roles' || !r.roster.includes(pid)) return;
+        r.ready[pid] = true;
+        if (r.roster.filter((id) => this.lieLive(id)).every((id) => r.ready[id])) this.lieStartClues();
+        else this.changed();
+        return;
+
+      case 'clue': {
+        if (S.phase !== 'lie' || r.step !== 'clues' || pid !== this.lieCurrent()) return;
+        const text = String(msg.text ?? '').replace(/\s+/g, ' ').trim().slice(0, LIE_MAX_CLUE);
+        if (!text) return;
+        r.clues.push({ by: pid, text });
+        r.turn++;
+        this.lieBeginTurn();
+        return;
+      }
+
+      case 'lvote': {
+        if (S.phase !== 'lie' || r.step !== 'vote' || !r.roster.includes(pid) || pid === r.liar || r.lvotes[pid]) return;
+        const target = String(msg.target || '');
+        if (!r.roster.includes(target) || target === pid) return;
+        r.lvotes[pid] = target;
+        if (this.lieAllVoted()) this.lieFinish(); else this.changed();
+        return;
+      }
+
+      case 'lguess':
+        if (S.phase !== 'lie' || r.step !== 'vote' || pid !== r.liar || r.guess !== null) return;
+        if (!r.options.includes(msg.word)) return;
+        r.guess = msg.word;
+        if (this.lieAllVoted()) this.lieFinish(); else this.changed();
+        return;
+
       case 'vote': {
         if (S.phase !== 'answering' || !r || !r.roster.includes(pid)) return;
         const q = r.questions.find((x) => x.id === msg.qid);
@@ -666,6 +728,12 @@ const Host = {
       case 'skip':
         if (S.phase === 'writing') this.endWriting();
         else if (S.phase === 'answering') this.endAnswering();
+        else if (S.phase === 'lie') this.lieTimeout();
+        return;
+      case 'lieReset':
+        S.lieTotals = {};
+        if (r && r.final && r.final.totals) for (const id of Object.keys(r.final.totals)) r.final.totals[id] = 0;
+        this.changed();
         return;
       case 'next':
         if (S.phase === 'results') this.nextReveal();
@@ -745,8 +813,116 @@ const Host = {
       S.round.stage = 'answers';
       S.round.prompts = shuffle(KOMIK_PROMPTS).slice(0, cfg.qPerPlayer).map((text) => ({ text, author: null }));
     }
+    if (S.game === 'yalanci') this.setupLie(S.round, now);
     for (const id of S.order) S.players[id].ready = false;
-    S.phase = 'writing';
+    S.phase = S.game === 'yalanci' ? 'lie' : 'writing';
+    this.changed();
+  },
+
+  /* ---------- Yalancıyı Bul ---------- */
+
+  setupLie(r, now) {
+    const keys = Object.keys(LIE_WORDS);
+    const cat = r.cfg.category === 'mix' ? keys[Math.floor(Math.random() * keys.length)] : r.cfg.category;
+    const words = LIE_WORDS[cat].words;
+    const word = words[Math.floor(Math.random() * words.length)];
+    Object.assign(r, {
+      liar: r.roster[Math.floor(Math.random() * r.roster.length)],
+      category: LIE_WORDS[cat].name,
+      word,
+      options: shuffle([word, ...shuffle(words.filter((w) => w !== word)).slice(0, 7)]),
+      order: shuffle(r.roster),
+      turn: 0,
+      totalTurns: r.cfg.clueRounds * r.roster.length,
+      clues: [],
+      ready: {},
+      lvotes: {},
+      guess: null,
+      step: 'roles',
+      deadline: now + LIE_ROLE_MS,
+      deadlineTotal: LIE_ROLE_MS,
+    });
+  },
+
+  lieCurrent() {
+    const r = this.S.round;
+    return r.order[r.turn % r.order.length];
+  },
+
+  lieLive(id) {
+    return !!(this.S.players[id] && this.S.players[id].connected);
+  },
+
+  lieStartClues() {
+    const r = this.S.round;
+    r.step = 'clues';
+    r.turn = 0;
+    this.lieBeginTurn();
+  },
+
+  lieBeginTurn() {
+    const r = this.S.round;
+    // Players who dropped out lose their turn instead of stalling everyone.
+    while (r.turn < r.totalTurns && !this.lieLive(this.lieCurrent())) {
+      r.clues.push({ by: this.lieCurrent(), text: null, why: 'off' });
+      r.turn++;
+    }
+    if (r.turn >= r.totalTurns) { this.lieStartVote(); return; }
+    r.deadline = Date.now() + r.cfg.clueTime * 1000;
+    r.deadlineTotal = r.cfg.clueTime * 1000;
+    this.changed();
+  },
+
+  lieStartVote() {
+    const r = this.S.round;
+    r.step = 'vote';
+    r.deadline = Date.now() + r.cfg.voteTime * 1000;
+    r.deadlineTotal = r.cfg.voteTime * 1000;
+    this.changed();
+  },
+
+  lieAllVoted() {
+    const r = this.S.round;
+    const live = r.roster.filter((id) => this.lieLive(id));
+    return live.length > 0 && live.every((id) => (id === r.liar ? r.guess !== null : !!r.lvotes[id]));
+  },
+
+  lieTimeout() {
+    const r = this.S.round;
+    if (r.step === 'roles') this.lieStartClues();
+    else if (r.step === 'clues') {
+      r.clues.push({ by: this.lieCurrent(), text: null, why: 'time' });
+      r.turn++;
+      this.lieBeginTurn();
+    } else if (r.step === 'vote') this.lieFinish();
+  },
+
+  lieFinish() {
+    const S = this.S;
+    const r = S.round;
+    if (S.phase !== 'lie') return;
+    const counts = {};
+    for (const id of r.roster) counts[id] = 0;
+    for (const target of Object.values(r.lvotes)) if (counts[target] !== undefined) counts[target]++;
+    const max = Math.max(0, ...Object.values(counts));
+    const leaders = max > 0 ? r.roster.filter((id) => counts[id] === max) : [];
+    const caught = leaders.length === 1 && leaders[0] === r.liar;
+    const guessedRight = r.guess === r.word;
+    const delta = {};
+    const add = (id, n) => { delta[id] = (delta[id] || 0) + n; };
+    for (const [voter, target] of Object.entries(r.lvotes)) if (target === r.liar) add(voter, LIE_CATCH_POINTS);
+    if (!caught) add(r.liar, LIE_ESCAPE_POINTS);
+    if (guessedRight) add(r.liar, LIE_GUESS_POINTS);
+    S.lieTotals = S.lieTotals || {};
+    for (const id of Object.keys(delta)) S.lieTotals[id] = (S.lieTotals[id] || 0) + delta[id];
+    const totals = {};
+    for (const id of r.roster) totals[id] = S.lieTotals[id] || 0;
+    r.final = {
+      liar: r.liar, word: r.word, category: r.category, guess: r.guess, guessedRight, caught,
+      votes: r.lvotes, counts, leaders, delta, clues: r.clues, order: r.order, totals,
+    };
+    S.phase = 'final';
+    r.deadline = null;
     this.changed();
   },
 
@@ -947,6 +1123,12 @@ const Host = {
       if (S.phase === 'writing' && now >= r.deadline + WRITE_GRACE_MS) this.endWriting();
       else if (S.phase === 'answering' && now >= r.deadline) this.endAnswering();
       else if (S.phase === 'results' && now >= r.deadline) this.nextReveal();
+      else if (S.phase === 'lie' && now >= r.deadline) this.lieTimeout();
+    }
+    if (S.phase === 'lie' && r) {
+      if (r.step === 'clues' && !this.lieLive(this.lieCurrent())) this.lieBeginTurn();
+      else if (r.step === 'vote' && this.lieAllVoted()) this.lieFinish();
+      else if (r.step === 'roles' && r.roster.filter((id) => this.lieLive(id)).every((id) => r.ready[id])) this.lieStartClues();
     }
     // Disconnected players must not hold the round hostage.
     if (S.phase === 'writing' && r && this.allWritersDone()) this.endWriting();
@@ -1041,6 +1223,27 @@ const Host = {
       const item = { ...r.results[r.revealIndex] };
       if (r.game !== 'kimyazdi' && !r.cfg.showAuthor) delete item.author;
       pub.reveal = { index: r.revealIndex, total: r.results.length, item };
+    } else if (S.phase === 'lie') {
+      // Only the liar learns they are the liar; everyone else gets the word.
+      const liar = pid === r.liar;
+      const voted = {};
+      for (const id of r.roster) voted[id] = id === r.liar ? r.guess !== null : !!r.lvotes[id];
+      pub.lie = {
+        step: r.step,
+        amLiar: liar,
+        word: liar ? null : r.word,
+        category: !liar || r.cfg.showCategory ? r.category : null,
+        order: r.order,
+        turn: r.turn,
+        totalTurns: r.totalTurns,
+        current: r.step === 'clues' ? this.lieCurrent() : null,
+        clues: r.clues,
+        ready: r.ready,
+        voted,
+        myVote: r.lvotes[pid] || null,
+        myGuess: liar ? r.guess : null,
+        options: liar && r.step === 'vote' ? r.options : null,
+      };
     } else if (S.phase === 'final') {
       pub.final = r.final;
     }
@@ -1079,7 +1282,8 @@ function mergedSettings(tree, game) {
 }
 
 function settingDefs(game) {
-  return GAMES[game].defs.concat(COMMON_DEFS);
+  const hidden = GAMES[game].hideCommon || [];
+  return GAMES[game].defs.concat(COMMON_DEFS.filter((d) => !hidden.includes(d.key)));
 }
 
 function sanitizeDrafts(list, max, keepSlots = false) {
@@ -1570,7 +1774,7 @@ function onState(s) {
   myId = s.you;
   store.set('hz-id', myId, true);
 
-  const dKey = s.phase + ':' + (s.roundId || '') + ':' + (s.reveal ? s.reveal.index : '');
+  const dKey = s.phase + ':' + (s.roundId || '') + ':' + (s.reveal ? s.reveal.index : '') + ':' + (s.lie ? s.lie.step + s.lie.turn : '');
   if (s.left == null) {
     App.deadline = null;
   } else {
@@ -1605,9 +1809,11 @@ function render() {
   if (!s) return;
   const inRound = !!(s.roster && s.roster.includes(s.you));
   let screen = s.phase;
-  if ((s.phase === 'writing' || s.phase === 'answering') && !inRound) screen = 'spectate';
+  if ((s.phase === 'writing' || s.phase === 'answering' || s.phase === 'lie') && !inRound) screen = 'spectate';
+  if (screen === 'lie') screen = 'lie:' + s.lie.step;
   let key = screen + ':' + (s.roundId || '');
   if (screen === 'results') key += ':' + s.reveal.index;
+  if (screen === 'lie:clues') key += ':' + s.lie.turn;
   if (screen === 'writing' && s.writing.stage) key += ':' + s.writing.stage;
 
   const fresh = key !== App.screenKey;
@@ -1684,7 +1890,8 @@ function gamePickerHTML(current, editable) {
       '<small>' + esc(g.desc) + '</small><small class="gmin">En az ' + g.minPlayers + ' kişi</small></span>' + (on ? '<span class="gcheck">✓</span>' : '') + '</button>';
   });
   const soon = COMING_SOON.map((x) => '<div class="gcard soon"><span class="ge">' + x[0] + '</span><span class="gb"><b>' + esc(x[1]) + '</b><small>Yakında…</small></span></div>');
-  return '<div class="games">' + cards.concat(soon).join('') + '</div>';
+  // In the lobby (a game is selected) phones get a compact two-column list.
+  return '<div class="games' + (current ? ' compact' : '') + '">' + cards.concat(soon).join('') + '</div>';
 }
 
 function settingsHTML(set, editable, game) {
@@ -1703,7 +1910,9 @@ function settingsHTML(set, editable, game) {
         : '<b>' + (v ? 'Evet' : 'Hayır') + '</b>';
     } else {
       ctrl = editable
-        ? '<div class="seg">' + d.options.map((o) => '<button class="' + (o[0] === v ? 'on' : '') + '" data-act="set" data-k="' + d.key + '" data-v="' + o[0] + '">' + esc(o[1]) + '</button>').join('') + '</div>'
+        ? (d.options.length > 3
+          ? '<select class="sel" data-setk="' + d.key + '">' + d.options.map((o) => '<option value="' + o[0] + '"' + (o[0] === v ? ' selected' : '') + '>' + esc(o[1]) + '</option>').join('') + '</select>'
+          : '<div class="seg">' + d.options.map((o) => '<button class="' + (o[0] === v ? 'on' : '') + '" data-act="set" data-k="' + d.key + '" data-v="' + o[0] + '">' + esc(o[1]) + '</button>').join('') + '</div>')
         : '<b>' + esc((d.options.find((o) => o[0] === v) || d.options[0])[1]) + '</b>';
     }
     return '<div class="set"><span class="k">' + esc(d.label) + '</span>' + ctrl + '</div>';
@@ -1982,6 +2191,170 @@ function castVote(target, btn) {
   setTimeout(showNextQuestion, btn ? 220 : 0);
 }
 
+/* ---------- Yalancıyı Bul ---------- */
+
+// The secret card. It starts covered so nobody reads it over your shoulder.
+function roleCardHTML(L, open) {
+  const body = L.amLiar
+    ? '<div class="rc-emoji">🤥</div><div class="rc-title">Sen YALANCISIN!</div>' +
+      '<div class="rc-sub">Gizli kelimeyi bilmiyorsun.' + (L.category ? ' Kategori: <b>' + esc(L.category) + '</b>' : '') + '</div>' +
+      '<div class="rc-tip">İpuçlarından kelimeyi çözmeye çalış ve belli etme!</div>'
+    : '<div class="rc-label">Gizli kelime</div><div class="rc-word">' + esc(L.word) + '</div>' +
+      '<div class="rc-sub">Kategori: <b>' + esc(L.category) + '</b></div>' +
+      '<div class="rc-tip">Aranızda bir yalancı var. Kelimeyi belli etmeden ipucu ver!</div>';
+  return '<div id="rolecard" class="rolecard ' + (L.amLiar ? 'liar' : 'word') + (open ? '' : ' hidden') + '" data-act="peek">' +
+    '<div class="rc-cover">🔒 Kartını görmek için dokun</div><div class="rc-body">' + body + '<div class="rc-hide">gizlemek için dokun</div></div></div>';
+}
+
+function clueBoardHTML(s) {
+  const L = s.lie;
+  const rows = L.order.map((id) => {
+    const p = nameOf(id);
+    const mine = L.clues.filter((c) => c.by === id);
+    const chips = mine.map((c) => c.text
+      ? '<span class="tchip">' + esc(c.text) + '</span>'
+      : '<span class="tchip muted">' + (c.why === 'off' ? '🔌 yok' : '⏰ süre doldu') + '</span>').join('');
+    const now = L.current === id;
+    return '<div class="clrow ' + (now ? 'now' : '') + '">' + avatarHTML(p, 'sm') + '<div class="body"><b>' + esc(p.name) + '</b>' +
+      (now ? ' <span class="muted">düşünüyor… ✍️</span>' : '') + '<div class="tchips">' + chips + '</div></div></div>';
+  }).join('');
+  return '<div class="card"><h2>İpuçları</h2><div class="clues">' + rows + '</div></div>';
+}
+
+Views['lie:roles'] = {
+  mount(s) {
+    App.peek = false;
+    mount(header() + timerHTML('Kartını oku') +
+      '<div class="phase-title"><h1>Kartına bak! 🤫</h1><p>Kimseye gösterme. Birinizin kartında kelime yok: o yalancı.</p></div>' +
+      roleCardHTML(s.lie, false) +
+      '<div id="lready"></div>' +
+      '<div class="card"><h2>Hazır olanlar</h2><div class="chips" id="lreadyChips"></div></div>' +
+      (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ Hemen başlat</button></div>' : ''));
+  },
+  update(s) {
+    const L = s.lie;
+    $('#lready').innerHTML = L.ready[s.you]
+      ? '<div class="waiting-pill">✅ Hazırsın, diğerleri bekleniyor…</div>'
+      : '<button class="btn yellow big block" data-act="lready">Anladım, hazırım ✅</button>';
+    $('#lreadyChips').innerHTML = s.roster.map((id) => '<span class="chip ' + (L.ready[id] ? 'done' : '') + '">' + avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) +
+      ' <span class="cnt">' + (L.ready[id] ? '✓' : '⏳') + '</span></span>').join('');
+  },
+};
+
+Views['lie:clues'] = {
+  mount(s) {
+    const L = s.lie;
+    const me = L.current === s.you;
+    const round = Math.floor(L.turn / L.order.length) + 1;
+    const rounds = Math.ceil(L.totalTurns / L.order.length);
+    const cur = nameOf(L.current);
+    const turnBox = me
+      ? '<div class="card myturn"><h2>Sıra sende! 🎤</h2><p class="muted" style="margin:0 0 10px">Kelimeyle ilgili kısa bir ipucu yaz. Çok belli etme, ama yalancı sanılma!</p>' +
+        '<div class="row"><input id="clueInput" class="field grow" maxlength="' + LIE_MAX_CLUE + '" placeholder="İpucun…" autocomplete="off">' +
+        '<button class="btn green" data-act="clue">Gönder</button></div></div>'
+      : '<div class="card center turnwait">' + avatarHTML(cur, 'lg') + '<h2 style="margin:8px 0 0">Sıra: ' + esc(cur.name) + '</h2><p class="muted" style="margin:4px 0 0">İpucunu yazıyor…</p></div>';
+    mount(header() + timerHTML('İpucu süresi') +
+      '<div class="phase-title"><h1>İpucu turu ' + round + ' / ' + rounds + '</h1></div>' +
+      turnBox +
+      roleCardHTML(L, App.peek) +
+      clueBoardHTML(s) +
+      (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ Sırayı geç</button></div>' : ''));
+    if (me) {
+      Sound.join();
+      const el = $('#clueInput');
+      if (el) setTimeout(() => el.focus(), 50);
+    }
+  },
+};
+
+Views['lie:vote'] = {
+  mount(s) {
+    const L = s.lie;
+    mount(header() + timerHTML('Oylama süresi') +
+      '<div class="phase-title"><h1>' + (L.amLiar ? 'Kelimeyi tahmin et! 🎯' : 'Yalancı kim? 🕵️') + '</h1><p>' +
+      (L.amLiar ? 'Doğru bilirsen +' + LIE_GUESS_POINTS + ' puan. Yakalanmazsan +' + LIE_ESCAPE_POINTS + '!' : 'Kelimeyi bilmiyormuş gibi davranan kimdi? Doğru oy: +' + LIE_CATCH_POINTS) + '</p></div>' +
+      '<div id="lvoteArea"></div>' +
+      '<div class="card"><h2>Kim oy verdi?</h2><div class="chips" id="lvoted"></div></div>' +
+      roleCardHTML(L, App.peek) +
+      clueBoardHTML(s) +
+      (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ Oylamayı bitir</button></div>' : ''));
+  },
+  update(s) {
+    const L = s.lie;
+    let area;
+    if (L.amLiar) {
+      area = L.myGuess
+        ? '<div class="waiting-pill">Tahminin: <b>' + esc(L.myGuess) + '</b> 🤞 Diğerleri oy veriyor…</div>'
+        : '<div class="opts">' + L.options.map((w) => '<button class="ansb" data-act="lguess" data-w="' + esc(w) + '">' + esc(w) + '</button>').join('') + '</div>';
+    } else {
+      area = L.myVote
+        ? '<div class="waiting-pill">Oyun: <b>' + esc(nameOf(L.myVote).name) + '</b> ✓ Diğerleri bekleniyor…</div>'
+        : '<div class="choices">' + s.roster.filter((id) => id !== s.you).map((id) => '<button class="choice" data-act="lvote" data-id="' + esc(id) + '">' +
+            avatarHTML(nameOf(id)) + '<span class="nm">' + esc(nameOf(id).name) + '</span></button>').join('') + '</div>';
+    }
+    $('#lvoteArea').innerHTML = area;
+    $('#lvoted').innerHTML = s.roster.map((id) => '<span class="chip ' + (L.voted[id] ? 'done' : '') + '">' + avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) +
+      ' <span class="cnt">' + (L.voted[id] ? '✓' : '⏳') + '</span></span>').join('');
+  },
+};
+
+function lieFinalMount(s) {
+  const F = s.final;
+  const liar = nameOf(F.liar);
+  const headline = F.caught
+    ? '<h1>🎉 Yalancı yakalandı!</h1><p>' + (F.guessedRight ? 'Ama kelimeyi bildi, puanı kaptı 😏' : 'Kelimeyi de bilemedi 😅') + '</p>'
+    : '<h1>😈 Yalancı kaçtı!</h1><p>' + (F.leaders.length > 1 ? 'Oylar bölündü, kimse yakalanamadı.' : 'Yanlış kişiyi seçtiniz!') + '</p>';
+
+  const max = Math.max(1, ...Object.values(F.counts));
+  const bars = Object.keys(F.counts).filter((id) => F.counts[id] > 0).sort((a, b) => F.counts[b] - F.counts[a]).map((id) => {
+    const p = nameOf(id);
+    const voters = Object.keys(F.votes).filter((v) => F.votes[v] === id).map((v) => esc(nameOf(v).name)).join(', ');
+    return '<div class="barrow ' + (id === F.liar ? 'win' : '') + '">' + avatarHTML(p) + '<div class="body"><div class="top2"><span class="nm">' +
+      (id === F.liar ? '🤥 ' : '') + esc(p.name) + '</span><span>' + F.counts[id] + ' oy</span></div>' +
+      '<div class="track"><i style="--c:' + esc(p.col) + '" data-w="' + (F.counts[id] / max * 100) + '"></i></div><div class="voters">' + voters + '</div></div></div>';
+  }).join('');
+
+  const guess = F.guess
+    ? (F.guessedRight ? '✅ ' + esc(liar.name) + ' kelimeyi bildi: <b>' + esc(F.guess) + '</b>' : '❌ Yalancının tahmini: <b>' + esc(F.guess) + '</b> (yanlış)')
+    : '🤐 ' + esc(liar.name) + ' tahmin yapmadı';
+
+  const points = Object.entries(F.delta).sort((a, b) => b[1] - a[1])
+    .map(([id, d]) => '<span class="pt">' + esc(nameOf(id).name) + ' <b>+' + d + '</b></span>').join('');
+  const board = Object.keys(F.totals).sort((a, b) => F.totals[b] - F.totals[a]).map((id, i) => {
+    const d = F.delta[id];
+    return '<div class="srow"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) + '</span>' +
+      (d ? '<span class="dl">+' + d + '</span>' : '') + '<b>' + F.totals[id] + '</b></div>';
+  }).join('');
+
+  const clues = F.order.map((id) => {
+    const list = F.clues.filter((c) => c.by === id && c.text).map((c) => '<span class="tchip">' + esc(c.text) + '</span>').join('') || '<span class="muted">—</span>';
+    return '<div class="clrow ' + (id === F.liar ? 'now' : '') + '">' + avatarHTML(nameOf(id), 'sm') + '<div class="body"><b>' + esc(nameOf(id).name) + (id === F.liar ? ' 🤥' : '') + '</b><div class="tchips">' + list + '</div></div></div>';
+  }).join('');
+
+  mount(
+    header() +
+    '<div class="phase-title">' + headline + '</div>' +
+    '<div class="card rescard" id="rescard"><div class="meta">Yalancı</div>' +
+      '<div class="kyreveal late" style="border-top:0;margin-top:0;padding-top:4px">' + avatarHTML(liar, 'lg') + '<div class="kyname">' + esc(liar.name) + '</div></div>' +
+      '<div class="lieword">Gizli kelime: <b>' + esc(F.word) + '</b> <span class="muted">(' + esc(F.category) + ')</span></div>' +
+      '<div class="center" style="margin-top:6px">' + guess + '</div>' +
+      (bars ? '<div class="bars">' + bars + '</div>' : '<p class="center muted">Kimse oy vermedi.</p>') +
+      (points ? '<div class="pts late">' + points + '</div>' : '') +
+    '</div>' +
+    '<div class="card"><h2>Odanın toplam puanı 🏅</h2><div class="board">' + board + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Yalancıyı bulana +' + LIE_CATCH_POINTS + ' · Yalancı kaçarsa +' + LIE_ESCAPE_POINTS + ' · Kelimeyi bilirse +' + LIE_GUESS_POINTS + '</p>' +
+      (isHost() ? '<div class="ctrl" style="margin-top:10px"><button class="btn small ghost" data-act="lieReset">🧹 Toplamı sıfırla</button></div>' : '') + '</div>' +
+    '<div class="card"><h2>Verilen ipuçları</h2><div class="clues">' + clues + '</div></div>' +
+    finalFooter(),
+    true
+  );
+  setTimeout(() => {
+    $$('.track i').forEach((el) => { el.style.width = el.dataset.w + '%'; });
+    const card = $('#rescard');
+    if (card) card.classList.add('revealed');
+  }, 60);
+}
+
 /* ---------- spectating (joined mid-round) ---------- */
 
 Views.spectate = {
@@ -2211,6 +2584,7 @@ Views.final = {
     if (s.game === 'kimyazdi') kyFinalMount(s);
     else if (s.game === 'asla') aslaFinalMount(s);
     else if (s.game === 'komik') komikFinalMount(s);
+    else if (s.game === 'yalanci') lieFinalMount(s);
     else hangimizFinalMount(s);
     confetti();
     Sound.fanfare();
@@ -2584,6 +2958,22 @@ const actions = {
   next() { send({ t: 'next' }); },
   prev() { send({ t: 'prev' }); },
   lobby() { send({ t: 'lobby' }); },
+  lready() { send({ t: 'lready' }); },
+  clue() {
+    const el = $('#clueInput');
+    const text = el ? el.value.trim() : '';
+    if (!text) { if (el) el.focus(); return; }
+    Sound.click();
+    send({ t: 'clue', text });
+  },
+  lvote(el) { Sound.click(); send({ t: 'lvote', target: el.dataset.id }); },
+  lguess(el) { Sound.click(); send({ t: 'lguess', word: el.dataset.w }); },
+  peek() {
+    App.peek = !App.peek;
+    const c = $('#rolecard');
+    if (c) c.classList.toggle('hidden', !App.peek);
+  },
+  lieReset() { if (confirm('Odanın Yalancıyı Bul toplam puanları sıfırlansın mı?')) send({ t: 'lieReset' }); },
 };
 
 function fallbackCopy(text, done) {
@@ -2608,12 +2998,17 @@ document.addEventListener('click', (e) => {
   doAction(el.dataset.act, el);
 });
 
+document.addEventListener('change', (e) => {
+  if (e.target.matches('select[data-setk]')) send({ t: 'set', key: e.target.dataset.setk, value: e.target.value });
+});
+
 document.addEventListener('input', (e) => {
   if (e.target.classList.contains('q-input')) queueDrafts();
   if (e.target.id === 'cd') e.target.value = cleanCode(e.target.value);
 });
 
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.id === 'clueInput') { e.preventDefault(); doAction('clue'); return; }
   if (e.key === 'Enter' && e.target.classList.contains('q-input')) {
     e.preventDefault();
     const next = $('.q-input[data-i="' + (Number(e.target.dataset.i) + 1) + '"]');

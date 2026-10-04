@@ -465,3 +465,46 @@ button.ansb:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(30,10,
 .kans .voters { font-size: 13px; color: var(--muted); margin-top: 3px; }
 .bestq { text-align: center; font-weight: 700; color: var(--muted); }
 .besta { text-align: center; font-size: 26px; font-weight: 800; line-height: 1.2; margin: 6px 0; word-break: break-word; }
+
+/* ---------- Yalancıyı Bul ---------- */
+.sel {
+  flex: none; border: 3px solid var(--line); background: var(--soft); border-radius: 12px; padding: 6px 10px;
+  font-weight: 700; font-size: 15px; max-width: 55%;
+}
+.rolecard {
+  border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 16px; cursor: pointer; text-align: center;
+  color: #fff; padding: 22px 18px; position: relative; user-select: none;
+}
+/* Same colour for both cards, so nobody can spot the liar's screen from across the table. */
+.rolecard.word, .rolecard.liar { background: linear-gradient(150deg, #6c3cf0, #b2207e); }
+.rolecard .rc-cover { display: none; font-size: 20px; font-weight: 800; padding: 18px 0; }
+.rolecard.hidden { background: #2c1d5c; }
+.rolecard.hidden .rc-cover { display: block; }
+.rolecard.hidden .rc-body { display: none; }
+.rc-emoji { font-size: 64px; line-height: 1; }
+.rc-title { font-size: 32px; font-weight: 800; line-height: 1.1; margin-top: 6px; }
+.rc-label { font-weight: 700; opacity: .9; }
+.rc-word { font-size: 44px; font-weight: 800; line-height: 1.05; margin: 4px 0; text-shadow: 0 4px 0 rgba(0,0,0,.15); word-break: break-word; }
+.rc-sub { font-size: 17px; margin-top: 6px; }
+.rc-tip { font-size: 15px; opacity: .9; margin-top: 8px; }
+.rc-hide { font-size: 13px; opacity: .7; margin-top: 10px; }
+.clues { display: grid; gap: 8px; }
+.clrow { display: flex; gap: 10px; align-items: flex-start; background: var(--soft); border-radius: 14px; padding: 8px 10px; }
+.clrow .body { flex: 1; min-width: 0; }
+.clrow.now { background: #fff4cc; }
+.clrow .tchips { margin-top: 4px; }
+.tchip.muted { color: var(--muted); }
+.myturn { border: 4px solid var(--accent); }
+.turnwait .av { margin: 0 auto; }
+.opts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.opts .ansb { text-align: center; }
+.lieword { text-align: center; font-size: 20px; margin-top: 12px; }
+
+@media (max-width: 600px) {
+  .games.compact { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .games.compact .gcard { padding: 10px; gap: 8px; align-items: center; }
+  .games.compact .gcard .ge { font-size: 26px; }
+  .games.compact .gcard .gb b { font-size: 16px; line-height: 1.15; }
+  .games.compact .gcard:not(.on) .gb small { display: none; }
+  .games.compact .gcard.on { grid-column: 1 / -1; align-items: flex-start; }
+}
