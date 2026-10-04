@@ -366,3 +366,47 @@ label.lbl { display: block; font-weight: 700; margin: 0 0 6px; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* ---------- game picker ---------- */
+.games { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+.gcard {
+  display: flex; align-items: flex-start; gap: 12px; text-align: left; border: 3px solid var(--line); background: var(--soft);
+  border-radius: 18px; padding: 12px; position: relative; transition: transform .1s, border-color .15s;
+}
+button.gcard:not(:disabled):hover { transform: translateY(-2px); border-color: #c9b8ff; }
+.gcard:disabled { cursor: default; color: inherit; }
+.gcard.on { border-color: var(--purple); background: #efe9ff; }
+.gcard .ge { font-size: 34px; line-height: 1; flex: none; }
+.gcard .gb { display: grid; gap: 2px; min-width: 0; }
+.gcard .gb b { font-size: 18px; }
+.gcard .gb small { color: var(--muted); font-size: 14px; line-height: 1.3; }
+.gcard .gb small.gmin { font-weight: 700; }
+.gcard .gcheck {
+  position: absolute; top: 8px; right: 10px; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--purple); color: #fff; display: grid; place-items: center; font-weight: 800;
+}
+.gcard.soon { opacity: .5; border-style: dashed; }
+
+/* ---------- Kim Yazdı? ---------- */
+.qcard .ask { color: var(--purple); font-weight: 800; font-size: 18px; margin-top: 6px; }
+.kybars .barrow { padding: 4px 6px; border-radius: 14px; transition: background .4s ease 1.5s; }
+.revealed .kybars .barrow.author { background: #fff4cc; }
+.kybars .crown { transition-delay: 1.5s; }
+.late { opacity: 0; transform: translateY(10px); transition: opacity .45s ease-out 1.5s, transform .45s ease-out 1.5s; }
+.revealed .late, .late.revealed { opacity: 1; transform: none; }
+.kyreveal { text-align: center; margin-top: 16px; padding-top: 14px; border-top: 2px dashed var(--line); }
+.kyreveal .av { margin: 4px auto; }
+.kylabel { color: var(--muted); font-weight: 700; }
+.kyname { font-size: 26px; font-weight: 800; line-height: 1.1; }
+.kyverdict { font-weight: 700; margin-top: 4px; }
+.pts { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 10px; }
+.pt { background: #dff8ea; border-radius: 999px; padding: 3px 12px; font-weight: 700; font-size: 15px; }
+.pt b { color: #12844a; }
+.board { display: grid; gap: 6px; }
+.srow { display: flex; align-items: center; gap: 10px; background: var(--soft); border-radius: 14px; padding: 6px 10px; }
+.srow .rk { width: 22px; text-align: center; font-weight: 800; color: var(--muted); flex: none; }
+.srow .nm { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.srow .nm small { display: block; color: var(--muted); font-weight: 600; font-size: 13px; white-space: normal; }
+.srow .dl { color: #12844a; font-weight: 800; font-size: 14px; }
+.srow b { font-size: 20px; color: var(--purple); min-width: 44px; text-align: right; }
+.srow.big { padding: 8px 12px; }

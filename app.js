@@ -11,7 +11,6 @@
 const PEER_PREFIX = 'hangimiz-oda-v1-';
 const CODE_CHARS = 'ABCDEFGHJKLMNPRSTUVYZ';
 const CODE_LEN = 4;
-const MIN_PLAYERS = 2;
 const MAX_PLAYERS = 16;
 const MAX_NAME = 16;
 const MAX_Q_LEN = 90;
@@ -23,26 +22,63 @@ const LOBBY_DROP_MS = 45000;
 const HOST_RECORD_MAX_AGE = 12 * 3600 * 1000;
 const PEER_OPTS = { debug: 0 };
 
-const DEFAULT_SETTINGS = {
-  writeTime: 20,
-  qPerPlayer: 4,
-  answerTime: 10,
-  startMode: 'host',
-  revealMode: 'host',
-  selfVote: true,
-  showAuthor: false,
-  showVoters: false,
-};
+// Settings shared by every game.
+const COMMON_DEFS = [
+  { key: 'startMode', label: 'Oyunu kim başlatır?', type: 'choice', def: 'host', options: [['host', 'Lider'], ['ready', 'Herkes hazır olunca']] },
+  { key: 'revealMode', label: 'Sonuçları kim geçirir?', type: 'choice', def: 'host', options: [['host', 'Lider'], ['auto', 'Otomatik']] },
+];
 
-const SETTING_DEFS = [
-  { key: 'writeTime', label: 'Soru yazma süresi', type: 'num', min: 10, max: 180, step: 5, unit: 'sn' },
-  { key: 'qPerPlayer', label: 'Kişi başı soru', type: 'num', min: 1, max: 8, step: 1, unit: 'soru' },
-  { key: 'answerTime', label: 'Soru başına cevap süresi', type: 'num', min: 0, max: 60, step: 5, unit: 'sn', zero: 'Sınırsız' },
-  { key: 'startMode', label: 'Oyunu kim başlatır?', type: 'choice', options: [['host', 'Lider'], ['ready', 'Herkes hazır olunca']] },
-  { key: 'revealMode', label: 'Sonuçları kim geçirir?', type: 'choice', options: [['host', 'Lider'], ['auto', 'Otomatik']] },
-  { key: 'selfVote', label: 'Kendine oy verebilsin', type: 'bool' },
-  { key: 'showAuthor', label: 'Soruyu kimin yazdığı görünsün', type: 'bool' },
-  { key: 'showVoters', label: 'Kim kime oy verdi görünsün', type: 'bool' },
+// Every game uses the same flow: write → answer → reveal results → final stats.
+// writeTime / qPerPlayer / answerTime drive that flow, so each game defines them.
+const GAMES = {
+  hangimiz: {
+    name: 'Hangimiz?',
+    emoji: '🤔',
+    desc: 'Herkes "Hangimiz…?" soruları yazar, herkes oylar. En zekimiz kim, en yakışıklımız kim?',
+    minPlayers: 2,
+    defs: [
+      { key: 'writeTime', label: 'Soru yazma süresi', type: 'num', def: 20, min: 10, max: 180, step: 5, unit: 'sn' },
+      { key: 'qPerPlayer', label: 'Kişi başı soru', type: 'num', def: 4, min: 1, max: 8, step: 1, unit: 'soru' },
+      { key: 'answerTime', label: 'Soru başına cevap süresi', type: 'num', def: 10, min: 0, max: 60, step: 5, unit: 'sn', zero: 'Sınırsız' },
+      { key: 'selfVote', label: 'Kendine oy verebilsin', type: 'bool', def: true },
+      { key: 'showAuthor', label: 'Soruyu kimin yazdığı görünsün', type: 'bool', def: false },
+      { key: 'showVoters', label: 'Kim kime oy verdi görünsün', type: 'bool', def: false },
+    ],
+  },
+  kimyazdi: {
+    name: 'Kim Yazdı?',
+    emoji: '🕵️',
+    desc: 'Herkes kendisi hakkında gizli bir şey yazar. Kimin yazdığını bilen puanı kapar!',
+    minPlayers: 3,
+    defs: [
+      { key: 'writeTime', label: 'Yazma süresi', type: 'num', def: 45, min: 15, max: 180, step: 5, unit: 'sn' },
+      { key: 'qPerPlayer', label: 'Kişi başı itiraf', type: 'num', def: 2, min: 1, max: 4, step: 1, unit: 'tane' },
+      { key: 'answerTime', label: 'İtiraf başına tahmin süresi', type: 'num', def: 15, min: 0, max: 60, step: 5, unit: 'sn', zero: 'Sınırsız' },
+    ],
+  },
+};
+const GAME_ORDER = ['hangimiz', 'kimyazdi'];
+const COMING_SOON = [['🙊', 'Asla Yapmadım'], ['😂', 'Komik Cevap'], ['🤥', 'Yalancıyı Bul']];
+
+const KY_CORRECT_POINTS = 100;   // guessing the author right
+const KY_FOOL_POINTS = 50;       // author, per player who guessed someone else
+
+const KY_STARTERS = [
+  'Kimse bilmez ama ben ',
+  'Çocukken ',
+  'Hiç kimseye söylemedim ama ',
+  'En garip alışkanlığım: ',
+  'Gizli yeteneğim: ',
+  'En utandığım an: ',
+  'Bir keresinde ',
+  'Hâlâ korkuyorum: ',
+  'Küçükken olmak istediğim meslek: ',
+  'Hiç sevmediğim bir yemek: ',
+  'Ünlü biriyle ilgili anım: ',
+  'Hâlâ inanıyorum ki ',
+  'Okulda ',
+  'İlk aşkım ',
+  'En son ağladığım şey: ',
 ];
 
 const AVATARS = ['🦊', '🐸', '🐼', '🐙', '🦄', '🐯', '🐵', '🐧', '🐨', '🦁', '🐷', '🐰', '🐻', '🐶', '🐱', '🦉'];
@@ -248,13 +284,13 @@ const Host = {
       code,
       hostId: myId,
       phase: 'lobby',
-      settings: { ...DEFAULT_SETTINGS, ...(store.get('hz-settings') || {}) },
+      game: GAMES[store.get('hz-game')] ? store.get('hz-game') : 'hangimiz',
+      settings: sanitizeSettingsTree(store.get('hz-settings')),
       players: {},
       order: [],
       round: null,
       notice: null,
     };
-    S.settings = sanitizeSettings(S.settings);
     this.S = S;
     this.addPlayer(myId, name);
     S.players[myId].connected = true;
@@ -269,6 +305,13 @@ const Host = {
       const p = S.players[id];
       p.connected = id === S.hostId;
       p.lastSeen = Date.now();
+    }
+    // Rooms saved by an older version of the page had a single flat settings object.
+    S.settings = sanitizeSettingsTree(S.settings);
+    if (!GAMES[S.game]) S.game = 'hangimiz';
+    if (S.round && !S.round.game) {
+      S.round.game = 'hangimiz';
+      S.round.cfg = mergedSettings(S.settings, 'hangimiz');
     }
     this.S = S;
     this.open(S.code, true, 0);
@@ -438,7 +481,12 @@ const Host = {
 
       case 'drafts':
         if (S.phase !== 'writing' || !r || !r.roster.includes(pid)) return;
-        r.drafts[pid] = sanitizeDrafts(msg.list, S.settings.qPerPlayer);
+        r.drafts[pid] = sanitizeDrafts(msg.list, r.cfg.qPerPlayer);
+        if (r.game === 'kimyazdi') {
+          // A dice starter nobody finished ("Çocukken") is not a confession.
+          const bare = new Set(KY_STARTERS.map((x) => lower(x.trim()).replace(/:$/, '')));
+          r.drafts[pid] = r.drafts[pid].filter((x) => !bare.has(lower(x).replace(/:$/, '')));
+        }
         r.done[pid] = !!msg.done;
         this.changed();
         if (this.allWritersDone()) this.endWriting();
@@ -450,9 +498,10 @@ const Host = {
         if (!q) return;
         r.answered[pid] = r.answered[pid] || {};
         if (r.answered[pid][q.id]) return;
-        let target = msg.target == null ? null : String(msg.target);
+        const target = msg.target == null ? null : String(msg.target);
         if (target && !r.roster.includes(target)) return;
-        if (target === pid && !S.settings.selfVote) return;
+        if (r.game === 'hangimiz' && target === pid && !r.cfg.selfVote) return;
+        if (r.game === 'kimyazdi' && (target === pid || q.author === pid)) return;
         r.answered[pid][q.id] = true;
         if (target) {
           r.votes[q.id] = r.votes[q.id] || {};
@@ -467,12 +516,24 @@ const Host = {
     if (!isHost) return;
 
     switch (msg.t) {
-      case 'settings':
+      case 'set': {
         if (S.phase !== 'lobby') return;
-        S.settings = sanitizeSettings({ ...S.settings, ...msg.settings });
+        const key = String(msg.key || '');
+        const section = COMMON_DEFS.some((d) => d.key === key) ? 'common' : S.game;
+        const def = (section === 'common' ? COMMON_DEFS : GAMES[S.game].defs).find((d) => d.key === key);
+        if (!def) return;
+        S.settings[section][key] = sanitizeValue(def, msg.value);
         store.set('hz-settings', S.settings);
         this.changed();
         this.maybeAutoStart();
+        return;
+      }
+      case 'game':
+        if (S.phase !== 'lobby' || !GAMES[msg.id]) return;
+        S.game = msg.id;
+        S.notice = null;
+        store.set('hz-game', S.game);
+        this.changed();
         return;
       case 'start':
         if (S.phase === 'lobby') this.startRound();
@@ -487,7 +548,7 @@ const Host = {
       case 'prev':
         if (S.phase === 'results' && r.revealIndex > 0) {
           r.revealIndex--;
-          r.deadline = S.settings.revealMode === 'auto' ? Date.now() + AUTO_REVEAL_MS : null;
+          r.deadline = r.cfg.revealMode === 'auto' ? Date.now() + AUTO_REVEAL_MS : null;
           this.changed();
         }
         return;
@@ -509,18 +570,24 @@ const Host = {
     return this.S.order.filter((id) => this.S.players[id].connected);
   },
 
+  cfg() {
+    return mergedSettings(this.S.settings, this.S.game);
+  },
+
   maybeAutoStart() {
     const S = this.S;
-    if (S.phase !== 'lobby' || S.settings.startMode !== 'ready') return;
+    if (S.phase !== 'lobby' || S.settings.common.startMode !== 'ready') return;
     const ids = this.connectedIds();
-    if (ids.length < MIN_PLAYERS) return;
+    if (ids.length < GAMES[S.game].minPlayers) return;
     if (ids.every((id) => S.players[id].ready || id === S.hostId)) this.startRound();
   },
 
   startRound() {
     const S = this.S;
     const roster = this.connectedIds();
-    if (roster.length < MIN_PLAYERS) { toast('En az ' + MIN_PLAYERS + ' kişi lazım!'); return; }
+    const min = GAMES[S.game].minPlayers;
+    if (roster.length < min) { toast(GAMES[S.game].name + ' için en az ' + min + ' kişi lazım!'); return; }
+    const cfg = this.cfg();
     const names = {};
     for (const id of roster) {
       const p = S.players[id];
@@ -530,6 +597,8 @@ const Host = {
     S.notice = null;
     S.round = {
       id: randomId(6),
+      game: S.game,
+      cfg,
       roster,
       names,
       drafts: {},
@@ -540,8 +609,8 @@ const Host = {
       results: [],
       revealIndex: 0,
       final: null,
-      deadline: now + S.settings.writeTime * 1000,
-      deadlineTotal: S.settings.writeTime * 1000,
+      deadline: now + cfg.writeTime * 1000,
+      deadlineTotal: cfg.writeTime * 1000,
     };
     for (const id of S.order) S.players[id].ready = false;
     S.phase = 'writing';
@@ -561,7 +630,7 @@ const Host = {
     const seen = new Set();
     const qs = [];
     for (const id of r.roster) {
-      for (const text of (r.drafts[id] || []).slice(0, S.settings.qPerPlayer)) {
+      for (const text of (r.drafts[id] || []).slice(0, r.cfg.qPerPlayer)) {
         const key = lower(text).replace(/[^\p{L}\p{N}]+/gu, '');
         if (!key || seen.has(key)) continue;
         seen.add(key);
@@ -571,13 +640,20 @@ const Host = {
     if (!qs.length) {
       S.phase = 'lobby';
       S.round = null;
-      S.notice = 'Kimse soru yazmadı 😅 Bir daha deneyin!';
+      S.notice = r.game === 'kimyazdi' ? 'Kimse bir şey yazmadı 😅 Bir daha deneyin!' : 'Kimse soru yazmadı 😅 Bir daha deneyin!';
       this.changed();
       return;
     }
     r.questions = shuffle(qs).map((q, i) => ({ id: 'q' + i, text: q.text, author: q.author }));
     r.drafts = {};
-    const per = S.settings.answerTime;
+    if (r.game === 'kimyazdi') {
+      // Nobody guesses their own confession: count it as already answered.
+      for (const q of r.questions) {
+        r.answered[q.author] = r.answered[q.author] || {};
+        r.answered[q.author][q.id] = true;
+      }
+    }
+    const per = r.cfg.answerTime;
     r.deadline = per > 0 ? Date.now() + r.questions.length * per * 1000 + 4000 : null;
     r.deadlineTotal = per > 0 ? r.questions.length * per * 1000 + 4000 : 0;
     S.phase = 'answering';
@@ -594,10 +670,15 @@ const Host = {
     const S = this.S;
     const r = S.round;
     if (S.phase !== 'answering') return;
-    r.results = computeResults(r, S.settings);
-    r.final = computeFinal(r);
+    if (r.game === 'kimyazdi') {
+      r.results = computeKyResults(r);
+      r.final = computeKyFinal(r);
+    } else {
+      r.results = computeResults(r, r.cfg);
+      r.final = computeFinal(r);
+    }
     r.revealIndex = 0;
-    r.deadline = S.settings.revealMode === 'auto' ? Date.now() + AUTO_REVEAL_MS : null;
+    r.deadline = r.cfg.revealMode === 'auto' ? Date.now() + AUTO_REVEAL_MS : null;
     r.deadlineTotal = AUTO_REVEAL_MS;
     S.phase = 'results';
     this.changed();
@@ -608,7 +689,7 @@ const Host = {
     const r = S.round;
     if (r.revealIndex < r.results.length - 1) {
       r.revealIndex++;
-      r.deadline = S.settings.revealMode === 'auto' ? Date.now() + AUTO_REVEAL_MS : null;
+      r.deadline = r.cfg.revealMode === 'auto' ? Date.now() + AUTO_REVEAL_MS : null;
     } else {
       S.phase = 'final';
       r.deadline = null;
@@ -703,7 +784,8 @@ const Host = {
       code: S.code,
       hostId: S.hostId,
       phase: S.phase,
-      settings: S.settings,
+      game: r ? r.game : S.game,
+      settings: r ? r.cfg : this.cfg(),
       notice: S.notice,
       players: S.order.map((id) => {
         const p = S.players[id];
@@ -718,17 +800,25 @@ const Host = {
     pub.names = r.names;
     if (S.phase === 'writing') {
       const counts = {};
-      for (const id of r.roster) counts[id] = (r.drafts[id] || []).length;
+      for (const id of r.roster) counts[id] = r.game === 'kimyazdi' ? 0 : (r.drafts[id] || []).length;
       pub.writing = { counts, done: r.done };
       pub.me = { drafts: r.drafts[pid] || [] };
     } else if (S.phase === 'answering') {
-      pub.questions = r.questions.map((q) => ({ id: q.id, text: q.text, by: S.settings.showAuthor ? q.author : null }));
+      // Kim Yazdı? is all about the author being secret — never send it here.
+      const showBy = r.game === 'hangimiz' && r.cfg.showAuthor;
+      pub.questions = r.questions.map((q) => ({ id: q.id, text: q.text, by: showBy ? q.author : null }));
       const progress = {};
-      for (const id of r.roster) progress[id] = Object.keys(r.answered[id] || {}).length;
+      for (const id of r.roster) {
+        const n = Object.keys(r.answered[id] || {}).length;
+        // In Kim Yazdı? the count would reveal how many confessions someone wrote.
+        progress[id] = r.game === 'kimyazdi' ? (n >= r.questions.length ? r.questions.length : 0) : n;
+      }
       pub.progress = progress;
       pub.me = { answered: Object.keys(r.answered[pid] || {}) };
     } else if (S.phase === 'results') {
-      pub.reveal = { index: r.revealIndex, total: r.results.length, item: r.results[r.revealIndex] };
+      const item = { ...r.results[r.revealIndex] };
+      if (r.game === 'hangimiz' && !r.cfg.showAuthor) delete item.author;
+      pub.reveal = { index: r.revealIndex, total: r.results.length, item };
     } else if (S.phase === 'final') {
       pub.final = r.final;
     }
@@ -736,22 +826,38 @@ const Host = {
   },
 };
 
-function sanitizeSettings(s) {
-  const out = {};
-  for (const d of SETTING_DEFS) {
-    let v = s[d.key];
-    if (d.type === 'num') {
-      v = Math.round(Number(v));
-      if (!Number.isFinite(v)) v = DEFAULT_SETTINGS[d.key];
-      v = Math.min(d.max, Math.max(d.min, v));
-    } else if (d.type === 'bool') {
-      v = !!v;
-    } else if (d.type === 'choice') {
-      if (!d.options.some((o) => o[0] === v)) v = DEFAULT_SETTINGS[d.key];
-    }
-    out[d.key] = v;
+function sanitizeValue(def, v) {
+  if (def.type === 'num') {
+    v = Math.round(Number(v));
+    if (!Number.isFinite(v)) return def.def;
+    return Math.min(def.max, Math.max(def.min, v));
+  }
+  if (def.type === 'bool') return typeof v === 'boolean' ? v : def.def;
+  return def.options.some((o) => o[0] === v) ? v : def.def;
+}
+
+// Settings are stored as { common: {...}, hangimiz: {...}, kimyazdi: {...} }.
+function sanitizeSettingsTree(raw) {
+  if (!raw || typeof raw !== 'object') raw = {};
+  if (!raw.common) {
+    // Older saves were one flat object holding the Hangimiz? settings.
+    raw = { common: { startMode: raw.startMode, revealMode: raw.revealMode }, hangimiz: raw };
+  }
+  const out = { common: {} };
+  for (const d of COMMON_DEFS) out.common[d.key] = sanitizeValue(d, (raw.common || {})[d.key]);
+  for (const g of Object.keys(GAMES)) {
+    out[g] = {};
+    for (const d of GAMES[g].defs) out[g][d.key] = sanitizeValue(d, (raw[g] || {})[d.key]);
   }
   return out;
+}
+
+function mergedSettings(tree, game) {
+  return { ...tree.common, ...tree[game] };
+}
+
+function settingDefs(game) {
+  return GAMES[game].defs.concat(COMMON_DEFS);
 }
 
 function sanitizeDrafts(list, max) {
@@ -811,6 +917,62 @@ function computeFinal(r) {
     questionCount: r.results.length,
     totalVotes,
     recap: r.results.map((res) => ({ text: res.text, winners: res.winners, top: res.bars[0] ? res.bars[0].count : 0, total: res.total })),
+  };
+}
+
+/* ---------- Kim Yazdı? scoring ---------- */
+
+function computeKyResults(r) {
+  const score = {};
+  for (const id of r.roster) score[id] = 0;
+  return r.questions.map((q) => {
+    const voters = {};
+    for (const id of r.roster) voters[id] = [];
+    for (const [voter, target] of Object.entries(r.votes[q.id] || {})) {
+      if (voters[target]) voters[target].push(voter);
+    }
+    const bars = r.roster
+      .filter((id) => voters[id].length > 0)
+      .map((id) => ({ id, count: voters[id].length, voters: voters[id] }))
+      .sort((a, b) => b.count - a.count); // stable: ties keep roster order, so the order never hints at the author
+    const total = bars.reduce((a, b) => a + b.count, 0);
+    const correct = voters[q.author] || [];
+    const fooled = total - correct.length;
+    const delta = {};
+    for (const v of correct) delta[v] = (delta[v] || 0) + KY_CORRECT_POINTS;
+    if (fooled > 0) delta[q.author] = (delta[q.author] || 0) + fooled * KY_FOOL_POINTS;
+    for (const id of Object.keys(delta)) score[id] += delta[id];
+    return { qid: q.id, text: q.text, author: q.author, total, bars, correct, fooled, delta, scores: { ...score } };
+  });
+}
+
+function computeKyFinal(r) {
+  const scores = {};
+  const correct = {};
+  const fooled = {};
+  for (const id of r.roster) { scores[id] = 0; correct[id] = 0; fooled[id] = 0; }
+  const last = r.results[r.results.length - 1];
+  if (last) Object.assign(scores, last.scores);
+  let everyoneKnew = 0;
+  for (const res of r.results) {
+    for (const v of res.correct) correct[v]++;
+    fooled[res.author] += res.fooled;
+    if (res.total >= 2 && res.fooled === 0) everyoneKnew++;
+  }
+  const best = (obj) => {
+    const max = Math.max(0, ...Object.values(obj));
+    return { ids: max > 0 ? r.roster.filter((id) => obj[id] === max) : [], value: max };
+  };
+  return {
+    ranking: r.roster.slice().sort((a, b) => scores[b] - scores[a] || correct[b] - correct[a]),
+    scores,
+    correct,
+    fooled,
+    detective: best(correct),
+    hider: best(fooled),
+    everyoneKnew,
+    count: r.results.length,
+    recap: r.results.map((res) => ({ text: res.text, author: res.author, right: res.correct.length, total: res.total })),
   };
 }
 
@@ -1008,7 +1170,7 @@ function showHome(err = '') {
   App.screenKey = 'home';
   mount(
     '<div class="hero"><div class="big">Hangimiz<span>?</span></div>' +
-    '<p>Herkes soru yazar, herkes oylar.<br>Sonunda kim ne çıktı, hep beraber görürsünüz!</p>' +
+    '<p>Arkadaşlarınla telefondan oynanan parti oyunları.<br>Oda kur, linki at, gerisi kendiliğinden!</p>' +
     '<div class="bubbles"><span>En zekimiz kim? 🧠</span><span>En yakışıklımız? 😎</span><span>İlk kim evlenir? 💍</span></div></div>' +
     '<div class="card">' +
       '<label class="lbl" for="nm">Adın ne?</label>' +
@@ -1022,10 +1184,11 @@ function showHome(err = '') {
     '</div>' +
     '<div class="card"><h2>Nasıl oynanır?</h2><ol class="steps">' +
       '<li><b class="n">1</b><div><b>Oda kur, linki at.</b> Arkadaşların linke tıklayıp adını yazınca odaya girer.</div></li>' +
-      '<li><b class="n">2</b><div><b>Soruları yaz.</b> Süre bitmeden herkes birkaç tane "Hangimiz…?" sorusu yazar.</div></li>' +
-      '<li><b class="n">3</b><div><b>Oyla.</b> Bütün sorular herkese gelir, her soru için birini seçersin.</div></li>' +
-      '<li><b class="n">4</b><div><b>Sonuçlar!</b> Her soru tek tek açılır, en sonda kim hangi unvanı kaptı görürsünüz. 🏆</div></li>' +
+      '<li><b class="n">2</b><div><b>Oyunu seç.</b> Lider lobide hangi oyunu oynayacağınızı seçer.</div></li>' +
+      '<li><b class="n">3</b><div><b>Yaz, oyla, tahmin et.</b> Herkes kendi telefonundan oynar.</div></li>' +
+      '<li><b class="n">4</b><div><b>Sonuçlar!</b> Her şey tek tek açılır, en sonda kim kazandı görürsünüz. 🏆</div></li>' +
     '</ol></div>' +
+    '<div class="card"><h2>Oyunlar</h2>' + gamePickerHTML(null, false) + '</div>' +
     '<p class="foot">Oyun, odayı kuran kişinin tarayıcısında döner — o sayfayı kapatma 😉</p>'
   );
   $('#nm').addEventListener('keydown', (e) => { if (e.key === 'Enter') doAction('create'); });
@@ -1140,13 +1303,14 @@ Views.lobby = {
     const online = s.players.filter((p) => p.connected).length;
     const meP = me();
     let startArea;
+    const game = GAMES[s.game];
     if (host) {
-      const canStart = online >= MIN_PLAYERS;
+      const canStart = online >= game.minPlayers;
       startArea =
         '<button class="btn yellow big block" data-act="start" ' + (canStart ? '' : 'disabled') + '>🚀 Oyunu Başlat</button>' +
         '<div class="hint">' + (canStart
           ? (s.settings.startMode === 'ready' ? 'Herkes "Hazırım" deyince kendiliğinden başlar — ya da sen başlat.' : online + ' kişi hazır, başlatabilirsin!')
-          : 'Başlamak için en az ' + MIN_PLAYERS + ' kişi lazım. Linki arkadaşlarına at!') + '</div>';
+          : game.name + ' için en az ' + game.minPlayers + ' kişi lazım. Linki arkadaşlarına at!') + '</div>';
     } else if (s.settings.startMode === 'ready') {
       const r = meP && meP.ready;
       startArea = '<button class="btn ' + (r ? 'green' : 'yellow') + ' big block" data-act="ready">' + (r ? '✅ Hazırsın! (geri al)' : '🙋 Hazırım') + '</button>' +
@@ -1173,17 +1337,30 @@ Views.lobby = {
           '<div class="share-row">' +
             '<button class="btn small" data-act="copy">📋 Linki kopyala</button>' +
             (navigator.share ? '<button class="btn small yellow" data-act="share">📤 Paylaş</button>' : '') +
-            '<a class="btn small wa" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent('Hangimiz? oyununa gel! 🤔 ' + link) + '">WhatsApp</a>' +
+            '<a class="btn small wa" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent('Oyun odama gel! 🎉 ' + link) + '">WhatsApp</a>' +
           '</div></div>' +
+        '<div class="card span2"><h2>Oyun ' + (host ? '<small>(seçmek için dokun)</small>' : '<small>(lider seçer)</small>') + '</h2>' + gamePickerHTML(s.game, host) + '</div>' +
         '<div class="card"><h2>Oyuncular <small>(' + online + ' kişi)</small></h2><div class="players">' + players + '</div></div>' +
-        '<div class="card"><h2>Ayarlar ' + (host ? '' : '<small>(lider ayarlar)</small>') + '</h2>' + settingsHTML(s.settings, host) + '</div>' +
+        '<div class="card"><h2>' + esc(game.emoji + ' ' + game.name) + ' ayarları ' + (host ? '' : '<small>(lider ayarlar)</small>') + '</h2>' + settingsHTML(s.settings, host, s.game) + '</div>' +
         '<div class="startbar span2">' + startArea + '</div>' +
       '</div>';
   },
 };
 
-function settingsHTML(set, editable) {
-  return '<div class="settings">' + SETTING_DEFS.map((d) => {
+function gamePickerHTML(current, editable) {
+  const cards = GAME_ORDER.map((id) => {
+    const g = GAMES[id];
+    const on = id === current;
+    const attrs = editable ? ' data-act="game" data-id="' + id + '"' : ' disabled';
+    return '<button class="gcard ' + (on ? 'on' : '') + '"' + attrs + '><span class="ge">' + g.emoji + '</span><span class="gb"><b>' + esc(g.name) + '</b>' +
+      '<small>' + esc(g.desc) + '</small><small class="gmin">En az ' + g.minPlayers + ' kişi</small></span>' + (on ? '<span class="gcheck">✓</span>' : '') + '</button>';
+  });
+  const soon = COMING_SOON.map((x) => '<div class="gcard soon"><span class="ge">' + x[0] + '</span><span class="gb"><b>' + esc(x[1]) + '</b><small>Yakında…</small></span></div>');
+  return '<div class="games">' + cards.concat(soon).join('') + '</div>';
+}
+
+function settingsHTML(set, editable, game) {
+  return '<div class="settings">' + settingDefs(game).map((d) => {
     const v = set[d.key];
     let ctrl;
     if (d.type === 'num') {
@@ -1207,9 +1384,43 @@ function settingsHTML(set, editable) {
 
 /* ---------- writing ---------- */
 
+const GAME_UI = {
+  hangimiz: {
+    writeTitle: 'Sorularını yaz! ✍️',
+    writeHint: (n) => '"Hangimiz…?" diye sorulacak ' + n + ' soru yaz. Aklına gelmezse 🎲 bas.',
+    writeTimer: 'Soru yazma süresi',
+    progressTitle: 'Kim kaç soru yazdı?',
+    placeholders: ['Örn: Grubun en zekisi kim?', 'Örn: En yakışıklı kim?', 'Örn: İlk kim evlenir?', 'Örn: En çok kim geç kalır?'],
+    diceTitle: 'Rastgele soru',
+    itemWord: 'Soru',
+    ask: null,
+    pass: '🤷 Pas geç',
+    skip: '⏭ Oylamayı bitir, sonuçlara geç',
+    doneAll: 'Hepsini cevapladın!',
+  },
+  kimyazdi: {
+    writeTitle: 'Gizli itiraf zamanı 🤫',
+    writeHint: (n) => 'Kendin hakkında kimsenin bilmediği ' + n + ' şey yaz. Adını yazma! Takılırsan 🎲 cümleye başlangıç verir.',
+    writeTimer: 'Yazma süresi',
+    progressTitle: 'Kim bitirdi?',
+    placeholders: ['Örn: Hiç denize girmedim', 'Örn: Gizlice çizgi film izliyorum', 'Örn: Çocukken kediyle konuşurdum', 'Örn: Bir kere otobüste uyuyup son durağa gittim'],
+    diceTitle: 'Cümle başlangıcı',
+    itemWord: 'İtiraf',
+    ask: 'Bunu kim yazdı? 🕵️',
+    pass: '🤷 Hiç bilmiyorum',
+    skip: '⏭ Tahminleri bitir, sonuçlara geç',
+    doneAll: 'Hepsini tahmin ettin!',
+  },
+};
+
+function ui() {
+  return GAME_UI[App.state.game] || GAME_UI.hangimiz;
+}
+
 Views.writing = {
   mount(s) {
     App.wDone = false;
+    const U = ui();
     const n = s.settings.qPerPlayer;
     const saved = (s.me && s.me.drafts) || [];
     const local = (App.wDrafts && App.wDrafts.roundId === s.roundId) ? App.wDrafts.list : [];
@@ -1217,16 +1428,16 @@ Views.writing = {
     for (let i = 0; i < n; i++) {
       const val = local[i] ?? saved[i] ?? '';
       rows.push('<div class="qrow"><span class="num">' + (i + 1) + '</span>' +
-        '<input class="field q-input grow" data-i="' + i + '" maxlength="' + MAX_Q_LEN + '" placeholder="' + esc(placeholderFor(i)) + '" value="' + esc(val) + '" autocomplete="off">' +
-        '<button class="dice" data-act="dice" data-i="' + i + '" title="Rastgele soru">🎲</button></div>');
+        '<input class="field q-input grow" data-i="' + i + '" maxlength="' + MAX_Q_LEN + '" placeholder="' + esc(U.placeholders[i % U.placeholders.length]) + '" value="' + esc(val) + '" autocomplete="off">' +
+        '<button class="dice" data-act="dice" data-i="' + i + '" title="' + esc(U.diceTitle) + '">🎲</button></div>');
     }
     mount(
       header() +
-      timerHTML('Soru yazma süresi') +
-      '<div class="phase-title"><h1>Sorularını yaz! ✍️</h1><p>"Hangimiz…?" diye sorulacak ' + n + ' soru yaz. Aklına gelmezse 🎲 bas.</p></div>' +
+      timerHTML(U.writeTimer) +
+      '<div class="phase-title"><h1>' + esc(U.writeTitle) + '</h1><p>' + esc(U.writeHint(n)) + '</p></div>' +
       '<div class="card" id="wcard"><div class="qlist">' + rows.join('') + '</div>' +
         '<div style="height:14px"></div><button class="btn green big block" data-act="wdone" id="wdone">✅ Bitti</button></div>' +
-      '<div class="card"><h2>Kim kaç soru yazdı?</h2><div class="chips" id="wprog"></div></div>' +
+      '<div class="card"><h2>' + esc(U.progressTitle) + '</h2><div class="chips" id="wprog"></div></div>' +
       (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ Süreyi bitir</button></div>' : '')
     );
     App.wDrafts = { roundId: s.roundId, list: collectDrafts() };
@@ -1240,15 +1451,10 @@ Views.writing = {
       const live = s.players.find((x) => x.id === id);
       const done = s.writing.done[id];
       return '<span class="chip ' + (done ? 'done' : '') + (live && live.connected ? '' : ' off') + '">' + avatarHTML(p, 'sm') + esc(p.name) +
-        ' <span class="cnt">' + (s.writing.counts[id] || 0) + '/' + n + (done ? ' ✓' : '') + '</span></span>';
+        ' <span class="cnt">' + (s.game === 'kimyazdi' ? (done ? '✓' : '✍️') : (s.writing.counts[id] || 0) + '/' + n + (done ? ' ✓' : '')) + '</span></span>';
     }).join('');
   },
 };
-
-function placeholderFor(i) {
-  const ex = ['Örn: Grubun en zekisi kim?', 'Örn: En yakışıklı kim?', 'Örn: İlk kim evlenir?', 'Örn: En çok kim geç kalır?'];
-  return ex[i % ex.length];
-}
 
 function collectDrafts() {
   return $$('.q-input').map((x) => x.value);
@@ -1288,7 +1494,7 @@ Views.answering = {
       '<div id="gtimer"></div>' +
       '<div id="astage"></div>' +
       '<div class="card"><h2>Kim nerede?</h2><div class="chips" id="aprog"></div></div>' +
-      (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ Oylamayı bitir, sonuçlara geç</button></div>' : '')
+      (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">' + esc(ui().skip) + '</button></div>' : '')
     );
     showNextQuestion();
   },
@@ -1298,8 +1504,9 @@ Views.answering = {
       const p = nameOf(id);
       const live = s.players.find((x) => x.id === id);
       const c = s.progress[id] || 0;
+      const label = s.game === 'kimyazdi' ? (c >= total ? '✓' : '⏳') : c + '/' + total + (c >= total ? ' ✓' : '');
       return '<span class="chip ' + (c >= total ? 'done' : '') + (live && live.connected ? '' : ' off') + '">' + avatarHTML(p, 'sm') + esc(p.name) +
-        ' <span class="cnt">' + c + '/' + total + (c >= total ? ' ✓' : '') + '</span></span>';
+        ' <span class="cnt">' + label + '</span></span>';
     }).join('');
     // Host may have recorded answers we lost locally (e.g. after reconnect).
     if (s.me) {
@@ -1318,11 +1525,12 @@ function showNextQuestion() {
   const total = s.questions.length;
   const idx = s.questions.findIndex((q) => !A.answered.has(q.id));
   const stage = $('#astage');
+  const U = ui();
   if (idx === -1) {
     A.current = null;
     A.qDeadline = null;
     $('#gtimer').innerHTML = s.settings.answerTime > 0 ? timerHTML('Herkesin bitirmesi için kalan süre') : '';
-    stage.innerHTML = '<div class="card center"><div class="big-emoji">🎉</div><h2>Hepsini cevapladın!</h2><p class="muted">Diğerleri bitirince sonuçlar başlayacak.</p></div>';
+    stage.innerHTML = '<div class="card center"><div class="big-emoji">🎉</div><h2>' + esc(U.doneAll) + '</h2><p class="muted">Diğerleri bitirince sonuçlar başlayacak.</p></div>';
     return;
   }
   const q = s.questions[idx];
@@ -1330,20 +1538,22 @@ function showNextQuestion() {
   const per = s.settings.answerTime;
   A.qDeadline = per > 0 ? Date.now() + per * 1000 : null;
   A.qTotal = per * 1000;
-  $('#gtimer').innerHTML = per > 0 ? timerHTML('Bu soru için kalan süre', 'q') : '';
+  $('#gtimer').innerHTML = per > 0 ? timerHTML('Bu ' + lower(U.itemWord) + ' için kalan süre', 'q') : '';
   const by = q.by ? nameOf(q.by) : null;
-  const options = s.roster.filter((id) => s.settings.selfVote || id !== s.you);
+  const ky = s.game === 'kimyazdi';
+  const options = s.roster.filter((id) => id !== s.you || (!ky && s.settings.selfVote));
   stage.innerHTML =
-    '<div class="card qcard"><div class="meta">Soru ' + (A.answered.size + 1) + ' / ' + total + '</div>' +
+    '<div class="card qcard"><div class="meta">' + esc(U.itemWord) + ' ' + (idx + 1) + ' / ' + total + '</div>' +
       '<div class="minibar"><i style="width:' + (A.answered.size / total * 100) + '%"></i></div>' +
-      '<div class="qtext">' + esc(q.text) + '</div>' +
+      (U.ask ? '<div class="ask">' + esc(U.ask) + '</div>' : '') +
+      '<div class="qtext">' + (ky ? '“' + esc(q.text) + '”' : esc(q.text)) + '</div>' +
       (by ? '<div class="by">' + esc(by.av) + ' ' + esc(by.name) + ' sordu</div>' : '') +
     '</div>' +
     '<div class="choices">' + options.map((id) => {
       const p = nameOf(id);
       return '<button class="choice" data-act="vote" data-id="' + esc(id) + '">' + avatarHTML(p) + '<span class="nm">' + esc(p.name) + '</span></button>';
     }).join('') + '</div>' +
-    '<div class="skip-row"><button class="btn small ghost" data-act="vote" data-id="">🤷 Pas geç</button></div>';
+    '<div class="skip-row"><button class="btn small ghost" data-act="vote" data-id="">' + esc(U.pass) + '</button></div>';
   App.lastSecond = null;
   updateTimers();
 }
@@ -1380,10 +1590,39 @@ Views.spectate = {
 
 Views.results = {
   mount(s) {
+    if (s.game === 'kimyazdi') kyResultsMount(s); else hangimizResultsMount(s);
+    // setTimeout (not rAF) so it also runs while the tab is in the background.
+    setTimeout(() => {
+      $$('.track i').forEach((el) => { el.style.width = el.dataset.w + '%'; });
+      $$('#rescard, .card.late').forEach((el) => el.classList.add('revealed'));
+    }, 60);
+    Sound.click();
+    setTimeout(() => Sound.beep(988, 0.15, 'triangle', 0.08), s.game === 'kimyazdi' ? 1600 : 1150);
+  },
+};
+
+// Dots, auto-advance timer and host buttons shared by every results screen.
+function revealChrome(s) {
+  const R = s.reveal;
+  const last = R.index >= R.total - 1;
+  const auto = s.settings.revealMode === 'auto';
+  const dots = '<div class="dots">' + Array.from({ length: R.total }, (_, i) => '<i class="' + (i <= R.index ? 'on' : '') + '"></i>').join('') + '</div>';
+  let ctrl = '';
+  if (isHost()) {
+    ctrl = '<div class="ctrl">' +
+      (R.index > 0 ? '<button class="btn ghost" data-act="prev">◀ Geri</button>' : '') +
+      '<button class="btn yellow big" data-act="next">' + (last ? '🏆 İstatistikleri gör' : 'Sonraki ▶') + '</button></div>';
+  } else if (!auto) {
+    ctrl = '<div class="waiting-pill">Lider bir sonrakine geçecek…</div>';
+  }
+  const timer = auto ? timerHTML(last ? 'İstatistiklere geçiliyor' : 'Sonrakine geçiliyor') : '';
+  return { top: header() + '<div class="phase-title"><h1>Sonuçlar 📊</h1></div>' + dots + timer, ctrl };
+}
+
+function hangimizResultsMount(s) {
     const R = s.reveal;
     const it = R.item;
     const by = it.by ? nameOf(it.by) : null;
-    const dots = Array.from({ length: R.total }, (_, i) => '<i class="' + (i <= R.index ? 'on' : '') + '"></i>').join('');
     let body;
     if (!it.total) {
       body = '<div class="center" style="margin-top:16px"><div class="big-emoji">🤷</div><b>Bu soruya kimse oy vermedi!</b></div>';
@@ -1402,53 +1641,142 @@ Views.results = {
       const names = it.winners.map((id) => nameOf(id).name);
       body += '<div class="winline">' + (names.length > 1 ? '🤝 Berabere: ' + esc(names.join(' & ')) : '🏆 ' + esc(names[0]) + '!') + '</div>';
     }
-    const last = R.index >= R.total - 1;
-    const auto = s.settings.revealMode === 'auto';
-    let ctrl = '';
-    if (isHost()) {
-      ctrl = '<div class="ctrl">' +
-        (R.index > 0 ? '<button class="btn ghost" data-act="prev">◀ Geri</button>' : '') +
-        '<button class="btn yellow big" data-act="next">' + (last ? '🏆 İstatistikleri gör' : 'Sonraki ▶') + '</button></div>';
-    } else if (!auto) {
-      ctrl = '<div class="waiting-pill">Lider bir sonrakine geçecek…</div>';
-    }
+    const C = revealChrome(s);
     mount(
-      header() +
-      '<div class="phase-title"><h1>Sonuçlar 📊</h1></div>' +
-      '<div class="dots">' + dots + '</div>' +
-      (auto ? timerHTML(last ? 'İstatistiklere geçiliyor' : 'Sonraki soruya') : '') +
+      C.top +
       '<div class="card rescard" id="rescard"><div class="meta">Soru ' + (R.index + 1) + ' / ' + R.total + '</div>' +
         '<div class="qtext">' + esc(it.text) + '</div>' +
         (by ? '<div class="meta">' + esc(by.av) + ' ' + esc(by.name) + ' sordu</div>' : '') +
         body +
-      '</div>' + ctrl
+      '</div>' + C.ctrl
     );
-    // setTimeout (not rAF) so it also runs while the tab is in the background.
-    setTimeout(() => {
-      $$('.track i').forEach((el) => { el.style.width = el.dataset.w + '%'; });
-      const card = $('#rescard');
-      if (card) card.classList.add('revealed');
-    }, 60);
-    Sound.click();
-    if (it.total) setTimeout(() => Sound.beep(988, 0.15, 'triangle', 0.08), 1150);
-  },
-};
+}
+
+function kyResultsMount(s) {
+  const R = s.reveal;
+  const it = R.item;
+  const author = nameOf(it.author);
+  let bars;
+  if (!it.total) {
+    bars = '';
+  } else {
+    const max = it.bars[0].count;
+    bars = '<div class="bars kybars">' + it.bars.map((b) => {
+      const p = nameOf(b.id);
+      const isAuthor = b.id === it.author;
+      return '<div class="barrow ' + (isAuthor ? 'win author' : '') + '">' + avatarHTML(p) + '<div class="body">' +
+        '<div class="top2"><span class="nm">' + (isAuthor ? '<span class="crown">✍️</span> ' : '') + esc(p.name) + '</span><span>' + b.count + ' tahmin</span></div>' +
+        '<div class="track"><i style="--c:' + esc(p.col) + '" data-w="' + (b.count / max * 100) + '"></i></div>' +
+        '<div class="voters">' + b.voters.map((v) => esc(nameOf(v).name)).join(', ') + '</div>' +
+      '</div></div>';
+    }).join('') + '</div>';
+  }
+
+  const right = it.correct.map((id) => nameOf(id).name);
+  let verdict;
+  if (!it.total) verdict = 'Kimse tahmin etmedi 🤷';
+  else if (!right.length) verdict = 'Kimse bilemedi! ' + author.name + ' herkesi kandırdı 😎';
+  else if (!it.fooled) verdict = 'Herkes bildi! Çok belli etmişsin 😅';
+  else verdict = right.join(', ') + ' doğru bildi 🎯';
+
+  const points = Object.entries(it.delta).sort((a, b) => b[1] - a[1])
+    .map(([id, d]) => '<span class="pt">' + esc(nameOf(id).name) + ' <b>+' + d + '</b></span>').join('');
+
+  const board = s.roster.slice().sort((a, b) => it.scores[b] - it.scores[a]).map((id, i) => {
+    const p = nameOf(id);
+    const d = it.delta[id];
+    return '<div class="srow"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(p, 'sm') + '<span class="nm">' + esc(p.name) + '</span>' +
+      (d ? '<span class="dl">+' + d + '</span>' : '') + '<b>' + it.scores[id] + '</b></div>';
+  }).join('');
+
+  const C = revealChrome(s);
+  mount(
+    C.top +
+    '<div class="card rescard" id="rescard"><div class="meta">İtiraf ' + (R.index + 1) + ' / ' + R.total + '</div>' +
+      '<div class="qtext">“' + esc(it.text) + '”</div>' +
+      bars +
+      '<div class="kyreveal late"><div class="kylabel">Yazan</div>' + avatarHTML(author, 'lg') +
+        '<div class="kyname">' + esc(author.name) + '</div><div class="kyverdict">' + esc(verdict) + '</div>' +
+        (points ? '<div class="pts">' + points + '</div>' : '') +
+      '</div>' +
+    '</div>' +
+    '<div class="card late"><h2>Puan durumu</h2><div class="board">' + board + '</div></div>' +
+    C.ctrl
+  );
+}
 
 /* ---------- final ---------- */
 
 Views.final = {
   mount(s) {
+    if (s.game === 'kimyazdi') kyFinalMount(s); else hangimizFinalMount(s);
+    confetti();
+    Sound.fanfare();
+  },
+};
+
+function podiumHTML(ranking, subFn) {
+  const top = ranking.slice(0, 3);
+  const podOrder = [top[1], top[0], top[2]];
+  const podClass = ['p2', 'p1', 'p3'];
+  return '<div class="podium">' + podOrder.map((id, i) => {
+    if (!id) return '<div class="pod"></div>';
+    const p = nameOf(id);
+    return '<div class="pod ' + podClass[i] + '">' + avatarHTML(p, 'lg') + '<div class="name">' + esc(p.name) + '</div>' +
+      '<div class="sub">' + esc(subFn(id)) + '</div><div class="block">' + podClass[i].slice(1) + '</div></div>';
+  }).join('') + '</div>';
+}
+
+function finalFooter() {
+  return isHost()
+    ? '<div class="startbar"><button class="btn yellow big block" data-act="lobby">🔁 Yeni tur (lobiye dön)</button></div>'
+    : '<div class="waiting-pill">Lider yeni tur başlatabilir 🔁</div>';
+}
+
+function statsHTML(stats) {
+  return '<div class="stats">' + stats.map((x) => '<div class="stat"><div class="v">' + esc(x[0]) + ' ' + esc(x[1]) + '</div><div class="l">' + esc(x[2]) + '</div></div>').join('') + '</div>';
+}
+
+function kyFinalMount(s) {
+  const F = s.final;
+  const lead = F.ranking[0];
+  const champs = F.ranking.filter((id) => F.scores[id] === F.scores[lead]);
+  let headline;
+  if (!F.scores[lead]) headline = '<h1>Kimse puan alamadı 😅</h1><p>Hiç tahmin yapılmamış gibi görünüyor.</p>';
+  else if (champs.length > 1) headline = '<h1>🤝 Berabere!</h1><p>' + esc(champs.map((id) => nameOf(id).name).join(' & ')) + ' eşit puan topladı.</p>';
+  else headline = '<h1>' + esc(nameOf(lead).av) + ' ' + esc(nameOf(lead).name) + ' kazandı!</h1><p>' + F.scores[lead] + ' puanla turun şampiyonu.</p>';
+
+  const board = F.ranking.map((id, i) => {
+    const p = nameOf(id);
+    return '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(p) + '<span class="nm">' + esc(p.name) +
+      '<small>' + F.correct[id] + ' doğru tahmin · ' + F.fooled[id] + ' kişiyi kandırdı</small></span><b>' + F.scores[id] + '</b></div>';
+  }).join('');
+
+  const names = (ids) => ids.map((id) => nameOf(id).name).join(' & ');
+  const stats = [['🤫', F.count, 'itiraf yazıldı']];
+  if (F.detective.ids.length) stats.push(['🕵️', names(F.detective.ids), 'en iyi dedektif (' + F.detective.value + ' doğru)']);
+  if (F.hider.ids.length) stats.push(['😎', names(F.hider.ids), 'en iyi saklanan (' + F.hider.value + ' kişiyi kandırdı)']);
+  stats.push(['😅', F.everyoneKnew, 'itirafı herkes bildi']);
+
+  const recap = F.recap.map((r) => '<div><span class="q">“' + esc(r.text) + '”</span><span class="w">' + esc(nameOf(r.author).name) +
+    (r.total ? ' <span class="muted">(' + r.right + '/' + r.total + ' bildi)</span>' : '') + '</span></div>').join('');
+
+  mount(
+    header() +
+    '<div class="phase-title">' + headline + '</div>' +
+    podiumHTML(F.ranking, (id) => F.scores[id] + ' puan') +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Doğru tahmin: +' + KY_CORRECT_POINTS + ' puan · Seni bilemeyen her kişi için: +' + KY_FOOL_POINTS + ' puan</p></div>' +
+    '<div class="card"><h2>Sayılarla bu tur</h2>' + statsHTML(stats) + '</div>' +
+    '<div class="card"><h2>Bütün itiraflar</h2><div class="recap">' + recap + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
+function hangimizFinalMount(s) {
     const F = s.final;
-    const top = F.ranking.slice(0, 3);
-    const podOrder = [top[1], top[0], top[2]];
-    const podClass = ['p2', 'p1', 'p3'];
-    const podium = podOrder.map((id, i) => {
-      if (!id) return '<div class="pod"></div>';
-      const p = nameOf(id);
-      const place = podClass[i].slice(1);
-      return '<div class="pod ' + podClass[i] + '">' + avatarHTML(p, 'lg') + '<div class="name">' + esc(p.name) + '</div>' +
-        '<div class="sub">' + F.titles[id].length + ' unvan · ' + F.votes[id] + ' oy</div><div class="block">' + place + '</div></div>';
-    }).join('');
+    const podium = podiumHTML(F.ranking, (id) => F.titles[id].length + ' unvan · ' + F.votes[id] + ' oy');
 
     const titles = F.ranking.map((id) => {
       const p = nameOf(id);
@@ -1484,20 +1812,15 @@ Views.final = {
     mount(
       header() +
       '<div class="phase-title">' + headline + '</div>' +
-      '<div class="podium">' + podium + '</div>' +
+      podium +
       '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Unvanlar 🏅</h2><div class="titles">' + titles + '</div></div>' +
-      '<div class="card"><h2>Sayılarla bu tur</h2><div class="stats">' + stats.map((x) => '<div class="stat"><div class="v">' + esc(x[0]) + ' ' + esc(x[1]) + '</div><div class="l">' + esc(x[2]) + '</div></div>').join('') + '</div></div>' +
+      '<div class="card"><h2>Sayılarla bu tur</h2>' + statsHTML(stats) + '</div>' +
       unanimous +
       '<div class="card"><h2>Bütün sorular</h2><div class="recap">' + recap + '</div></div>' +
-      (isHost()
-        ? '<div class="startbar"><button class="btn yellow big block" data-act="lobby">🔁 Yeni tur (lobiye dön)</button></div>'
-        : '<div class="waiting-pill">Lider yeni tur başlatabilir 🔁</div>'),
+      finalFooter(),
       true
     );
-    confetti();
-    Sound.fanfare();
-  },
-};
+}
 
 function confetti() {
   const box = document.createElement('div');
@@ -1637,13 +1960,16 @@ const actions = {
   },
   set(el) {
     const s = App.state;
-    const def = SETTING_DEFS.find((d) => d.key === el.dataset.k);
+    const def = settingDefs(s.game).find((d) => d.key === el.dataset.k);
     if (!def) return;
-    const next = { ...s.settings };
-    if (def.type === 'num') next[def.key] = s.settings[def.key] + Number(el.dataset.d) * def.step;
-    else if (def.type === 'bool') next[def.key] = !s.settings[def.key];
-    else next[def.key] = el.dataset.v;
-    send({ t: 'settings', settings: next });
+    let value;
+    if (def.type === 'num') value = s.settings[def.key] + Number(el.dataset.d) * def.step;
+    else if (def.type === 'bool') value = !s.settings[def.key];
+    else value = el.dataset.v;
+    send({ t: 'set', key: def.key, value });
+  },
+  game(el) {
+    if (el.dataset.id !== App.state.game) { Sound.click(); send({ t: 'game', id: el.dataset.id }); }
   },
   start() { send({ t: 'start' }); },
   ready() { const m = me(); send({ t: 'ready', v: !(m && m.ready) }); },
@@ -1654,6 +1980,16 @@ const actions = {
   dice(el) {
     const i = Number(el.dataset.i);
     const input = $('.q-input[data-i="' + i + '"]');
+    if (App.state.game === 'kimyazdi') {
+      // Confessions must be personal, so the dice only offers a sentence starter.
+      const starters = KY_STARTERS.filter((x) => x !== input.value);
+      input.value = starters[Math.floor(Math.random() * starters.length)];
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+      Sound.click();
+      queueDrafts();
+      return;
+    }
     const taken = new Set(collectDrafts().map(lower));
     const pool = RANDOM_QUESTIONS.filter((q) => !taken.has(lower(q)));
     input.value = (pool.length ? pool : RANDOM_QUESTIONS)[Math.floor(Math.random() * (pool.length || RANDOM_QUESTIONS.length))];
