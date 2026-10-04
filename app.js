@@ -56,9 +56,57 @@ const GAMES = {
       { key: 'answerTime', label: 'İtiraf başına tahmin süresi', type: 'num', def: 15, min: 0, max: 60, step: 5, unit: 'sn', zero: 'Sınırsız' },
     ],
   },
+  asla: {
+    name: 'Asla Yapmadım',
+    emoji: '🙊',
+    desc: 'Herkes "Hiç … yapmadım" cümleleri yazar. Kim yapmış, kim yapmamış hep beraber görürsünüz!',
+    minPlayers: 2,
+    defs: [
+      { key: 'writeTime', label: 'Yazma süresi', type: 'num', def: 30, min: 10, max: 180, step: 5, unit: 'sn' },
+      { key: 'qPerPlayer', label: 'Kişi başı cümle', type: 'num', def: 3, min: 1, max: 6, step: 1, unit: 'tane' },
+      { key: 'answerTime', label: 'Cümle başına cevap süresi', type: 'num', def: 8, min: 0, max: 60, step: 2, unit: 'sn', zero: 'Sınırsız' },
+      { key: 'showVoters', label: 'Kimin yaptığı görünsün', type: 'bool', def: true },
+      { key: 'showAuthor', label: 'Cümleyi kimin yazdığı görünsün', type: 'bool', def: false },
+    ],
+  },
 };
-const GAME_ORDER = ['hangimiz', 'kimyazdi'];
-const COMING_SOON = [['🙊', 'Asla Yapmadım'], ['😂', 'Komik Cevap'], ['🤥', 'Yalancıyı Bul']];
+const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla'];
+const COMING_SOON = [['😂', 'Komik Cevap'], ['🤥', 'Yalancıyı Bul']];
+
+const ASLA_STATEMENTS = [
+  'Hiç uçağa binmedim',
+  'Hiç okuldan kaçmadım',
+  'Hiç öğretmene yanlışlıkla "anne" demedim',
+  'Hiç sabaha kadar oyun oynamadım',
+  'Hiç telefonumu tuvalete düşürmedim',
+  'Hiç bir mesajı görüp bilerek cevapsız bırakmadım',
+  'Hiç sınavda kopya çekmedim',
+  'Hiç yanlış kişiye mesaj atmadım',
+  'Hiç ünlü birine DM atmadım',
+  'Hiç kendi kendime konuşurken yakalanmadım',
+  'Hiç saçımı kendim kesmedim',
+  'Hiç yere düşen bir şeyi "5 saniye kuralı" deyip yemedim',
+  'Hiç ailemden gizli bir şey satın almadım',
+  'Hiç sinirden klavyeye ya da kumandaya vurmadım',
+  'Hiç derste uyuyakalmadım',
+  'Hiç otobüste durağımı kaçırmadım',
+  'Hiç hasta numarası yapıp evde kalmadım',
+  'Hiç birinin adını unutup "kanka" diye idare etmedim',
+  'Hiç eski sevgilimin profiline gizlice bakmadım',
+  'Hiç bir şarkıyı üst üste 20 kere dinlemedim',
+  'Hiç bir arkadaşımın sırrını başkasına söylemedim',
+  'Hiç tek başıma sinemaya gitmedim',
+  'Hiç gece yarısı buzdolabı baskını yapmadım',
+  'Hiç sesli mesajı 2x hızda dinlemedim',
+  'Hiç ödevimi başkasından kopyalamadım',
+  'Hiç bana sallanmayan bir ele el sallamadım',
+  'Hiç bir selfie için 20 fotoğraf çekmedim',
+  'Hiç ciddi bir anda gülmemi tutamayıp rezil olmadım',
+  'Hiç bir diziyi tek gecede bitirmedim',
+  'Hiç aynada kendi kendime konuşma provası yapmadım',
+  'Hiç yalan söyleyip yakalanmadım',
+  'Hiç bir böcekten korkup çığlık atmadım',
+];
 
 const KY_CORRECT_POINTS = 100;   // guessing the author right
 const KY_FOOL_POINTS = 50;       // author, per player who guessed someone else
@@ -499,7 +547,11 @@ const Host = {
         r.answered[pid] = r.answered[pid] || {};
         if (r.answered[pid][q.id]) return;
         const target = msg.target == null ? null : String(msg.target);
-        if (target && !r.roster.includes(target)) return;
+        if (r.game === 'asla') {
+          if (target && target !== 'yes' && target !== 'no') return;
+        } else if (target && !r.roster.includes(target)) {
+          return;
+        }
         if (r.game === 'hangimiz' && target === pid && !r.cfg.selfVote) return;
         if (r.game === 'kimyazdi' && (target === pid || q.author === pid)) return;
         r.answered[pid][q.id] = true;
@@ -673,6 +725,9 @@ const Host = {
     if (r.game === 'kimyazdi') {
       r.results = computeKyResults(r);
       r.final = computeKyFinal(r);
+    } else if (r.game === 'asla') {
+      r.results = computeAslaResults(r);
+      r.final = computeAslaFinal(r);
     } else {
       r.results = computeResults(r, r.cfg);
       r.final = computeFinal(r);
@@ -805,7 +860,7 @@ const Host = {
       pub.me = { drafts: r.drafts[pid] || [] };
     } else if (S.phase === 'answering') {
       // Kim Yazdı? is all about the author being secret — never send it here.
-      const showBy = r.game === 'hangimiz' && r.cfg.showAuthor;
+      const showBy = r.game !== 'kimyazdi' && !!r.cfg.showAuthor;
       pub.questions = r.questions.map((q) => ({ id: q.id, text: q.text, by: showBy ? q.author : null }));
       const progress = {};
       for (const id of r.roster) {
@@ -817,7 +872,7 @@ const Host = {
       pub.me = { answered: Object.keys(r.answered[pid] || {}) };
     } else if (S.phase === 'results') {
       const item = { ...r.results[r.revealIndex] };
-      if (r.game === 'hangimiz' && !r.cfg.showAuthor) delete item.author;
+      if (r.game !== 'kimyazdi' && !r.cfg.showAuthor) delete item.author;
       pub.reveal = { index: r.revealIndex, total: r.results.length, item };
     } else if (S.phase === 'final') {
       pub.final = r.final;
@@ -918,6 +973,55 @@ function computeFinal(r) {
     totalVotes,
     recap: r.results.map((res) => ({ text: res.text, winners: res.winners, top: res.bars[0] ? res.bars[0].count : 0, total: res.total })),
   };
+}
+
+/* ---------- Asla Yapmadım ---------- */
+
+function computeAslaResults(r) {
+  const anon = !r.cfg.showVoters;
+  return r.questions.map((q) => {
+    const yes = [];
+    const no = [];
+    for (const [voter, answer] of Object.entries(r.votes[q.id] || {})) {
+      if (answer === 'yes') yes.push(voter); else if (answer === 'no') no.push(voter);
+    }
+    const order = (ids) => r.roster.filter((id) => ids.includes(id));
+    return {
+      qid: q.id, text: q.text, author: q.author,
+      yesCount: yes.length, noCount: no.length, total: yes.length + no.length,
+      // Anonymous mode only ever sends the counts.
+      yes: anon ? null : order(yes), no: anon ? null : order(no),
+    };
+  });
+}
+
+function computeAslaFinal(r) {
+  const anon = !r.cfg.showVoters;
+  const done = {};
+  for (const id of r.roster) done[id] = 0;
+  for (const q of r.questions) {
+    for (const [voter, answer] of Object.entries(r.votes[q.id] || {})) {
+      if (answer === 'yes' && done[voter] !== undefined) done[voter]++;
+    }
+  }
+  const list = r.results.map((res) => ({ text: res.text, yes: res.yesCount, total: res.total }));
+  const answered = list.filter((x) => x.total > 0);
+  const out = {
+    anon,
+    count: r.results.length,
+    totalYes: list.reduce((a, x) => a + x.yes, 0),
+    everyone: answered.filter((x) => x.total >= 2 && x.yes === x.total).length,
+    nobody: answered.filter((x) => x.total >= 2 && x.yes === 0).length,
+    recap: list.slice().sort((a, b) => (b.total ? b.yes / b.total : -1) - (a.total ? a.yes / a.total : -1)),
+  };
+  if (!anon) {
+    out.ranking = r.roster.slice().sort((a, b) => done[b] - done[a]);
+    out.done = done;
+    const min = Math.min(...r.roster.map((id) => done[id]));
+    out.innocent = r.roster.filter((id) => done[id] === min);
+    out.innocentCount = min;
+  }
+  return out;
 }
 
 /* ---------- Kim Yazdı? scoring ---------- */
@@ -1411,6 +1515,20 @@ const GAME_UI = {
     skip: '⏭ Tahminleri bitir, sonuçlara geç',
     doneAll: 'Hepsini tahmin ettin!',
   },
+  asla: {
+    writeTitle: 'Asla yapmadım! 🙊',
+    writeHint: (n) => 'Hiç yapmadığın ama başkalarının yapmış olabileceği ' + n + ' şey yaz. Örn: "Hiç uçağa binmedim". Takılırsan 🎲 bas.',
+    writeTimer: 'Yazma süresi',
+    progressTitle: 'Kim kaç tane yazdı?',
+    placeholders: ['Örn: Hiç uçağa binmedim', 'Örn: Hiç okuldan kaçmadım', 'Örn: Hiç derste uyuyakalmadım', 'Örn: Hiç yanlış kişiye mesaj atmadım'],
+    diceTitle: 'Rastgele cümle',
+    itemWord: 'Cümle',
+    byWord: 'yazdı',
+    ask: 'Sen bunu yaptın mı?',
+    pass: '🤐 Söylemem',
+    skip: '⏭ Cevapları bitir, sonuçlara geç',
+    doneAll: 'Hepsini cevapladın!',
+  },
 };
 
 function ui() {
@@ -1541,18 +1659,25 @@ function showNextQuestion() {
   $('#gtimer').innerHTML = per > 0 ? timerHTML('Bu ' + lower(U.itemWord) + ' için kalan süre', 'q') : '';
   const by = q.by ? nameOf(q.by) : null;
   const ky = s.game === 'kimyazdi';
+  const asla = s.game === 'asla';
   const options = s.roster.filter((id) => id !== s.you || (!ky && s.settings.selfVote));
+  const choices = asla
+    ? '<div class="yn">' +
+        '<button class="ynb yes" data-act="vote" data-id="yes"><span>✋</span>Ben yaptım</button>' +
+        '<button class="ynb no" data-act="vote" data-id="no"><span>😇</span>Hiç yapmadım</button>' +
+      '</div>'
+    : '<div class="choices">' + options.map((id) => {
+        const p = nameOf(id);
+        return '<button class="choice" data-act="vote" data-id="' + esc(id) + '">' + avatarHTML(p) + '<span class="nm">' + esc(p.name) + '</span></button>';
+      }).join('') + '</div>';
   stage.innerHTML =
     '<div class="card qcard"><div class="meta">' + esc(U.itemWord) + ' ' + (idx + 1) + ' / ' + total + '</div>' +
       '<div class="minibar"><i style="width:' + (A.answered.size / total * 100) + '%"></i></div>' +
       (U.ask ? '<div class="ask">' + esc(U.ask) + '</div>' : '') +
       '<div class="qtext">' + (ky ? '“' + esc(q.text) + '”' : esc(q.text)) + '</div>' +
-      (by ? '<div class="by">' + esc(by.av) + ' ' + esc(by.name) + ' sordu</div>' : '') +
+      (by ? '<div class="by">' + esc(by.av) + ' ' + esc(by.name) + ' ' + (U.byWord || 'sordu') + '</div>' : '') +
     '</div>' +
-    '<div class="choices">' + options.map((id) => {
-      const p = nameOf(id);
-      return '<button class="choice" data-act="vote" data-id="' + esc(id) + '">' + avatarHTML(p) + '<span class="nm">' + esc(p.name) + '</span></button>';
-    }).join('') + '</div>' +
+    choices +
     '<div class="skip-row"><button class="btn small ghost" data-act="vote" data-id="">' + esc(U.pass) + '</button></div>';
   App.lastSecond = null;
   updateTimers();
@@ -1590,10 +1715,12 @@ Views.spectate = {
 
 Views.results = {
   mount(s) {
-    if (s.game === 'kimyazdi') kyResultsMount(s); else hangimizResultsMount(s);
+    if (s.game === 'kimyazdi') kyResultsMount(s);
+    else if (s.game === 'asla') aslaResultsMount(s);
+    else hangimizResultsMount(s);
     // setTimeout (not rAF) so it also runs while the tab is in the background.
     setTimeout(() => {
-      $$('.track i').forEach((el) => { el.style.width = el.dataset.w + '%'; });
+      $$('.track i, .ynbar i').forEach((el) => { el.style.width = el.dataset.w + '%'; });
       $$('#rescard, .card.late').forEach((el) => el.classList.add('revealed'));
     }, 60);
     Sound.click();
@@ -1650,6 +1777,46 @@ function hangimizResultsMount(s) {
         body +
       '</div>' + C.ctrl
     );
+}
+
+function aslaResultsMount(s) {
+  const R = s.reveal;
+  const it = R.item;
+  const by = it.author ? nameOf(it.author) : null;
+  const pct = it.total ? Math.round(it.yesCount / it.total * 100) : 0;
+  const people = (ids) => ids.length
+    ? ids.map((id) => '<span class="chip">' + avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) + '</span>').join('')
+    : '<span class="muted">Kimse</span>';
+
+  let verdict;
+  if (!it.total) verdict = 'Kimse cevap vermedi 🤐';
+  else if (it.yesCount === 0) verdict = 'Kimse yapmamış, ne masum grup 😇';
+  else if (it.yesCount === it.total) verdict = it.total > 1 ? 'Herkes yapmış! 😂' : 'Yapmış! 😂';
+  else if (it.yesCount === 1) verdict = it.yes ? 'Bir tek ' + nameOf(it.yes[0]).name + ' yapmış 👀' : 'Sadece 1 kişi yapmış 👀';
+  else verdict = it.total + ' kişiden ' + it.yesCount + ' kişi yapmış';
+
+  const lists = it.yes && it.total
+    ? '<div class="ynlists late">' +
+        '<div><h3>✋ Yapanlar</h3><div class="chips">' + people(it.yes) + '</div></div>' +
+        '<div><h3>😇 Yapmayanlar</h3><div class="chips">' + people(it.no) + '</div></div>' +
+      '</div>'
+    : '';
+
+  const C = revealChrome(s);
+  mount(
+    C.top +
+    '<div class="card rescard" id="rescard"><div class="meta">Cümle ' + (R.index + 1) + ' / ' + R.total + '</div>' +
+      '<div class="qtext">“' + esc(it.text) + '”</div>' +
+      (by ? '<div class="meta">' + esc(by.av) + ' ' + esc(by.name) + ' yazdı</div>' : '') +
+      (it.total
+        ? '<div class="ynstat"><div class="ynpct">%' + pct + '</div><div class="muted">yapmış</div></div>' +
+          '<div class="ynbar"><i class="y" data-w="' + pct + '"></i></div>' +
+          '<div class="ynlegend"><span>✋ ' + it.yesCount + ' yaptı</span><span>😇 ' + it.noCount + ' yapmadı</span></div>'
+        : '') +
+      '<div class="winline">' + esc(verdict) + '</div>' +
+      lists +
+    '</div>' + C.ctrl
+  );
 }
 
 function kyResultsMount(s) {
@@ -1709,7 +1876,9 @@ function kyResultsMount(s) {
 
 Views.final = {
   mount(s) {
-    if (s.game === 'kimyazdi') kyFinalMount(s); else hangimizFinalMount(s);
+    if (s.game === 'kimyazdi') kyFinalMount(s);
+    else if (s.game === 'asla') aslaFinalMount(s);
+    else hangimizFinalMount(s);
     confetti();
     Sound.fanfare();
   },
@@ -1769,6 +1938,45 @@ function kyFinalMount(s) {
       '<p class="muted" style="margin:10px 0 0;font-size:14px">Doğru tahmin: +' + KY_CORRECT_POINTS + ' puan · Seni bilemeyen her kişi için: +' + KY_FOOL_POINTS + ' puan</p></div>' +
     '<div class="card"><h2>Sayılarla bu tur</h2>' + statsHTML(stats) + '</div>' +
     '<div class="card"><h2>Bütün itiraflar</h2><div class="recap">' + recap + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
+function aslaFinalMount(s) {
+  const F = s.final;
+  const names = (ids) => ids.map((id) => nameOf(id).name).join(' & ');
+  let headline;
+  let podium = '';
+  let board = '';
+  if (!F.anon) {
+    const lead = F.ranking[0];
+    const tops = F.ranking.filter((id) => F.done[id] === F.done[lead]);
+    if (!F.done[lead]) headline = '<h1>😇 Melek gibi bir grup!</h1><p>Kimse hiçbir şeyi yapmamış (öyle diyorlar).</p>';
+    else if (tops.length > 1) headline = '<h1>✋ ' + esc(names(tops)) + '</h1><p>Grubun en maceracıları: ' + F.done[lead] + ' şeyi yapmışlar!</p>';
+    else headline = '<h1>' + esc(nameOf(lead).av) + ' ' + esc(nameOf(lead).name) + ' en maceracı!</h1><p>' + F.count + ' şeyden ' + F.done[lead] + ' tanesini yapmış 😂</p>';
+    podium = podiumHTML(F.ranking, (id) => F.done[id] + ' / ' + F.count + ' yaptı');
+    board = '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Kim kaç şey yapmış? ✋</h2><div class="board">' +
+      F.ranking.map((id, i) => '<div class="srow"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id), 'sm') +
+        '<span class="nm">' + esc(nameOf(id).name) + '</span><b>' + F.done[id] + '</b></div>').join('') + '</div></div>';
+  } else {
+    headline = '<h1>Tur bitti! 🙊</h1><p>Cevaplar gizliydi, sadece sayılar var.</p>';
+  }
+
+  const stats = [['🙊', F.count, 'cümle yazıldı'], ['✋', F.totalYes, 'kere "yaptım" dendi']];
+  if (!F.anon && F.innocent.length) stats.push(['😇', names(F.innocent), 'en masum (' + F.innocentCount + ' tane yapmış)']);
+  stats.push(['😂', F.everyone, 'şeyi herkes yapmış']);
+  stats.push(['🤷', F.nobody, 'şeyi kimse yapmamış']);
+
+  const recap = F.recap.map((r) => '<div><span class="q">“' + esc(r.text) + '”</span><span class="w">' +
+    (r.total ? r.yes + '/' + r.total + ' yaptı' : '—') + '</span></div>').join('');
+
+  mount(
+    header() +
+    '<div class="phase-title">' + headline + '</div>' +
+    podium + board +
+    '<div class="card"><h2>Sayılarla bu tur</h2>' + statsHTML(stats) + '</div>' +
+    '<div class="card"><h2>Bütün cümleler <small>(en çok yapılandan aza)</small></h2><div class="recap">' + recap + '</div></div>' +
     finalFooter(),
     true
   );
@@ -1990,9 +2198,10 @@ const actions = {
       queueDrafts();
       return;
     }
+    const all = App.state.game === 'asla' ? ASLA_STATEMENTS : RANDOM_QUESTIONS;
     const taken = new Set(collectDrafts().map(lower));
-    const pool = RANDOM_QUESTIONS.filter((q) => !taken.has(lower(q)));
-    input.value = (pool.length ? pool : RANDOM_QUESTIONS)[Math.floor(Math.random() * (pool.length || RANDOM_QUESTIONS.length))];
+    const pool = all.filter((q) => !taken.has(lower(q)));
+    input.value = (pool.length ? pool : all)[Math.floor(Math.random() * (pool.length || all.length))];
     Sound.click();
     queueDrafts();
   },

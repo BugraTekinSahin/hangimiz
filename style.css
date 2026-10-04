@@ -410,3 +410,23 @@ button.gcard:not(:disabled):hover { transform: translateY(-2px); border-color: #
 .srow .dl { color: #12844a; font-weight: 800; font-size: 14px; }
 .srow b { font-size: 20px; color: var(--purple); min-width: 44px; text-align: right; }
 .srow.big { padding: 8px 12px; }
+
+/* ---------- Asla Yapmadım ---------- */
+.yn { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ynb {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; border: 0; border-radius: 22px; padding: 18px 10px;
+  font-size: 20px; font-weight: 800; color: #fff; transition: transform .1s;
+}
+.ynb span { font-size: 42px; line-height: 1; }
+.ynb.yes { background: var(--bg2); box-shadow: 0 6px 0 #c22f72; }
+.ynb.no { background: var(--green); box-shadow: 0 6px 0 #149652; }
+.ynb:active { transform: translateY(5px); box-shadow: 0 1px 0 rgba(0,0,0,.2); }
+.ynb.picked { outline: 4px solid var(--accent); }
+.ynstat { text-align: center; margin-top: 10px; }
+.ynpct { font-size: 52px; font-weight: 800; line-height: 1; color: var(--bg2); }
+.ynbar { height: 22px; border-radius: 999px; background: var(--green); overflow: hidden; margin-top: 10px; }
+.ynbar i { display: block; height: 100%; width: 0; background: var(--bg2); transition: width 1s cubic-bezier(.2,.9,.3,1); }
+.ynlegend { display: flex; justify-content: space-between; font-weight: 700; margin-top: 4px; font-size: 15px; }
+.ynlists { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+.ynlists h3 { margin: 0 0 6px; font-size: 16px; }
+@media (max-width: 420px) { .ynlists { grid-template-columns: 1fr; } }
