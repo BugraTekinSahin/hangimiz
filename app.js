@@ -337,8 +337,10 @@ const KY_STARTERS = [
   'En son ağladığım şey: ',
 ];
 
-const AVATARS = ['🦊', '🐸', '🐼', '🐙', '🦄', '🐯', '🐵', '🐧', '🐨', '🦁', '🐷', '🐰', '🐻', '🐶', '🐱', '🦉'];
-const COLORS = ['#ffb36b', '#8be28b', '#cfd8e3', '#ff9fc4', '#d7b8ff', '#ffd36b', '#c9a27e', '#9fd3ff', '#b8c4cf', '#ffc94d', '#ffb0c0', '#f2e2ff', '#d9a77a', '#ffe08a', '#a8e6cf', '#c7b3ff'];
+// The first 16 are handed out automatically; the rest are extra choices in the picker.
+const AVATARS = ['🦊', '🐸', '🐼', '🐙', '🦄', '🐯', '🐵', '🐧', '🐨', '🦁', '🐷', '🐰', '🐻', '🐶', '🐱', '🦉',
+  '🐲', '🦋', '🐝', '🐢', '🦖', '🐳', '🦩', '🦔', '🐺', '🦝', '🐮', '🐔', '👻', '👽', '🤖', '🤡', '🎃', '🌵', '🍕', '😎'];
+const COLORS = ['#ffb36b', '#8be28b', '#9fd3ff', '#ff9fc4', '#d7b8ff', '#ffd36b', '#c9a27e', '#7fe0d4', '#ff8a8a', '#b8c4cf', '#a0b4ff', '#e3f27a', '#f5a3ff', '#6fcf97', '#ffc4a3', '#5b5b7a'];
 
 const RANDOM_QUESTIONS = [
   'Grubun en zekisi kim?',
@@ -516,6 +518,15 @@ const App = {
   draftTimer: null,
 };
 
+function validLook(l) {
+  return !!l && AVATARS.includes(l.av) && COLORS.includes(l.col);
+}
+
+// The player's chosen animal + colour, remembered on this device.
+App.look = validLook(store.get('hz-look')) ? store.get('hz-look')
+  : { av: AVATARS[Math.floor(Math.random() * AVATARS.length)], col: COLORS[Math.floor(Math.random() * COLORS.length)] };
+store.set('hz-look', App.look);
+
 function send(msg) {
   if (App.role === 'host') Host.handle(Host.S.hostId, msg);
   else Client.send(msg);
@@ -548,7 +559,7 @@ const Host = {
       notice: null,
     };
     this.S = S;
-    this.addPlayer(myId, name);
+    this.addPlayer(myId, name, App.look);
     S.players[myId].connected = true;
     this.open(code, false, 0);
   },
@@ -662,9 +673,10 @@ const Host = {
 
     if (!p) {
       if (S.order.length >= MAX_PLAYERS) { reply({ t: 'error', code: 'full' }); return; }
-      p = this.addPlayer(id, name);
+      p = this.addPlayer(id, name, msg.look);
     } else if (S.phase === 'lobby') {
       p.name = name;
+      if (validLook(msg.look)) { p.av = msg.look.av; p.col = msg.look.col; }
     }
 
     const old = this.conns.get(id);
@@ -677,14 +689,21 @@ const Host = {
     this.changed();
   },
 
-  addPlayer(id, name) {
+  addPlayer(id, name, look) {
     const S = this.S;
-    const used = new Set(S.order.map((x) => S.players[x].avIndex));
-    let idx = 0;
-    while (used.has(idx) && idx < AVATARS.length) idx++;
-    if (idx >= AVATARS.length) idx = S.order.length % AVATARS.length;
+    let av;
+    let col;
+    if (validLook(look)) {
+      ({ av, col } = look);
+    } else {
+      // No choice made: hand out the first animal nobody is using yet.
+      const used = new Set(S.order.map((x) => S.players[x].av));
+      const idx = Math.max(0, AVATARS.slice(0, COLORS.length).findIndex((a) => !used.has(a)));
+      av = AVATARS[idx];
+      col = COLORS[idx % COLORS.length];
+    }
     const p = {
-      id, name, avIndex: idx, av: AVATARS[idx], col: COLORS[idx],
+      id, name, av, col,
       connected: false, ready: false, lastSeen: Date.now(), offSince: null,
     };
     S.players[id] = p;
@@ -725,6 +744,13 @@ const Host = {
       case 'leave':
         if (S.phase === 'lobby') this.removePlayer(pid);
         else this.connGone(this.conns.get(pid) || {});
+        this.changed();
+        return;
+
+      case 'look':
+        if (S.phase !== 'lobby' || !validLook(msg.look)) return;
+        p.av = msg.look.av;
+        p.col = msg.look.col;
         this.changed();
         return;
 
@@ -2244,7 +2270,7 @@ const Client = {
       clearTimeout(openTimer);
       if (conn._dead) return;
       this.lastMsg = Date.now();
-      conn.send({ t: 'hello', id: myId, name: myName });
+      conn.send({ t: 'hello', id: myId, name: myName, look: App.look });
     });
     conn.on('data', (msg) => {
       if (conn._dead) return;
@@ -2377,6 +2403,7 @@ function showHome(err = '') {
     '<div class="card">' +
       '<label class="lbl" for="nm">Adın ne?</label>' +
       '<input id="nm" class="field" maxlength="' + MAX_NAME + '" autocomplete="nickname" placeholder="Örn: Tekin" value="' + esc(myName) + '">' +
+      '<div id="lookBox">' + lookBoxHTML() + '</div>' +
       '<div style="height:12px"></div>' +
       '<button class="btn yellow big block" data-act="create">🎉 Oda Kur</button>' +
       '<div class="or">ya da arkadaşının odasına gir</div>' +
@@ -2398,6 +2425,33 @@ function showHome(err = '') {
   if (!myName) setTimeout(() => $('#nm') && $('#nm').focus(), 50);
 }
 
+/* ---------- character picker ---------- */
+
+function lookPickerHTML() {
+  return '<div class="lookpick"><div class="lbl">Karakterin</div><div class="avgrid">' +
+    AVATARS.map((a) => '<button class="avopt ' + (a === App.look.av ? 'on' : '') + '" style="--c:' + App.look.col + '" data-act="pickav" data-v="' + a + '">' + a + '</button>').join('') +
+    '</div><div class="lbl">Rengin</div><div class="colgrid">' +
+    COLORS.map((c) => '<button class="colopt ' + (c === App.look.col ? 'on' : '') + '" style="--c:' + c + '" data-act="pickcol" data-v="' + c + '" aria-label="renk"></button>').join('') +
+    '</div></div>';
+}
+
+function lookBoxHTML() {
+  return '<div class="lookrow">' + avatarHTML(App.look, 'lg') +
+    '<div class="grow"><b>Karakterin</b><div class="muted" style="font-size:14px">Hayvanını ve rengini seç</div></div>' +
+    '<button class="btn small ghost" data-act="toggleLook">' + (App.lookOpen ? 'Tamam ✓' : '🎨 Değiştir') + '</button></div>' +
+    (App.lookOpen ? lookPickerHTML() : '');
+}
+
+function setLook(change) {
+  App.look = { ...App.look, ...change };
+  store.set('hz-look', App.look);
+  Sound.click();
+  const box = $('#lookBox');
+  if (box) box.innerHTML = lookBoxHTML();
+  // Already in a room: tell the host straight away.
+  if (App.state && App.state.phase === 'lobby') send({ t: 'look', look: App.look });
+}
+
 function showJoin(code, canRestore, err = '') {
   App.screenKey = 'join';
   App.code = code;
@@ -2409,6 +2463,7 @@ function showJoin(code, canRestore, err = '') {
       '<div style="height:12px"></div>' +
       '<label class="lbl" for="nm">Adın ne?</label>' +
       '<input id="nm" class="field" maxlength="' + MAX_NAME + '" autocomplete="nickname" placeholder="Örn: Naz" value="' + esc(myName) + '">' +
+      '<div id="lookBox">' + lookBoxHTML() + '</div>' +
       '<div style="height:12px"></div>' +
       '<button class="btn yellow big block" data-act="join">Odaya Gir 🚪</button>' +
       '<p class="err" id="err">' + esc(err) + '</p>' +
@@ -2535,8 +2590,10 @@ Views.lobby = {
       if (s.settings.startMode === 'ready' && p.ready) tags.push('<span class="tag ok">Hazır</span>');
       if (!p.connected) tags.push('<span class="tag">Bağlantı yok</span>');
       const kick = host && p.id !== s.hostId ? '<button class="kick" data-act="kick" data-id="' + esc(p.id) + '" title="Odadan çıkar">✕</button>' : '';
-      return '<div class="player ' + (p.connected ? '' : 'off') + '">' + avatarHTML(p) + '<span class="nm">' + esc(p.name) + '</span>' + tags.join('') + kick + '</div>';
-    }).join('');
+      const edit = p.id === s.you ? '<button class="kick edit" data-act="toggleLook" title="Karakterini değiştir">🎨</button>' : '';
+      return '<div class="player ' + (p.connected ? '' : 'off') + '">' + avatarHTML(p) + '<span class="nm">' + esc(p.name) + '</span>' + tags.join('') + edit + kick + '</div>';
+    }).join('') + (App.lookOpen ? '<div class="card-in">' + lookPickerHTML() +
+      '<button class="btn small block" data-act="toggleLook" style="margin-top:10px">Tamam ✓</button></div>' : '');
 
     $('#lobby').innerHTML =
       (s.notice ? '<div class="notice">' + esc(s.notice) + '</div>' : '') +
@@ -4027,6 +4084,13 @@ function readName() {
 }
 
 const actions = {
+  toggleLook() {
+    App.lookOpen = !App.lookOpen;
+    const box = $('#lookBox');
+    if (box) box.innerHTML = lookBoxHTML(); else render();
+  },
+  pickav(el) { setLook({ av: el.dataset.v }); if (!$('#lookBox')) render(); },
+  pickcol(el) { setLook({ col: el.dataset.v }); if (!$('#lookBox')) render(); },
   create() {
     const name = readName();
     if (!name) return;

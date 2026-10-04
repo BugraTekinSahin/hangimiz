@@ -578,3 +578,19 @@ button.ansb:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(30,10,
 .tgl .mark { font-size: 20px; }
 .aword { font-size: 40px; word-break: break-word; }
 .timer[hidden] { display: none; }
+
+/* ---------- character picker ---------- */
+.lookrow { display: flex; align-items: center; gap: 12px; margin-top: 12px; background: var(--soft); border-radius: 16px; padding: 10px; }
+.lookrow .grow { flex: 1; min-width: 0; }
+.lookpick .lbl { margin: 12px 0 6px; }
+.avgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: 6px; }
+.avopt {
+  height: 44px; border: 3px solid transparent; border-radius: 12px; background: var(--soft); font-size: 24px;
+  display: grid; place-items: center; padding: 0;
+}
+.avopt.on { border-color: var(--purple); background: var(--c); }
+.colgrid { display: flex; flex-wrap: wrap; gap: 8px; }
+.colopt { width: 34px; height: 34px; border-radius: 50%; border: 3px solid #fff; background: var(--c); box-shadow: 0 0 0 2px var(--line); padding: 0; }
+.colopt.on { box-shadow: 0 0 0 3px var(--purple); transform: scale(1.12); }
+.card-in { margin-top: 10px; border-top: 2px dashed var(--line); padding-top: 4px; }
+.player .kick.edit { font-size: 17px; }
