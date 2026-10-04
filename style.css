@@ -510,3 +510,28 @@ button.ansb:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(30,10,
 }
 
 #lvoteArea { margin-bottom: 16px; }
+
+/* ---------- Kaç Kaç? ---------- */
+.knum { font-size: 24px; font-weight: 800; text-align: center; }
+.kreveal { display: grid; gap: 6px; }
+.krow {
+  display: flex; gap: 10px; align-items: center; padding: 6px 8px; border-radius: 14px;
+  opacity: 0; transform: translateY(8px); animation: kin .45s ease-out forwards; animation-delay: var(--d);
+}
+.krow.top { background: #fff4cc; }
+.krow .body { flex: 1; min-width: 0; }
+.krow .top2 { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-weight: 800; }
+.krow .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.krow .kv { font-size: 22px; color: var(--purple); }
+.krow .track { height: 10px; background: var(--soft); border-radius: 999px; overflow: hidden; margin-top: 3px; }
+.krow .track i { display: block; height: 100%; background: var(--c, var(--purple)); border-radius: 999px; }
+.ktotal, .kafter { opacity: 0; transform: translateY(8px); animation: kin .45s ease-out forwards; animation-delay: var(--d); }
+.ktotal { text-align: center; font-size: 22px; margin-top: 12px; font-weight: 700; }
+.ktotal b { font-size: 32px; color: var(--bg2); }
+.srow.win { background: #fff4cc; }
+@keyframes kin { to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .krow, .ktotal, .kafter { opacity: 1; transform: none; }
+}
+.card .choice { background: var(--soft); }
+.card .choice.picked { background: var(--accent); }
