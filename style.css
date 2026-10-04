@@ -544,3 +544,36 @@ button.ansb:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(30,10,
 @keyframes kpop { from { transform: scale(0); opacity: 0; } }
 .kdiff { font-size: 14px; color: var(--muted); font-weight: 600; }
 .krow .dl { color: #12844a; font-weight: 800; }
+
+/* ---------- Ruh İkizi / Telepati / Ayna ---------- */
+.ikizinfo { display: grid; gap: 4px; }
+.ihist { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 8px; }
+.ihist span { font-size: 13px; font-weight: 700; border-radius: 999px; padding: 2px 10px; background: var(--soft); }
+.ihist span.yes { background: #ffe1ef; }
+.mybanner { font-size: 20px; font-weight: 800; }
+.mybanner.yes { background: #ffe1ef; }
+.mybanner .small { font-size: 14px; font-weight: 600; color: var(--muted); margin-top: 4px; }
+.wgroups { display: grid; gap: 8px; }
+.wgroup { background: var(--soft); border-radius: 14px; padding: 8px 10px; }
+.wgroup.multi { background: #fff4cc; }
+.wtext { font-weight: 800; font-size: 18px; margin-bottom: 4px; word-break: break-word; }
+.wgroup .chip { background: #fff; }
+.ihist2 { display: grid; gap: 6px; }
+.ihrow { background: var(--soft); border-radius: 12px; padding: 8px 10px; font-size: 15px; }
+.ihrow.yes { background: #ffe1ef; }
+.twins, .twrow, .pairban { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
+.twin, .tw { display: grid; justify-items: center; gap: 2px; text-align: center; min-width: 90px; }
+.twin small { color: var(--muted); font-weight: 600; }
+.twinpair.best { border: 4px solid var(--accent); }
+.heart { font-size: 34px; }
+.pairnames { width: 100%; text-align: center; font-weight: 800; font-size: 20px; }
+.twword { font-size: 24px; font-weight: 800; color: var(--purple); word-break: break-word; max-width: 150px; }
+.tgls { display: grid; gap: 8px; }
+.tgl {
+  display: flex; align-items: center; gap: 10px; border: 3px solid var(--line); background: var(--soft); border-radius: 14px;
+  padding: 8px 10px; text-align: left; font-size: 16px;
+}
+.tgl .nm { flex: 1; min-width: 0; word-break: break-word; }
+.tgl.on { border-color: var(--green); background: #dff8ea; }
+.tgl .mark { font-size: 20px; }
+.aword { font-size: 40px; word-break: break-word; }

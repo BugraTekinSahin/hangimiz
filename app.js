@@ -111,7 +111,71 @@ GAMES.kackac = {
     { key: 'guessTime', label: 'Tahmin süresi', type: 'num', def: 25, min: 10, max: 90, step: 5, unit: 'sn' },
   ],
 };
-const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac'];
+GAMES.ikiz = {
+  name: 'Ruh İkizi',
+  emoji: '💞',
+  desc: 'Herkesin gizli bir ruh ikizi var ama kim olduğunu bilmiyor! Aynı cevabı verince puan kazanırsınız. Sonda ikizini tahmin et.',
+  minPlayers: 4,
+  defs: [
+    { key: 'rounds', label: 'Tur sayısı', type: 'num', def: 5, min: 3, max: 10, step: 1, unit: 'tur' },
+    { key: 'answerTime', label: 'Cevap süresi', type: 'num', def: 20, min: 10, max: 60, step: 5, unit: 'sn' },
+    { key: 'guessTime', label: 'İkiz tahmini süresi', type: 'num', def: 45, min: 15, max: 120, step: 5, unit: 'sn' },
+  ],
+};
+GAMES.tele = {
+  name: 'Telepati',
+  emoji: '🧠',
+  desc: 'Her tur iki kişi seçilir, konuşmadan aynı cevabı vermeye çalışır. Diğerleri tutturup tutturamayacaklarına bahse girer!',
+  minPlayers: 3,
+  defs: [
+    { key: 'rounds', label: 'Tur sayısı', type: 'num', def: 6, min: 2, max: 12, step: 1, unit: 'tur' },
+    { key: 'answerTime', label: 'Cevap süresi', type: 'num', def: 20, min: 10, max: 60, step: 5, unit: 'sn' },
+  ],
+};
+GAMES.ayna = {
+  name: 'Ayna',
+  emoji: '🪞',
+  desc: 'Sırayla biri ayna olur ve kendi cevabını yazar. Diğerleri onun ne yazdığını tahmin eder. Kim kimi iyi tanıyor?',
+  minPlayers: 3,
+  defs: [
+    { key: 'perPlayer', label: 'Kişi başı ayna olma', type: 'num', def: 1, min: 1, max: 3, step: 1, unit: 'kez' },
+    { key: 'answerTime', label: 'Cevap süresi', type: 'num', def: 30, min: 10, max: 90, step: 5, unit: 'sn' },
+    { key: 'judgeTime', label: 'Kontrol süresi', type: 'num', def: 30, min: 10, max: 90, step: 5, unit: 'sn' },
+  ],
+};
+const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna'];
+// Games with their own flow instead of write → answer → results.
+const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna' };
+
+const IKIZ_MATCH_POINTS = 100;   // you and your secret twin wrote the same thing
+const IKIZ_GUESS_POINTS = 200;   // you guessed who your twin is
+const TELE_MATCH_POINTS = 200;   // the pair wrote the same thing
+const TELE_BET_POINTS = 100;     // you bet right on the pair
+const AYNA_RIGHT_POINTS = 100;   // the mirror accepted your guess
+const STEP_REVEAL_MS = 10000;    // auto mode: time on a reveal screen
+const MAX_WORD = 40;
+
+// Open prompts where people tend to land on the same answer.
+const WORD_PROMPTS = [
+  'Bir meyve söyle', 'Bir renk söyle', 'Bir hayvan söyle', 'Tatil için bir yer', 'Bir süper güç', 'Bir pizza malzemesi',
+  'Bir içecek', 'Kahvaltıda olmazsa olmaz bir şey', 'Bir meslek', '1 ile 10 arasında bir sayı', 'Bir ülke', 'Bir okul dersi',
+  'Bir çizgi film karakteri', 'Bir araba markası', 'Bir mevsim', 'Bir şehir', 'Bir tatlı', 'Bir bilgisayar oyunu',
+  'Haftanın bir günü', 'Bir sosyal medya uygulaması', 'Bir müzik aleti', 'Bir mutfak eşyası', 'Kırmızı bir şey',
+  'Denizde olan bir şey', 'Bir sebze', 'Bir spor', 'Bir dondurma çeşidi', 'Bir ünlü', 'Okulda olan bir şey',
+  'Bir doğum günü hediyesi', 'Bir kıyafet', 'Gökyüzünde olan bir şey', 'Bir harf', 'Bir şarkıcı', 'Bir dizi',
+  'Bir fast food', 'Soğuk bir şey', 'Yuvarlak bir şey', 'Bir masal kahramanı', 'Bir hafta sonu aktivitesi',
+];
+
+// Questions for the mirror, answered with a word or two.
+const AYNA_QUESTIONS = [
+  'En sevdiğin yemek ne?', 'En sevdiğin renk ne?', 'En sevdiğin dizi ya da film ne?', 'Hayalindeki tatil yeri neresi?',
+  'En sevdiğin şarkıcı kim?', 'Bir süper gücün olsa ne olurdu?', 'En çok neyden korkarsın?', 'Kahvaltıda olmazsa olmazın ne?',
+  'Hangi ülkede yaşamak isterdin?', 'En sevdiğin hayvan ne?', 'En sevdiğin mevsim hangisi?', 'Telefonunda en çok kullandığın uygulama?',
+  'En sevdiğin tatlı ne?', 'Çocukken ne olmak istiyordun?', 'Issız adaya götüreceğin tek şey?', 'En sevdiğin içecek ne?',
+  'En sevdiğin oyun ne?', 'Bir gün başka biri olabilsen kim olurdun?', 'En sevdiğin ders hangisi?', 'Şu an canın ne çekiyor?',
+  'En sevdiğin çizgi film karakteri?', 'Kendini hangi hayvana benzetirsin?', 'En sevdiğin spor?', 'Seni en çok ne sinirlendirir?',
+  'Piyango çıksa ilk ne alırsın?', 'En sevdiğin emoji hangisi?', 'Hafta sonu en çok ne yaparsın?',
+];
 
 const KAC_EXACT_POINTS = 200;    // guessed the number exactly
 const KAC_CLOSE_POINTS = 100;    // nobody was exact: the closest guess(es)
@@ -689,6 +753,57 @@ const Host = {
         if (this.allWritersDone()) this.endWriting();
         return;
 
+      case 'iword': {
+        if (S.phase !== 'ikiz' || r.step !== 'answer' || !r.roster.includes(pid)) return;
+        const text = cleanWord(msg.text);
+        if (!text) return;
+        r.answers[pid] = text;
+        this.changed();
+        this.ikizCheck();
+        return;
+      }
+
+      case 'iguess':
+        if (S.phase !== 'ikiz' || r.step !== 'guess' || !r.roster.includes(pid)) return;
+        if (!r.roster.includes(msg.target) || msg.target === pid) return;
+        r.twinGuess[pid] = msg.target;
+        this.changed();
+        this.ikizCheck();
+        return;
+
+      case 'tword': {
+        if (S.phase !== 'tele' || r.step !== 'play' || !r.pairs[r.ri].includes(pid) || r.words[pid] != null) return;
+        const text = cleanWord(msg.text);
+        if (!text) return;
+        r.words[pid] = text;
+        this.changed();
+        this.teleCheck();
+        return;
+      }
+
+      case 'tbet':
+        if (S.phase !== 'tele' || r.step !== 'play' || !r.roster.includes(pid) || r.pairs[r.ri].includes(pid) || r.bets[pid]) return;
+        if (msg.v !== 'yes' && msg.v !== 'no') return;
+        r.bets[pid] = msg.v;
+        this.changed();
+        this.teleCheck();
+        return;
+
+      case 'asend': {
+        if (S.phase !== 'ayna' || r.step !== 'answer' || !r.roster.includes(pid)) return;
+        const text = cleanWord(msg.text);
+        if (!text) return;
+        if (pid === r.turns[r.ti]) r.own = text; else r.guesses[pid] = text;
+        this.changed();
+        this.aynaCheck();
+        return;
+      }
+
+      case 'ajudge':
+        if (S.phase !== 'ayna' || r.step !== 'judge' || pid !== r.turns[r.ti] || !Array.isArray(msg.accepted)) return;
+        this.aynaReveal(msg.accepted.map(String));
+        return;
+
       case 'kask': {
         if (S.phase !== 'kac' || r.step !== 'ask' || pid !== r.turns[r.ti]) return;
         const q = String(msg.q ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_Q_LEN);
@@ -800,6 +915,9 @@ const Host = {
         else if (S.phase === 'answering') this.endAnswering();
         else if (S.phase === 'lie') this.lieTimeout();
         else if (S.phase === 'kac') this.kacSkip();
+        else if (S.phase === 'ikiz') this.ikizSkip();
+        else if (S.phase === 'tele') this.teleSkip();
+        else if (S.phase === 'ayna') this.aynaSkip();
         return;
       case 'lieReset':
         S.lieTotals = {};
@@ -809,6 +927,9 @@ const Host = {
       case 'next':
         if (S.phase === 'results') this.nextReveal();
         else if (S.phase === 'kac' && r.step === 'reveal') this.kacNext();
+        else if (S.phase === 'ikiz' && r.step === 'reveal') this.ikizNext();
+        else if (S.phase === 'tele' && r.step === 'reveal') this.teleNext();
+        else if (S.phase === 'ayna' && r.step === 'reveal') this.aynaNext();
         return;
       case 'prev':
         if (S.phase === 'results' && r.revealIndex > 0) {
@@ -888,8 +1009,265 @@ const Host = {
     if (S.game === 'yalanci') this.setupLie(S.round, now);
     if (S.game === 'kackac') this.setupKac(S.round, now);
     for (const id of S.order) S.players[id].ready = false;
-    S.phase = S.game === 'yalanci' ? 'lie' : S.game === 'kackac' ? 'kac' : 'writing';
+    if (S.game === 'ikiz') this.setupIkiz(S.round);
+    if (S.game === 'tele') this.setupTele(S.round);
+    if (S.game === 'ayna') this.setupAyna(S.round);
+    S.phase = GAME_PHASE[S.game] || 'writing';
     this.changed();
+  },
+
+  /* ---------- shared by Ruh İkizi / Telepati / Ayna ---------- */
+
+  liveIds() {
+    const S = this.S;
+    return S.round.roster.filter((id) => S.players[id] && S.players[id].connected);
+  },
+
+  setStepDeadline(sec) {
+    const r = this.S.round;
+    r.deadline = sec ? Date.now() + sec * 1000 : null;
+    r.deadlineTotal = sec ? sec * 1000 : 0;
+  },
+
+  revealDeadline() {
+    const r = this.S.round;
+    r.deadline = r.cfg.revealMode === 'auto' ? Date.now() + STEP_REVEAL_MS : null;
+    r.deadlineTotal = STEP_REVEAL_MS;
+  },
+
+  finishCustom(final) {
+    const S = this.S;
+    S.round.final = final;
+    S.round.deadline = null;
+    S.phase = 'final';
+    this.changed();
+  },
+
+  /* ---------- Ruh İkizi ---------- */
+
+  setupIkiz(r) {
+    const ids = shuffle(r.roster);
+    const groups = [];
+    for (let i = 0; i + 1 < ids.length; i += 2) groups.push([ids[i], ids[i + 1]]);
+    if (ids.length % 2) groups[groups.length - 1].push(ids[ids.length - 1]);   // odd count: one trio
+    const partners = {};
+    for (const g of groups) for (const id of g) partners[id] = g.filter((x) => x !== id);
+    const scores = {};
+    for (const id of r.roster) scores[id] = 0;
+    Object.assign(r, { groups, partners, prompts: shuffle(WORD_PROMPTS).slice(0, r.cfg.rounds), ri: 0, step: 'answer', answers: {}, history: [], twinGuess: {}, scores });
+    this.setStepDeadline(r.cfg.answerTime);
+  },
+
+  ikizReveal() {
+    const r = this.S.round;
+    const matched = {};
+    for (const id of r.roster) {
+      const k = r.answers[id] != null ? normWord(r.answers[id]) : null;
+      matched[id] = !!k && r.partners[id].some((pt) => r.answers[pt] != null && normWord(r.answers[pt]) === k);
+      if (matched[id]) r.scores[id] += IKIZ_MATCH_POINTS;
+    }
+    r.history.push({ prompt: r.prompts[r.ri], answers: { ...r.answers }, matched });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  ikizNext() {
+    const r = this.S.round;
+    r.ri++;
+    r.answers = {};
+    if (r.ri < r.prompts.length) {
+      r.step = 'answer';
+      this.setStepDeadline(r.cfg.answerTime);
+    } else {
+      r.step = 'guess';
+      this.setStepDeadline(r.cfg.guessTime);
+    }
+    this.changed();
+  },
+
+  ikizFinish() {
+    const r = this.S.round;
+    const right = {};
+    const matches = {};
+    for (const id of r.roster) {
+      right[id] = !!r.twinGuess[id] && r.partners[id].includes(r.twinGuess[id]);
+      if (right[id]) r.scores[id] += IKIZ_GUESS_POINTS;
+      matches[id] = r.history.filter((h) => h.matched[id]).length;
+    }
+    this.finishCustom({
+      groups: r.groups, guess: r.twinGuess, right, matches, scores: { ...r.scores }, rounds: r.history.length,
+      ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a]),
+      history: r.history.map((h) => ({ prompt: h.prompt, answers: h.answers })),
+    });
+  },
+
+  ikizSkip() {
+    const r = this.S.round;
+    if (r.step === 'answer') this.ikizReveal();
+    else if (r.step === 'reveal') this.ikizNext();
+    else this.ikizFinish();
+  },
+
+  ikizCheck() {
+    const r = this.S.round;
+    const live = this.liveIds();
+    if (!live.length) return;
+    if (r.step === 'answer' && live.every((id) => r.answers[id] != null)) this.ikizReveal();
+    else if (r.step === 'guess' && live.every((id) => r.twinGuess[id])) this.ikizFinish();
+  },
+
+  /* ---------- Telepati ---------- */
+
+  setupTele(r) {
+    const plays = {};
+    const scores = {};
+    for (const id of r.roster) { plays[id] = 0; scores[id] = 0; }
+    const all = [];
+    for (let i = 0; i < r.roster.length; i++) for (let j = i + 1; j < r.roster.length; j++) all.push([r.roster[i], r.roster[j]]);
+    const pairs = [];
+    for (let k = 0; k < r.cfg.rounds; k++) {
+      // Prefer people who played least and avoid repeating last round's players.
+      const prev = pairs[pairs.length - 1] || [];
+      const pool = shuffle(all).sort((x, y) => (plays[x[0]] + plays[x[1]]) - (plays[y[0]] + plays[y[1]]));
+      const pick = pool.find((pr) => !pr.some((id) => prev.includes(id))) || pool[0];
+      pairs.push(shuffle(pick));
+      plays[pick[0]]++;
+      plays[pick[1]]++;
+    }
+    Object.assign(r, { pairs, prompts: shuffle(WORD_PROMPTS).slice(0, r.cfg.rounds), ri: 0, step: 'play', words: {}, bets: {}, history: [], scores });
+    this.setStepDeadline(r.cfg.answerTime);
+  },
+
+  teleReveal() {
+    const r = this.S.round;
+    const [a, b] = r.pairs[r.ri];
+    const match = r.words[a] != null && r.words[b] != null && normWord(r.words[a]) === normWord(r.words[b]);
+    const delta = {};
+    if (match) { delta[a] = TELE_MATCH_POINTS; delta[b] = TELE_MATCH_POINTS; }
+    const right = [];
+    for (const [id, bet] of Object.entries(r.bets)) {
+      if ((bet === 'yes') === match) { delta[id] = (delta[id] || 0) + TELE_BET_POINTS; right.push(id); }
+    }
+    for (const id of Object.keys(delta)) r.scores[id] += delta[id];
+    r.history.push({ pair: [a, b], prompt: r.prompts[r.ri], words: { [a]: r.words[a] ?? null, [b]: r.words[b] ?? null }, match, bets: { ...r.bets }, right, delta, scores: { ...r.scores } });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  teleNext() {
+    const r = this.S.round;
+    r.ri++;
+    if (r.ri >= r.pairs.length) {
+      const hits = {};
+      for (const id of r.roster) hits[id] = r.history.filter((h) => h.match && h.pair.includes(id)).length;
+      this.finishCustom({
+        scores: { ...r.scores }, hits, ranking: r.roster.slice().sort((x, y) => r.scores[y] - r.scores[x]),
+        history: r.history.map((h) => ({ pair: h.pair, prompt: h.prompt, words: h.words, match: h.match })),
+      });
+      return;
+    }
+    r.step = 'play';
+    r.words = {};
+    r.bets = {};
+    this.setStepDeadline(r.cfg.answerTime);
+    this.changed();
+  },
+
+  teleSkip() {
+    if (this.S.round.step === 'play') this.teleReveal(); else this.teleNext();
+  },
+
+  teleCheck() {
+    const r = this.S.round;
+    if (r.step !== 'play') return;
+    const pair = r.pairs[r.ri];
+    const live = this.liveIds();
+    const pairLive = pair.filter((id) => live.includes(id));
+    const pairDone = pairLive.every((id) => r.words[id] != null);
+    const betDone = live.filter((id) => !pair.includes(id)).every((id) => r.bets[id]);
+    if (!pairLive.length || (pairDone && betDone)) this.teleReveal();
+  },
+
+  /* ---------- Ayna ---------- */
+
+  setupAyna(r) {
+    const scores = {};
+    for (const id of r.roster) scores[id] = 0;
+    const turns = [];
+    for (let k = 0; k < r.cfg.perPlayer; k++) turns.push(...shuffle(r.roster));
+    const qs = [];
+    while (qs.length < turns.length) qs.push(...shuffle(AYNA_QUESTIONS));
+    Object.assign(r, { turns, qs: qs.slice(0, turns.length), ti: 0, history: [], scores, step: 'answer', own: null, guesses: {}, accepted: [] });
+    this.setStepDeadline(r.cfg.answerTime);
+  },
+
+  aynaBegin() {
+    const r = this.S.round;
+    while (r.ti < r.turns.length && !this.liveIds().includes(r.turns[r.ti])) r.ti++;
+    if (r.ti >= r.turns.length) { this.aynaFinish(); return; }
+    Object.assign(r, { step: 'answer', own: null, guesses: {}, accepted: [] });
+    this.setStepDeadline(r.cfg.answerTime);
+    this.changed();
+  },
+
+  aynaToJudge() {
+    const r = this.S.round;
+    if (r.own == null || !Object.keys(r.guesses).length) { this.aynaReveal([]); return; }
+    const k = normWord(r.own);
+    r.accepted = Object.keys(r.guesses).filter((id) => normWord(r.guesses[id]) === k);   // exact matches start ticked
+    r.step = 'judge';
+    this.setStepDeadline(r.cfg.judgeTime);
+    this.changed();
+  },
+
+  aynaReveal(accepted) {
+    const r = this.S.round;
+    const mirror = r.turns[r.ti];
+    const ok = r.own == null ? [] : accepted.filter((id) => r.guesses[id] != null && id !== mirror);
+    const delta = {};
+    for (const id of ok) { delta[id] = AYNA_RIGHT_POINTS; r.scores[id] += AYNA_RIGHT_POINTS; }
+    r.history.push({ mirror, q: r.qs[r.ti], own: r.own, guesses: { ...r.guesses }, accepted: ok, delta, scores: { ...r.scores } });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  aynaNext() {
+    this.S.round.ti++;
+    this.aynaBegin();
+  },
+
+  aynaFinish() {
+    const r = this.S.round;
+    const right = {};
+    const known = {};
+    for (const id of r.roster) { right[id] = 0; known[id] = 0; }
+    for (const h of r.history) {
+      for (const id of h.accepted) right[id]++;
+      known[h.mirror] += h.accepted.length;
+    }
+    this.finishCustom({
+      scores: { ...r.scores }, right, known, ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a] || right[b] - right[a]),
+      history: r.history.map((h) => ({ mirror: h.mirror, q: h.q, own: h.own, accepted: h.accepted, total: Object.keys(h.guesses).length })),
+    });
+  },
+
+  aynaSkip() {
+    const r = this.S.round;
+    if (r.step === 'answer') this.aynaToJudge();
+    else if (r.step === 'judge') this.aynaReveal(r.accepted);
+    else this.aynaNext();
+  },
+
+  aynaCheck() {
+    const r = this.S.round;
+    if (r.step !== 'answer') return;
+    const mirror = r.turns[r.ti];
+    const live = this.liveIds();
+    if (!live.includes(mirror)) { this.aynaNext(); return; }
+    if (r.own != null && live.filter((id) => id !== mirror).every((id) => r.guesses[id] != null)) this.aynaToJudge();
   },
 
   /* ---------- Kaç Kaç? ---------- */
@@ -1284,7 +1662,13 @@ const Host = {
       else if (S.phase === 'results' && now >= r.deadline) this.nextReveal();
       else if (S.phase === 'lie' && now >= r.deadline) this.lieTimeout();
       else if (S.phase === 'kac' && now >= r.deadline) this.kacSkip();
+      else if (S.phase === 'ikiz' && now >= r.deadline) this.ikizSkip();
+      else if (S.phase === 'tele' && now >= r.deadline) this.teleSkip();
+      else if (S.phase === 'ayna' && now >= r.deadline) this.aynaSkip();
     }
+    if (S.phase === 'ikiz' && r) this.ikizCheck();
+    if (S.phase === 'tele' && r) this.teleCheck();
+    if (S.phase === 'ayna' && r) this.aynaCheck();
     if (S.phase === 'kac' && r) {
       if (r.step === 'ask' && !this.kacLive(r.turns[r.ti])) this.kacNext();
       else if (r.step === 'guess' && this.kacAllGuessed()) this.kacReveal();
@@ -1387,6 +1771,59 @@ const Host = {
       const item = { ...r.results[r.revealIndex] };
       if (r.game !== 'kimyazdi' && !r.cfg.showAuthor) delete item.author;
       pub.reveal = { index: r.revealIndex, total: r.results.length, item };
+    } else if (S.phase === 'ikiz') {
+      const last = r.history[r.history.length - 1];
+      const done = {};
+      for (const id of r.roster) done[id] = r.step === 'guess' ? !!r.twinGuess[id] : r.answers[id] != null;
+      pub.stepKey = r.step + r.ri;
+      pub.ikiz = {
+        step: r.step,
+        ri: r.ri,
+        rn: r.prompts.length,
+        prompt: r.step === 'guess' ? null : r.prompts[r.ri],
+        done,
+        myAnswer: r.answers[pid] ?? null,
+        myGuess: r.twinGuess[pid] || null,
+        twins: (r.partners[pid] || []).length,
+        myScore: r.scores[pid] || 0,
+        // Answers are public; whether *you* matched your twin is told only to you.
+        history: r.history.map((h) => ({ prompt: h.prompt, answers: h.answers, me: !!h.matched[pid] })),
+        reveal: r.step === 'reveal' ? { answers: last.answers, me: !!last.matched[pid] } : null,
+      };
+    } else if (S.phase === 'tele') {
+      const pair = r.pairs[r.ri] || [];
+      const done = {};
+      for (const id of r.roster) done[id] = pair.includes(id) ? r.words[id] != null : !!r.bets[id];
+      pub.stepKey = r.step + r.ri;
+      pub.tele = {
+        step: r.step,
+        ri: r.ri,
+        rn: r.pairs.length,
+        pair,
+        prompt: r.prompts[r.ri],
+        amPair: pair.includes(pid),
+        myWord: r.words[pid] ?? null,
+        myBet: r.bets[pid] || null,
+        done,
+        result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
+      };
+    } else if (S.phase === 'ayna') {
+      const mirror = r.turns[r.ti];
+      const done = {};
+      for (const id of r.roster) done[id] = id === mirror ? r.own != null : r.guesses[id] != null;
+      pub.stepKey = r.step + r.ti;
+      pub.ayna = {
+        step: r.step,
+        ti: r.ti,
+        tn: r.turns.length,
+        mirror,
+        q: r.qs[r.ti],
+        amMirror: pid === mirror,
+        myText: pid === mirror ? r.own : (r.guesses[pid] ?? null),
+        done,
+        judge: r.step === 'judge' && pid === mirror ? { own: r.own, guesses: r.guesses, pre: r.accepted } : null,
+        result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
+      };
     } else if (S.phase === 'kac') {
       // The asker's real number stays on the host until the reveal.
       const asker = r.turns[r.ti];
@@ -1527,6 +1964,18 @@ function computeFinal(r) {
 }
 
 /* ---------- Kaç Kaç? ---------- */
+
+/* ---------- word matching (Ruh İkizi / Telepati / Ayna) ---------- */
+
+function cleanWord(t) {
+  return String(t ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_WORD);
+}
+
+// "Muz", "muz!" and "MUZ" count as the same answer; Turkish letters are folded so "çilek" = "cilek".
+function normWord(t) {
+  const s = String(t ?? '').toLocaleLowerCase('tr').replace(/ı/g, 'i').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return s.replace(/[^\p{L}\p{N}]+/gu, '') || String(t ?? '').trim();
+}
 
 // Accepts "7", "7,5", "12.000" (Turkish thousands dots). Keeps one decimal.
 function parseKacNumber(raw) {
@@ -1986,7 +2435,7 @@ function onState(s) {
   myId = s.you;
   store.set('hz-id', myId, true);
 
-  const dKey = s.phase + ':' + (s.roundId || '') + ':' + (s.reveal ? s.reveal.index : '') + ':' + (s.lie ? s.lie.step + s.lie.turn : '') + ':' + (s.kac ? s.kac.step + s.kac.ti : '');
+  const dKey = s.phase + ':' + (s.roundId || '') + ':' + (s.reveal ? s.reveal.index : '') + ':' + (s.lie ? s.lie.step + s.lie.turn : '') + ':' + (s.kac ? s.kac.step + s.kac.ti : '') + ':' + (s.stepKey || '');
   if (s.left == null) {
     App.deadline = null;
   } else {
@@ -2021,13 +2470,15 @@ function render() {
   if (!s) return;
   const inRound = !!(s.roster && s.roster.includes(s.you));
   let screen = s.phase;
-  if ((s.phase === 'writing' || s.phase === 'answering' || s.phase === 'lie' || s.phase === 'kac') && !inRound) screen = 'spectate';
+  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna'].includes(s.phase) && !inRound) screen = 'spectate';
   if (screen === 'lie') screen = 'lie:' + s.lie.step;
   if (screen === 'kac') screen = 'kac:' + s.kac.step;
+  if (screen === 'ikiz' || screen === 'tele' || screen === 'ayna') screen += ':' + s[screen].step;
   let key = screen + ':' + (s.roundId || '');
   if (screen === 'results') key += ':' + s.reveal.index;
   if (screen === 'lie:clues') key += ':' + s.lie.turn;
   if (screen.startsWith('kac:')) key += ':' + s.kac.ti;
+  if (/^(ikiz|tele|ayna):/.test(screen)) key += ':' + s.stepKey;
   if (screen === 'writing' && s.writing.stage) key += ':' + s.writing.stage;
 
   const fresh = key !== App.screenKey;
@@ -2403,6 +2854,350 @@ function castVote(target, btn) {
   Sound.click();
   if (btn) btn.classList.add('picked');
   setTimeout(showNextQuestion, btn ? 220 : 0);
+}
+
+/* ---------- shared view helpers (Ruh İkizi / Telepati / Ayna) ---------- */
+
+function sendWord(sel, type) {
+  const el = $(sel);
+  const text = el ? el.value.trim() : '';
+  if (!text) { toast('Bir şey yaz 🙂'); if (el) el.focus(); return; }
+  Sound.click();
+  send({ t: type, text });
+}
+
+function doneChips(s, done, ids = s.roster) {
+  return ids.map((id) => '<span class="chip ' + (done[id] ? 'done' : '') + '">' + avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) +
+    ' <span class="cnt">' + (done[id] ? '✓' : '⏳') + '</span></span>').join('');
+}
+
+function stepDots(i, n) {
+  return '<div class="dots">' + Array.from({ length: n }, (_, k) => '<i class="' + (k <= i ? 'on' : '') + '"></i>').join('') + '</div>';
+}
+
+function nameList(ids) {
+  return ids.map((id) => nameOf(id).name).join(' & ');
+}
+
+function hostSkip(label) {
+  return isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ ' + esc(label) + '</button></div>' : '';
+}
+
+function hostNext(s, label) {
+  if (isHost()) return '<div class="ctrl"><button class="btn yellow big" data-act="next">' + esc(label) + '</button></div>';
+  return s.settings.revealMode === 'auto' ? '' : '<div class="waiting-pill">Lider bir sonrakine geçecek…</div>';
+}
+
+function revealTimer(s) {
+  return s.settings.revealMode === 'auto' ? timerHTML('Sonrakine geçiliyor') : '';
+}
+
+function wordInput(id, act, placeholder) {
+  return '<div class="row"><input id="' + id + '" class="field grow" maxlength="' + MAX_WORD + '" placeholder="' + esc(placeholder) + '" autocomplete="off">' +
+    '<button class="btn green" data-act="' + act + '">Gönder</button></div>';
+}
+
+function scoreBoard(s, scores, delta = {}) {
+  return '<div class="board">' + s.roster.slice().sort((a, b) => scores[b] - scores[a]).map((id, i) => '<div class="srow"><span class="rk">' + (i + 1) + '</span>' +
+    avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) + '</span>' + (delta[id] ? '<span class="dl">+' + delta[id] + '</span>' : '') +
+    '<b>' + scores[id] + '</b></div>').join('') + '</div>';
+}
+
+function focusFine(sel) {
+  const el = $(sel);
+  if (el && window.matchMedia('(pointer:fine)').matches) el.focus();
+}
+
+// Group answers that count as the same word, biggest group first.
+function sameGroups(answers) {
+  const g = new Map();
+  for (const [id, t] of Object.entries(answers)) {
+    const k = normWord(t);
+    if (!g.has(k)) g.set(k, { text: t, ids: [] });
+    g.get(k).ids.push(id);
+  }
+  return [...g.values()].sort((a, b) => b.ids.length - a.ids.length);
+}
+
+function finalHeadline(F, scores, unit) {
+  const lead = F.ranking[0];
+  const champs = F.ranking.filter((id) => scores[id] === scores[lead]);
+  if (!scores[lead]) return '<h1>Kimse puan alamadı 😅</h1><p>Bir dahaki sefere!</p>';
+  if (champs.length > 1) return '<h1>🤝 Berabere!</h1><p>' + esc(nameList(champs)) + ' eşit puan topladı.</p>';
+  return '<h1>' + esc(nameOf(lead).av) + ' ' + esc(nameOf(lead).name) + ' kazandı!</h1><p>' + scores[lead] + ' puanla ' + esc(unit) + '</p>';
+}
+
+/* ---------- Ruh İkizi ---------- */
+
+Views['ikiz:answer'] = {
+  mount(s) {
+    const I = s.ikiz;
+    const hist = I.history.length
+      ? '<div class="ihist">' + I.history.map((h, k) => '<span class="' + (h.me ? 'yes' : '') + '">' + (k + 1) + '. tur ' + (h.me ? '💞' : '💔') + '</span>').join('') + '</div>'
+      : '';
+    mount(header() + timerHTML('Cevap süresi') + stepDots(I.ri, I.rn) +
+      '<div class="card center ikizinfo"><b>💞 Gizli ruh ' + (I.twins > 1 ? 'ikizlerinle' : 'ikizinle') + ' aynı cevabı vermeye çalış!</b>' +
+        '<div class="muted">' + (I.twins > 1 ? 'Senin 2 ikizin var. ' : '') + 'Kim olduğunu bilmiyorsun. Aynı cevap = +' + IKIZ_MATCH_POINTS + '</div>' + hist + '</div>' +
+      '<div class="card qcard"><div class="meta">Tur ' + (I.ri + 1) + ' / ' + I.rn + '</div><div class="qtext">' + esc(I.prompt) + '</div></div>' +
+      '<div class="card">' + wordInput('ikizWord', 'iword', 'Aklına ilk gelen…') + '<p class="muted" id="ikizMine" style="margin:8px 0 0"></p></div>' +
+      '<div class="card"><h2>Kim yazdı?</h2><div class="chips" id="ikizChips"></div></div>' +
+      hostSkip('Cevapları aç'));
+    focusFine('#ikizWord');
+  },
+  update(s) {
+    const I = s.ikiz;
+    $('#ikizMine').innerHTML = I.myAnswer != null ? '✅ Cevabın: <b>' + esc(I.myAnswer) + '</b> (değiştirebilirsin)' : '';
+    $('#ikizChips').innerHTML = doneChips(s, I.done);
+  },
+};
+
+Views['ikiz:reveal'] = {
+  mount(s) {
+    const I = s.ikiz;
+    const R = I.reveal;
+    const mine = R.answers[s.you];
+    const groups = sameGroups(R.answers).map((g) => '<div class="wgroup ' + (g.ids.length > 1 ? 'multi' : '') + '"><div class="wtext">' + esc(g.text) + '</div><div class="chips">' +
+      g.ids.map((id) => '<span class="chip">' + avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) + '</span>').join('') + '</div></div>').join('');
+    const silent = s.roster.filter((id) => R.answers[id] == null);
+    const banner = mine == null ? '🤐 Bu tur cevap vermedin'
+      : R.me ? '💞 Ruh ikizin de aynısını yazmış! +' + IKIZ_MATCH_POINTS : '💔 Ruh ikizin farklı bir şey yazdı';
+    const tip = mine == null ? '' : R.me ? 'Seninle aynı şeyi yazanlardan biri ikizin 😉' : 'İkizin, senden farklı yazanların arasında 🤔';
+    const last = I.ri >= I.rn - 1;
+    mount(header() + revealTimer(s) + stepDots(I.ri, I.rn) +
+      '<div class="card qcard"><div class="meta">Tur ' + (I.ri + 1) + ' / ' + I.rn + '</div><div class="qtext">' + esc(I.prompt) + '</div></div>' +
+      '<div class="card center mybanner ' + (R.me ? 'yes' : '') + '">' + banner + '<div class="small">Bunu sadece sen görüyorsun 🤫 · Puanın: ' + I.myScore + '</div></div>' +
+      '<div class="card"><h2>Cevaplar</h2><div class="wgroups">' + groups + '</div>' +
+        (silent.length ? '<p class="muted" style="margin:8px 0 0">Cevap vermeyen: ' + esc(nameList(silent)) + '</p>' : '') +
+        (tip ? '<p class="muted" style="margin:8px 0 0">' + esc(tip) + '</p>' : '') + '</div>' +
+      hostNext(s, last ? '💞 İkizini tahmin et' : 'Sonraki tur ▶'));
+    Sound.beep(R.me ? 988 : 330, 0.2, 'triangle', 0.08);
+  },
+};
+
+Views['ikiz:guess'] = {
+  mount(s) {
+    const I = s.ikiz;
+    const rows = I.history.map((h, k) => {
+      const mine = h.answers[s.you];
+      const same = mine != null ? Object.keys(h.answers).filter((id) => id !== s.you && normWord(h.answers[id]) === normWord(mine)) : [];
+      return '<div class="ihrow ' + (h.me ? 'yes' : '') + '"><div><b>' + (k + 1) + '. ' + esc(h.prompt) + '</b> ' + (h.me ? '💞' : '💔') + '</div>' +
+        '<div class="muted">Sen: ' + (mine != null ? esc(mine) : '—') + (same.length ? ' · aynı yazan: ' + esc(nameList(same)) : '') + '</div></div>';
+    }).join('');
+    mount(header() + timerHTML('İkiz tahmini') +
+      '<div class="phase-title"><h1>Ruh ikizin kim? 💞</h1><p>' + (I.twins > 1 ? '2 ikizin var, birini seçmen yeterli. ' : '') + 'Doğru bilirsen +' + IKIZ_GUESS_POINTS + '!</p></div>' +
+      '<div id="ikizGuessArea"><div class="choices">' + s.roster.filter((id) => id !== s.you).map((id) => '<button class="choice" data-act="iguess" data-id="' + esc(id) + '">' +
+        avatarHTML(nameOf(id)) + '<span class="nm">' + esc(nameOf(id).name) + '</span></button>').join('') + '</div></div>' +
+      '<div class="card" style="margin-top:16px"><h2>İpuçların 🔎</h2><div class="ihist2">' + rows + '</div></div>' +
+      '<div class="card"><h2>Kim seçti?</h2><div class="chips" id="ikizChips"></div></div>' +
+      hostSkip('Sonuçları aç'));
+  },
+  update(s) {
+    const I = s.ikiz;
+    if (I.myGuess && !$('#ikizSent')) {
+      $('#ikizGuessArea').innerHTML = '<div class="waiting-pill" id="ikizSent">Seçimin: <b>' + esc(nameOf(I.myGuess).name) + '</b> ✓ Diğerleri bekleniyor…</div>';
+    }
+    $('#ikizChips').innerHTML = doneChips(s, I.done);
+  },
+};
+
+function ikizFinalMount(s) {
+  const F = s.final;
+  const together = (g) => F.history.filter((h) => g.some((a) => g.some((b) => a < b && h.answers[a] != null && h.answers[b] != null &&
+    normWord(h.answers[a]) === normWord(h.answers[b])))).length;
+  const scored = F.groups.map((g) => ({ g, n: together(g) }));
+  const best = Math.max(0, ...scored.map((x) => x.n));
+  const pairs = scored.map(({ g, n }) => {
+    const people = g.map((id) => '<div class="twin">' + avatarHTML(nameOf(id), 'lg') + '<b>' + esc(nameOf(id).name) + '</b><small>' +
+      (F.guess[id] ? (F.right[id] ? '✅ ikizini bildi' : '❌ ' + esc(nameOf(F.guess[id]).name) + ' dedi') : '🤐 seçmedi') + '</small></div>').join('<div class="heart">💞</div>');
+    return '<div class="card twinpair ' + (n === best && best > 0 ? 'best' : '') + '"><div class="twins">' + people + '</div>' +
+      '<div class="center muted" style="margin-top:6px"><b>' + n + ' / ' + F.rounds + '</b> turda aynı cevap' + (n === best && best > 0 ? ' · 🏆 en uyumlu' : '') + '</div></div>';
+  }).join('');
+  const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.matches[id] + ' eşleşme' + (F.right[id] ? ' · ikizini bildi' : '') + '</small></span><b>' + F.scores[id] + '</b></div>').join('');
+  mount(
+    header() +
+    '<div class="phase-title"><h1>Ruh ikizleri açıklandı! 💞</h1><p>Kim kiminle eşleşmiş, bakalım…</p></div>' +
+    pairs +
+    '<div class="card"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">İkizinle aynı cevap: +' + IKIZ_MATCH_POINTS + ' · İkizini bilmek: +' + IKIZ_GUESS_POINTS + '</p></div>' +
+    finalFooter(),
+    true
+  );
+}
+
+/* ---------- Telepati ---------- */
+
+Views['tele:play'] = {
+  mount(s) {
+    const T = s.tele;
+    const [a, b] = T.pair;
+    const ban = '<div class="card pairban">' + avatarHTML(nameOf(a), 'lg') + '<div class="heart">🧠</div>' + avatarHTML(nameOf(b), 'lg') +
+      '<div class="pairnames">' + esc(nameOf(a).name) + ' & ' + esc(nameOf(b).name) + '</div></div>';
+    const other = T.pair.find((x) => x !== s.you);
+    const body = T.amPair
+      ? '<div class="card myturn" id="teleArea"><h2>Sen seçildin! 🎤</h2><p class="muted" style="margin:0 0 10px">' + esc(nameOf(other).name) +
+        ' ile aynı cevabı vermeye çalış. Konuşmak yasak! 🤐</p>' + wordInput('teleWord', 'tword', 'Cevabın…') + '</div>'
+      : '<div id="teleArea"><div class="card center"><h2 style="margin-top:0">Tutturacaklar mı? 🤔</h2><p class="muted" style="margin:0 0 12px">Doğru bahis: +' + TELE_BET_POINTS + '</p>' +
+        '<div class="yn"><button class="ynb no" data-act="tbet" data-v="yes"><span>✅</span>Tuttururlar</button>' +
+        '<button class="ynb yes" data-act="tbet" data-v="no"><span>❌</span>Tutturamazlar</button></div></div></div>';
+    mount(header() + timerHTML('Süre') + stepDots(T.ri, T.rn) +
+      '<div class="phase-title"><h1>Telepati ' + (T.ri + 1) + ' / ' + T.rn + '</h1></div>' + ban +
+      '<div class="card qcard"><div class="qtext">' + esc(T.prompt) + '</div></div>' + body +
+      '<div class="card"><h2>Kim hazır?</h2><div class="chips" id="teleChips"></div></div>' +
+      hostSkip('Cevapları aç'));
+    if (T.amPair) { Sound.join(); focusFine('#teleWord'); }
+  },
+  update(s) {
+    const T = s.tele;
+    if (!$('#teleSent')) {
+      if (T.amPair && T.myWord != null) $('#teleArea').innerHTML = '<div class="waiting-pill" id="teleSent">Cevabın: <b>' + esc(T.myWord) + '</b> ✓ Bakalım tutacak mı… 🤞</div>';
+      if (!T.amPair && T.myBet) $('#teleArea').innerHTML = '<div class="waiting-pill" id="teleSent">Bahsin: <b>' + (T.myBet === 'yes' ? '✅ Tuttururlar' : '❌ Tutturamazlar') + '</b> ✓</div>';
+    }
+    $('#teleChips').innerHTML = doneChips(s, T.done);
+  },
+};
+
+Views['tele:reveal'] = {
+  mount(s) {
+    const T = s.tele;
+    const R = T.result;
+    const [a, b] = R.pair;
+    const w = (id) => '<div class="tw">' + avatarHTML(nameOf(id), 'lg') + '<b>' + esc(nameOf(id).name) + '</b><div class="twword">' +
+      (R.words[id] != null ? esc(R.words[id]) : '🤐') + '</div></div>';
+    const bettors = Object.keys(R.bets);
+    const last = T.ri >= T.rn - 1;
+    mount(header() + revealTimer(s) + stepDots(T.ri, T.rn) +
+      '<div class="card qcard"><div class="qtext">' + esc(R.prompt) + '</div></div>' +
+      '<div class="card rescard" id="rescard"><div class="twrow">' + w(a) + '<div class="heart">' + (R.match ? '🧠' : '💥') + '</div>' + w(b) + '</div>' +
+        '<div class="winline">' + (R.match ? '🎉 TUTTURDULAR! +' + TELE_MATCH_POINTS : '💥 Tutturamadılar!') + '</div>' +
+        (bettors.length ? '<p class="center muted late" style="margin:10px 0 0">Doğru bahis: ' + (R.right.length ? esc(nameList(R.right)) : 'kimse 😅') + '</p>' : '') + '</div>' +
+      '<div class="card late"><h2>Puan durumu</h2>' + scoreBoard(s, R.scores, R.delta) + '</div>' +
+      hostNext(s, last ? '🏆 Sonuçlar' : 'Sonraki ▶'));
+    setTimeout(() => $$('#rescard, .card.late').forEach((el) => el.classList.add('revealed')), 60);
+    setTimeout(() => (R.match ? Sound.fanfare() : Sound.beep(200, 0.3, 'sawtooth', 0.05)), 1100);
+  },
+};
+
+function teleFinalMount(s) {
+  const F = s.final;
+  const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.hits[id] + ' kez tutturdu</small></span><b>' + F.scores[id] + '</b></div>').join('');
+  const recap = F.history.map((h) => '<div><span class="q"><b>' + esc(nameList(h.pair)) + ':</b> ' + esc(h.prompt) + '</span><span class="w">' +
+    esc(h.pair.map((id) => h.words[id] ?? '—').join(' / ')) + ' ' + (h.match ? '✅' : '❌') + '</span></div>').join('');
+  const hits = F.history.filter((h) => h.match).length;
+  mount(
+    header() +
+    '<div class="phase-title">' + finalHeadline(F, F.scores, 'en güçlü telepat 🧠') + '</div>' +
+    podiumHTML(F.ranking, (id) => F.scores[id] + ' puan') +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Tutturan çift: +' + TELE_MATCH_POINTS + ' (ikisine de) · Doğru bahis: +' + TELE_BET_POINTS + '</p></div>' +
+    '<div class="card"><h2>Bütün turlar <small>(' + hits + ' / ' + F.history.length + ' tuttu)</small></h2><div class="recap">' + recap + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
+/* ---------- Ayna ---------- */
+
+function aynaHead(s, timer) {
+  const A = s.ayna;
+  const m = nameOf(A.mirror);
+  return header() + timer + stepDots(A.ti, A.tn) +
+    '<div class="card qcard"><div class="kasker">🪞 Ayna: ' + avatarHTML(m) + '<b>' + esc(m.name) + '</b></div><div class="qtext">' + esc(A.q) + '</div></div>';
+}
+
+Views['ayna:answer'] = {
+  mount(s) {
+    const A = s.ayna;
+    const m = nameOf(A.mirror).name;
+    const body = A.amMirror
+      ? '<div class="card myturn"><h2>Ayna sensin! 🪞</h2><p class="muted" style="margin:0 0 10px">Kendi gerçek cevabını yaz. Diğerleri senin ne yazdığını tahmin edecek.</p>' +
+        wordInput('aynaText', 'asend', 'Senin cevabın…') + '<p class="muted" id="aynaMine" style="margin:8px 0 0"></p></div>'
+      : '<div class="card"><label class="lbl" for="aynaText">Sence ' + esc(m) + ' ne yazdı?</label>' + wordInput('aynaText', 'asend', m + ' ne yazardı…') +
+        '<p class="muted" id="aynaMine" style="margin:8px 0 0"></p><p class="muted" style="margin:6px 0 0">Doğru bilirsen +' + AYNA_RIGHT_POINTS + '</p></div>';
+    mount(aynaHead(s, timerHTML('Cevap süresi')) + body +
+      '<div class="card"><h2>Kim yazdı?</h2><div class="chips" id="aynaChips"></div></div>' +
+      hostSkip('Kontrole geç'));
+    if (A.amMirror) Sound.join();
+    focusFine('#aynaText');
+  },
+  update(s) {
+    const A = s.ayna;
+    $('#aynaMine').innerHTML = A.myText != null ? '✅ Yazdığın: <b>' + esc(A.myText) + '</b> (değiştirebilirsin)' : '';
+    $('#aynaChips').innerHTML = doneChips(s, A.done);
+  },
+};
+
+Views['ayna:judge'] = {
+  mount(s) {
+    const A = s.ayna;
+    if (A.amMirror && A.judge) {
+      App.aynaAcc = new Set(A.judge.pre);
+      const rows = Object.entries(A.judge.guesses).map(([id, t]) => '<button class="tgl ' + (App.aynaAcc.has(id) ? 'on' : '') + '" data-act="atoggle" data-id="' + esc(id) + '">' +
+        avatarHTML(nameOf(id), 'sm') + '<span class="nm"><b>' + esc(nameOf(id).name) + ':</b> ' + esc(t) + '</span><span class="mark">' + (App.aynaAcc.has(id) ? '✅' : '❌') + '</span></button>').join('');
+      mount(aynaHead(s, timerHTML('Kontrol süresi')) +
+        '<div class="card"><h2>Hangileri doğru sayılsın? 🧐</h2><p class="muted" style="margin:0 0 10px">Senin cevabın: <b>' + esc(A.judge.own) +
+        '</b>. Aynı anlama gelenlere dokunup ✅ yap.</p><div class="tgls">' + rows + '</div>' +
+        '<div style="height:14px"></div><button class="btn yellow big block" data-act="ajudge">Onayla ✅</button></div>');
+    } else {
+      mount(aynaHead(s, timerHTML('Kontrol süresi')) +
+        '<div class="card center"><div class="big-emoji">🧐</div><h2>' + esc(nameOf(A.mirror).name) + ' cevapları kontrol ediyor…</h2>' +
+        (A.myText != null ? '<p class="muted" style="margin:0">Senin tahminin: <b>' + esc(A.myText) + '</b></p>' : '') + '</div>' +
+        hostSkip('Böyle onayla'));
+    }
+  },
+};
+
+Views['ayna:reveal'] = {
+  mount(s) {
+    const A = s.ayna;
+    const R = A.result;
+    const ids = Object.keys(R.guesses).sort((x, y) => R.accepted.includes(y) - R.accepted.includes(x));
+    const rows = ids.map((id, i) => {
+      const ok = R.accepted.includes(id);
+      return '<div class="krow ' + (ok ? 'top' : '') + '" style="--d:' + (1.2 + i * 0.4).toFixed(2) + 's">' + avatarHTML(nameOf(id)) +
+        '<div class="body"><div class="top2"><span class="nm">' + esc(nameOf(id).name) + '</span>' + (ok ? '<span class="dl">+' + AYNA_RIGHT_POINTS + '</span>' : '') + '</div>' +
+        '<div class="kdiff">' + (ok ? '✅ ' : '❌ ') + esc(R.guesses[id]) + '</div></div></div>';
+    }).join('');
+    const after = 1.2 + ids.length * 0.4 + 0.3;
+    const last = A.ti >= A.tn - 1;
+    const verdict = R.own == null ? 'Ayna cevap vermedi 🤐'
+      : !ids.length ? 'Kimse tahmin etmedi 🤷'
+      : R.accepted.length === ids.length ? '🤩 Herkes bildi!'
+      : R.accepted.length ? '👏 ' + R.accepted.length + ' kişi bildi'
+      : '🙈 Kimse bilemedi! Gizemli biri…';
+    mount(aynaHead(s, revealTimer(s)) +
+      '<div class="card center"><div class="muted" style="font-weight:700">Aynanın cevabı</div><div class="kanswer aword">' + (R.own != null ? esc(R.own) : '🤐') + '</div>' +
+        '<div class="kreveal" style="text-align:left">' + rows + '</div>' +
+        '<div class="ktotal" style="--d:' + after.toFixed(2) + 's">' + esc(verdict) + '</div></div>' +
+      '<div class="card kafter" style="--d:' + (after + 0.4).toFixed(2) + 's"><h2>Puan durumu</h2>' + scoreBoard(s, R.scores, R.delta) + '</div>' +
+      hostNext(s, last ? '🏆 Sonuçlar' : 'Sıradaki ayna ▶'));
+    setTimeout(() => Sound.beep(880, 0.2, 'triangle', 0.09), 700);
+  },
+};
+
+function aynaFinalMount(s) {
+  const F = s.final;
+  const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.right[id] + ' doğru tahmin · ' + F.known[id] + ' kişi onu bildi</small></span><b>' + F.scores[id] + '</b></div>').join('');
+  const mostKnown = Math.max(0, ...Object.values(F.known));
+  const stats = [];
+  if (mostKnown > 0) stats.push(['🪞', nameList(Object.keys(F.known).filter((id) => F.known[id] === mostKnown)), 'en iyi tanınan (' + mostKnown + ' kişi bildi)']);
+  const mostRight = Math.max(0, ...Object.values(F.right));
+  if (mostRight > 0) stats.push(['🕵️', nameList(Object.keys(F.right).filter((id) => F.right[id] === mostRight)), 'herkesi en iyi tanıyan (' + mostRight + ' doğru)']);
+  const recap = F.history.map((h) => '<div><span class="q"><b>' + esc(nameOf(h.mirror).name) + ':</b> ' + esc(h.q) + '</span><span class="w">' +
+    (h.own != null ? esc(h.own) : '—') + ' <span class="muted">(' + h.accepted.length + '/' + h.total + ' bildi)</span></span></div>').join('');
+  mount(
+    header() +
+    '<div class="phase-title">' + finalHeadline(F, F.scores, 'arkadaşlarını en iyi tanıyan 🪞') + '</div>' +
+    podiumHTML(F.ranking, (id) => F.scores[id] + ' puan') +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Aynanın onayladığı her doğru tahmin: +' + AYNA_RIGHT_POINTS + '</p></div>' +
+    (stats.length ? '<div class="card"><h2>Bu turda</h2>' + statsHTML(stats) + '</div>' : '') +
+    '<div class="card"><h2>Bütün sorular</h2><div class="recap">' + recap + '</div></div>' +
+    finalFooter(),
+    true
+  );
 }
 
 /* ---------- Kaç Kaç? ---------- */
@@ -2943,6 +3738,9 @@ Views.final = {
     else if (s.game === 'komik') komikFinalMount(s);
     else if (s.game === 'yalanci') lieFinalMount(s);
     else if (s.game === 'kackac') kacFinalMount(s);
+    else if (s.game === 'ikiz') ikizFinalMount(s);
+    else if (s.game === 'tele') teleFinalMount(s);
+    else if (s.game === 'ayna') aynaFinalMount(s);
     else hangimizFinalMount(s);
     confetti();
     Sound.fanfare();
@@ -3331,6 +4129,19 @@ const actions = {
     const c = $('#rolecard');
     if (c) c.classList.toggle('hidden', !App.peek);
   },
+  iword() { sendWord('#ikizWord', 'iword'); },
+  iguess(el) { Sound.click(); send({ t: 'iguess', target: el.dataset.id }); },
+  tword() { sendWord('#teleWord', 'tword'); },
+  tbet(el) { Sound.click(); send({ t: 'tbet', v: el.dataset.v }); },
+  asend() { sendWord('#aynaText', 'asend'); },
+  atoggle(el) {
+    const id = el.dataset.id;
+    if (App.aynaAcc.has(id)) App.aynaAcc.delete(id); else App.aynaAcc.add(id);
+    const on = App.aynaAcc.has(id);
+    el.classList.toggle('on', on);
+    el.querySelector('.mark').textContent = on ? '✅' : '❌';
+  },
+  ajudge() { Sound.click(); send({ t: 'ajudge', accepted: [...(App.aynaAcc || [])] }); },
   kask() {
     const q = ($('#kacQ') || {}).value || '';
     const raw = ($('#kacAns') || {}).value || '';
@@ -3392,6 +4203,9 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'kacQ') { e.preventDefault(); const a = $('#kacAns'); if (a) a.focus(); return; }
   if (e.key === 'Enter' && e.target.id === 'kacAns') { e.preventDefault(); doAction('kask'); return; }
   if (e.key === 'Enter' && e.target.id === 'kacGuess') { e.preventDefault(); doAction('kguess'); return; }
+  if (e.key === 'Enter' && e.target.id === 'ikizWord') { e.preventDefault(); doAction('iword'); return; }
+  if (e.key === 'Enter' && e.target.id === 'teleWord') { e.preventDefault(); doAction('tword'); return; }
+  if (e.key === 'Enter' && e.target.id === 'aynaText') { e.preventDefault(); doAction('asend'); return; }
   if (e.key === 'Enter' && e.target.classList.contains('q-input')) {
     e.preventDefault();
     const next = $('.q-input[data-i="' + (Number(e.target.dataset.i) + 1) + '"]');
