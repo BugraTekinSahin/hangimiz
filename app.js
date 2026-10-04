@@ -75,8 +75,11 @@ const GAMES = {
     desc: 'Herkese aynı boşluk doldurmalı sorular gelir. Cevaplar isimsiz oylanır, en komik olan puanı kapar!',
     minPlayers: 3,
     defs: [
+      { key: 'source', label: 'Soruları kim yazsın?', type: 'choice', def: 'own', options: [['own', 'Biz yazalım'], ['bank', 'Hazır sorular']] },
+      { key: 'promptTime', label: 'Soru yazma süresi', type: 'num', def: 30, min: 10, max: 120, step: 5, unit: 'sn', showIf: (c) => c.source === 'own' },
+      { key: 'ownCount', label: 'Kişi başı soru', type: 'num', def: 1, min: 1, max: 3, step: 1, unit: 'soru', showIf: (c) => c.source === 'own' },
+      { key: 'qPerPlayer', label: 'Soru sayısı', type: 'num', def: 3, min: 1, max: 5, step: 1, unit: 'soru', showIf: (c) => c.source === 'bank' },
       { key: 'writeTime', label: 'Cevap yazma süresi', type: 'num', def: 60, min: 20, max: 240, step: 10, unit: 'sn' },
-      { key: 'qPerPlayer', label: 'Soru sayısı', type: 'num', def: 3, min: 1, max: 5, step: 1, unit: 'soru' },
       { key: 'answerTime', label: 'Soru başına oylama süresi', type: 'num', def: 20, min: 0, max: 60, step: 5, unit: 'sn', zero: 'Sınırsız' },
       { key: 'showVoters', label: 'Kim kime oy verdi görünsün', type: 'bool', def: true },
     ],
@@ -589,9 +592,14 @@ const Host = {
 
       case 'drafts':
         if (S.phase !== 'writing' || !r || !r.roster.includes(pid)) return;
-        r.drafts[pid] = r.game === 'komik'
-          ? sanitizeDrafts(msg.list, r.prompts.length, true)
-          : sanitizeDrafts(msg.list, r.cfg.qPerPlayer);
+        if (r.game === 'komik' && r.stage === 'prompts') {
+          r.drafts[pid] = sanitizeDrafts(msg.list, r.cfg.ownCount);
+        } else if (r.game === 'komik') {
+          // Answer i belongs to prompt i; nobody answers their own prompt.
+          r.drafts[pid] = sanitizeDrafts(msg.list, r.prompts.length, true).map((x, i) => (r.prompts[i].author === pid ? '' : x));
+        } else {
+          r.drafts[pid] = sanitizeDrafts(msg.list, r.cfg.qPerPlayer);
+        }
         if (r.game === 'kimyazdi') {
           // A dice starter nobody finished ("Çocukken") is not a confession.
           const bare = new Set(KY_STARTERS.map((x) => lower(x.trim()).replace(/:$/, '')));
@@ -729,7 +737,14 @@ const Host = {
       deadline: now + cfg.writeTime * 1000,
       deadlineTotal: cfg.writeTime * 1000,
     };
-    if (S.game === 'komik') S.round.prompts = shuffle(KOMIK_PROMPTS).slice(0, cfg.qPerPlayer);
+    if (S.game === 'komik' && cfg.source === 'own') {
+      S.round.stage = 'prompts';
+      S.round.deadline = now + cfg.promptTime * 1000;
+      S.round.deadlineTotal = cfg.promptTime * 1000;
+    } else if (S.game === 'komik') {
+      S.round.stage = 'answers';
+      S.round.prompts = shuffle(KOMIK_PROMPTS).slice(0, cfg.qPerPlayer).map((text) => ({ text, author: null }));
+    }
     for (const id of S.order) S.players[id].ready = false;
     S.phase = 'writing';
     this.changed();
@@ -745,6 +760,7 @@ const Host = {
     const S = this.S;
     const r = S.round;
     if (S.phase !== 'writing') return;
+    if (r.game === 'komik' && r.stage === 'prompts') { this.startKomikAnswers(); return; }
     if (r.game === 'komik') { this.endKomikWriting(); return; }
     const seen = new Set();
     const qs = [];
@@ -779,12 +795,42 @@ const Host = {
     this.changed();
   },
 
+  startKomikAnswers() {
+    const S = this.S;
+    const r = S.round;
+    const seen = new Set();
+    const prompts = [];
+    for (const id of r.roster) {
+      for (const raw of (r.drafts[id] || []).slice(0, r.cfg.ownCount)) {
+        const key = lower(raw).replace(/[^\p{L}\p{N}]+/gu, '');
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        prompts.push({ text: normalizePrompt(raw), author: id });
+      }
+    }
+    if (!prompts.length) {
+      S.phase = 'lobby';
+      S.round = null;
+      S.notice = 'Kimse soru yazmadı 😅 Bir daha deneyin!';
+      this.changed();
+      return;
+    }
+    r.prompts = shuffle(prompts);
+    r.stage = 'answers';
+    r.drafts = {};
+    r.done = {};
+    r.deadline = Date.now() + r.cfg.writeTime * 1000;
+    r.deadlineTotal = r.cfg.writeTime * 1000;
+    this.changed();
+  },
+
   endKomikWriting() {
     const S = this.S;
     const r = S.round;
-    r.questions = r.prompts.map((text, i) => ({
+    r.questions = r.prompts.map((pr, i) => ({
       id: 'q' + i,
-      text,
+      text: pr.text,
+      asker: pr.author,
       answers: shuffle(r.roster
         .filter((id) => (r.drafts[id] || [])[i])
         .map((id) => ({ aid: randomId(6), author: id, text: r.drafts[id][i] }))),
@@ -960,8 +1006,16 @@ const Host = {
     if (S.phase === 'writing') {
       const counts = {};
       for (const id of r.roster) counts[id] = r.game === 'kimyazdi' ? 0 : (r.drafts[id] || []).filter(Boolean).length;
-      pub.writing = { counts, done: r.done, prompts: r.prompts || null };
+      pub.writing = { counts, done: r.done, prompts: null, stage: r.stage || null };
+      if (r.game === 'komik' && r.stage === 'answers') {
+        // Prompt authors stay hidden; each player only learns which prompts are theirs (they skip those).
+        pub.writing.prompts = r.prompts.map((x) => x.text);
+        pub.writing.need = {};
+        for (const id of r.roster) pub.writing.need[id] = r.prompts.filter((x) => x.author !== id).length;
+        for (const id of r.roster) counts[id] = (r.drafts[id] || []).filter(Boolean).length;
+      }
       pub.me = { drafts: r.drafts[pid] || [] };
+      if (r.game === 'komik' && r.stage === 'answers') pub.me.skip = r.prompts.map((x, i) => (x.author === pid ? i : -1)).filter((i) => i >= 0);
     } else if (S.phase === 'answering') {
       // Kim Yazdı? is all about the author being secret — never send it here.
       const showBy = r.game !== 'kimyazdi' && !!r.cfg.showAuthor;
@@ -1108,7 +1162,7 @@ function computeKomikResults(r) {
     for (const b of bars) if (b.count) delta[b.author] = (delta[b.author] || 0) + b.count * KOMIK_VOTE_POINTS;
     if (sweep) delta[bars[0].author] += KOMIK_SWEEP_BONUS;
     for (const id of Object.keys(delta)) score[id] += delta[id];
-    return { qid: q.id, text: q.text, total, bars, winners, sweep, delta, scores: { ...score } };
+    return { qid: q.id, text: q.text, asker: q.asker || null, total, bars, winners, sweep, delta, scores: { ...score } };
   });
 }
 
@@ -1139,7 +1193,7 @@ function computeKomikFinal(r) {
     count: r.results.length,
     recap: r.results.map((res) => {
       const top = res.bars.filter((b) => res.winners.includes(b.aid));
-      return { prompt: res.text, answers: top.map((b) => ({ text: b.text, author: b.author })), count: top.length ? top[0].count : 0, total: res.total };
+      return { prompt: res.text, asker: res.asker, answers: top.map((b) => ({ text: b.text, author: b.author })), count: top.length ? top[0].count : 0, total: res.total };
     }),
   };
 }
@@ -1554,6 +1608,7 @@ function render() {
   if ((s.phase === 'writing' || s.phase === 'answering') && !inRound) screen = 'spectate';
   let key = screen + ':' + (s.roundId || '');
   if (screen === 'results') key += ':' + s.reveal.index;
+  if (screen === 'writing' && s.writing.stage) key += ':' + s.writing.stage;
 
   const fresh = key !== App.screenKey;
   App.screenKey = key;
@@ -1633,7 +1688,7 @@ function gamePickerHTML(current, editable) {
 }
 
 function settingsHTML(set, editable, game) {
-  return '<div class="settings">' + settingDefs(game).map((d) => {
+  return '<div class="settings">' + settingDefs(game).filter((d) => !d.showIf || d.showIf(set)).map((d) => {
     const v = set[d.key];
     let ctrl;
     if (d.type === 'num') {
@@ -1684,6 +1739,14 @@ const GAME_UI = {
     skip: '⏭ Tahminleri bitir, sonuçlara geç',
     doneAll: 'Hepsini tahmin ettin!',
   },
+  komikPrompts: {
+    writeTitle: 'Soruları siz yazın! ✍️',
+    writeHint: (n) => 'Bir cümlenin başını yaz, sonunu arkadaşların komik şekilde tamamlasın. ' + (n > 1 ? n + ' tane yaz. ' : '') + 'Örn: "Naz\'ın gizli yeteneği" → Naz\'ın gizli yeteneği ____',
+    writeTimer: 'Soru yazma süresi',
+    progressTitle: 'Kim kaç soru yazdı?',
+    placeholders: ['Örn: Tekin\'in en büyük korkusu', 'Örn: Okulda yasaklanması gereken şey', 'Örn: Naz\'ın telefonundaki en garip uygulama'],
+    diceTitle: 'Hazır soru',
+  },
   komik: {
     writeTitle: 'Komik cevaplarını yaz! 😂',
     writeHint: (n) => n + ' soruya da en komik cevabını yaz. Cevaplar isimsiz oylanacak!',
@@ -1713,25 +1776,32 @@ const GAME_UI = {
 };
 
 function ui() {
-  return GAME_UI[App.state.game] || GAME_UI.hangimiz;
+  const s = App.state;
+  if (s.game === 'komik' && s.phase === 'writing' && s.writing && s.writing.stage === 'prompts') return GAME_UI.komikPrompts;
+  return GAME_UI[s.game] || GAME_UI.hangimiz;
 }
 
 Views.writing = {
   mount(s) {
     App.wDone = false;
     const U = ui();
-    const prompts = s.game === 'komik' ? s.writing.prompts : null;
-    const n = prompts ? prompts.length : s.settings.qPerPlayer;
+    const prompts = s.writing.prompts;
+    const skip = new Set((s.me && s.me.skip) || []);
+    const slots = prompts ? prompts.length : (s.game === 'komik' ? s.settings.ownCount : s.settings.qPerPlayer);
+    const n = slots - skip.size;
     const saved = (s.me && s.me.drafts) || [];
-    const local = (App.wDrafts && App.wDrafts.roundId === s.roundId) ? App.wDrafts.list : [];
+    const local = (App.wDrafts && App.wDrafts.key === writeKey(s)) ? App.wDrafts.list : [];
     const rows = [];
-    for (let i = 0; i < n; i++) {
+    let shown = 0;
+    for (let i = 0; i < slots; i++) {
+      if (skip.has(i)) continue;
+      shown++;
       const val = local[i] ?? saved[i] ?? '';
       const input = '<input class="field q-input grow" data-i="' + i + '" maxlength="' + MAX_Q_LEN + '" placeholder="' + esc(U.placeholders[i % U.placeholders.length]) + '" value="' + esc(val) + '" autocomplete="off">';
       if (prompts) {
-        rows.push('<div class="prow"><div class="ptext"><span class="num">' + (i + 1) + '</span><span>' + promptHTML(prompts[i]) + '</span></div>' + input + '</div>');
+        rows.push('<div class="prow"><div class="ptext"><span class="num">' + shown + '</span><span>' + promptHTML(prompts[i]) + '</span></div>' + input + '</div>');
       } else {
-        rows.push('<div class="qrow"><span class="num">' + (i + 1) + '</span>' + input +
+        rows.push('<div class="qrow"><span class="num">' + shown + '</span>' + input +
           '<button class="dice" data-act="dice" data-i="' + i + '" title="' + esc(U.diceTitle) + '">🎲</button></div>');
       }
     }
@@ -1744,21 +1814,38 @@ Views.writing = {
       '<div class="card"><h2>' + esc(U.progressTitle) + '</h2><div class="chips" id="wprog"></div></div>' +
       (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ Süreyi bitir</button></div>' : '')
     );
-    App.wDrafts = { roundId: s.roundId, list: collectDrafts() };
+    App.wDrafts = { key: writeKey(s), list: collectDrafts() };
+    if (!rows.length) {
+      // Only your own prompts exist: nothing to answer, so you're done right away.
+      $('#wcard').innerHTML = '<p class="center muted" style="margin:0"><b>Cevaplayacağın soru yok, diğerleri bekleniyor…</b></p>';
+      setWritingDone(true);
+    }
     const first = $$('.q-input').find((x) => !x.value);
     if (first && window.matchMedia('(pointer:fine)').matches) first.focus();
   },
   update(s) {
-    const n = s.writing.prompts ? s.writing.prompts.length : s.settings.qPerPlayer;
+    const n = s.writing.prompts ? null : (s.game === 'komik' ? s.settings.ownCount : s.settings.qPerPlayer);
     $('#wprog').innerHTML = s.roster.map((id) => {
       const p = nameOf(id);
       const live = s.players.find((x) => x.id === id);
       const done = s.writing.done[id];
       return '<span class="chip ' + (done ? 'done' : '') + (live && live.connected ? '' : ' off') + '">' + avatarHTML(p, 'sm') + esc(p.name) +
-        ' <span class="cnt">' + (s.game === 'kimyazdi' ? (done ? '✓' : '✍️') : (s.writing.counts[id] || 0) + '/' + n + (done ? ' ✓' : '')) + '</span></span>';
+        ' <span class="cnt">' + (s.game === 'kimyazdi' ? (done ? '✓' : '✍️') : (s.writing.counts[id] || 0) + '/' + (n ?? s.writing.need[id]) + (done ? ' ✓' : '')) + '</span></span>';
     }).join('');
   },
 };
+
+// Turn a player's sentence start into a prompt with a blank: "Naz'ın korkusu?" -> "Naz'ın korkusu ___?".
+function normalizePrompt(text) {
+  if (/_{2,}|\.{3,}|…/.test(text)) return text.replace(/_{2,}|\.{3,}|…/, '___');
+  const question = /\?\s*$/.test(text);
+  return text.replace(/[\s?:.!,]+$/, '') + ' ___' + (question ? '?' : '');
+}
+
+// The writing screen can come twice in one round (Komik Cevap: prompts, then answers).
+function writeKey(s) {
+  return s.roundId + ':' + ((s.writing && s.writing.stage) || '');
+}
 
 // Prompts carry a "___" blank; draw it as a highlighted gap.
 function promptHTML(text) {
@@ -1766,12 +1853,15 @@ function promptHTML(text) {
 }
 
 function collectDrafts() {
-  return $$('.q-input').map((x) => x.value);
+  // Keep each value at its data-i slot (Komik Cevap hides the prompts you wrote yourself).
+  const out = [];
+  for (const x of $$('.q-input')) out[Number(x.dataset.i)] = x.value;
+  return Array.from(out, (v) => v ?? '');
 }
 
 function queueDrafts(immediate = false) {
   if (!App.state || App.state.phase !== 'writing') return;
-  App.wDrafts = { roundId: App.state.roundId, list: collectDrafts() };
+  App.wDrafts = { key: writeKey(App.state), list: collectDrafts() };
   clearTimeout(App.draftTimer);
   const go = () => send({ t: 'drafts', list: App.wDrafts.list, done: App.wDone });
   if (immediate) go(); else App.draftTimer = setTimeout(go, 350);
@@ -2011,6 +2101,7 @@ function komikResultsMount(s) {
     C.top +
     '<div class="card rescard" id="rescard"><div class="meta">Soru ' + (R.index + 1) + ' / ' + R.total + '</div>' +
       '<div class="qtext">' + promptHTML(it.text) + '</div>' +
+      (it.asker ? '<div class="meta">' + esc(nameOf(it.asker).av) + ' ' + esc(nameOf(it.asker).name) + ' sordu</div>' : '') +
       '<div class="kanswers">' + answers + '</div>' +
       '<div class="winline">' + esc(verdict) + '</div>' +
       (points ? '<div class="pts late">' + points + '</div>' : '') +
@@ -2364,8 +2455,8 @@ function updateTimers() {
   }
 
   // Writing: flush drafts right when time runs out.
-  if (s && s.phase === 'writing' && App.deadline && now >= App.deadline && App.flushedRound !== s.roundId) {
-    App.flushedRound = s.roundId;
+  if (s && s.phase === 'writing' && App.deadline && now >= App.deadline && App.flushedRound !== writeKey(s)) {
+    App.flushedRound = writeKey(s);
     queueDrafts(true);
   }
 
@@ -2476,7 +2567,9 @@ const actions = {
       queueDrafts();
       return;
     }
-    const all = App.state.game === 'asla' ? ASLA_STATEMENTS : RANDOM_QUESTIONS;
+    const all = App.state.game === 'asla' ? ASLA_STATEMENTS
+      : App.state.game === 'komik' ? KOMIK_PROMPTS.map((x) => x.replace(/[\s:]*___$/, ''))
+      : RANDOM_QUESTIONS;
     const taken = new Set(collectDrafts().map(lower));
     const pool = all.filter((q) => !taken.has(lower(q)));
     input.value = (pool.length ? pool : all)[Math.floor(Math.random() * (pool.length || all.length))];
