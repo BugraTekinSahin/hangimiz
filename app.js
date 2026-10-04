@@ -24,6 +24,8 @@ const PEER_OPTS = { debug: 0 };
 
 // Settings shared by every game.
 const COMMON_DEFS = [
+  // "Süresiz": no countdowns; each step moves on once everyone has answered.
+  { key: 'timeMode', label: 'Süre', type: 'choice', def: 'timed', top: true, options: [['timed', 'Süreli ⏱️'], ['untimed', 'Süresiz ♾️']] },
   { key: 'startMode', label: 'Oyunu kim başlatır?', type: 'choice', def: 'host', options: [['host', 'Lider'], ['ready', 'Herkes hazır olunca']] },
   { key: 'revealMode', label: 'Sonuçları kim geçirir?', type: 'choice', def: 'host', options: [['host', 'Lider'], ['auto', 'Otomatik']] },
 ];
@@ -1626,6 +1628,13 @@ const Host = {
     this.changed();
   },
 
+  // In "Süresiz" mode only the (auto) reveal screens keep a timer; everything else waits for everyone.
+  untimedNow() {
+    const S = this.S;
+    const r = S.round;
+    return !!r && r.cfg.timeMode === 'untimed' && S.phase !== 'results' && S.phase !== 'final' && r.step !== 'reveal';
+  },
+
   startTicker() {
     clearInterval(this.ticker);
     this.ticker = setInterval(() => this.tick(), 500);
@@ -1656,7 +1665,7 @@ const Host = {
     }
 
     const r = S.round;
-    if (r && r.deadline) {
+    if (r && r.deadline && !this.untimedNow()) {
       if (S.phase === 'writing' && now >= r.deadline + WRITE_GRACE_MS) this.endWriting();
       else if (S.phase === 'answering' && now >= r.deadline) this.endAnswering();
       else if (S.phase === 'results' && now >= r.deadline) this.nextReveal();
@@ -1726,7 +1735,7 @@ const Host = {
         const p = S.players[id];
         return { id, name: p.name, av: p.av, col: p.col, connected: p.connected, ready: p.ready, inRound: !!(r && r.roster.includes(id)) };
       }),
-      left: r && r.deadline ? Math.max(0, r.deadline - now) : null,
+      left: r && r.deadline && !this.untimedNow() ? Math.max(0, r.deadline - now) : null,
       total: r ? r.deadlineTotal : 0,
     };
     if (!r) return pub;
@@ -1902,7 +1911,8 @@ function mergedSettings(tree, game) {
 
 function settingDefs(game) {
   const hidden = GAMES[game].hideCommon || [];
-  return GAMES[game].defs.concat(COMMON_DEFS.filter((d) => !hidden.includes(d.key)));
+  const common = COMMON_DEFS.filter((d) => !hidden.includes(d.key));
+  return common.filter((d) => d.top).concat(GAMES[game].defs, common.filter((d) => !d.top));
 }
 
 function sanitizeDrafts(list, max, keepSlots = false) {
@@ -2560,7 +2570,7 @@ function gamePickerHTML(current, editable) {
 }
 
 function settingsHTML(set, editable, game) {
-  return '<div class="settings">' + settingDefs(game).filter((d) => !d.showIf || d.showIf(set)).map((d) => {
+  return '<div class="settings">' + settingDefs(game).filter((d) => (!d.showIf || d.showIf(set)) && !(d.unit === 'sn' && set.timeMode === 'untimed')).map((d) => {
     const v = set[d.key];
     let ctrl;
     if (d.type === 'num') {
@@ -2802,13 +2812,13 @@ function showNextQuestion() {
   if (idx === -1) {
     A.current = null;
     A.qDeadline = null;
-    $('#gtimer').innerHTML = s.settings.answerTime > 0 ? timerHTML('Herkesin bitirmesi için kalan süre') : '';
+    $('#gtimer').innerHTML = s.settings.answerTime > 0 && s.settings.timeMode !== 'untimed' ? timerHTML('Herkesin bitirmesi için kalan süre') : '';
     stage.innerHTML = '<div class="card center"><div class="big-emoji">🎉</div><h2>' + esc(U.doneAll) + '</h2><p class="muted">Diğerleri bitirince sonuçlar başlayacak.</p></div>';
     return;
   }
   const q = s.questions[idx];
   A.current = q.id;
-  const per = s.settings.answerTime;
+  const per = s.settings.timeMode === 'untimed' ? 0 : s.settings.answerTime;
   A.qDeadline = per > 0 ? Date.now() + per * 1000 : null;
   A.qTotal = per * 1000;
   $('#gtimer').innerHTML = per > 0 ? timerHTML('Bu ' + lower(U.itemWord) + ' için kalan süre', 'q') : '';
@@ -3965,6 +3975,8 @@ function updateTimers() {
     }
     const t = el.querySelector('.t');
     const bar = el.querySelector('.bar i');
+    // No deadline: in "Süresiz" mode hide the timer, otherwise show it as unlimited.
+    el.hidden = !end && !!(App.state && App.state.settings && App.state.settings.timeMode === 'untimed');
     if (!end) { t.textContent = '∞'; bar.style.width = '100%'; t.classList.remove('hurry'); continue; }
     const left = Math.max(0, end - now);
     const sec = Math.ceil(left / 1000);

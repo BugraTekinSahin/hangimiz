@@ -577,3 +577,4 @@ button.ansb:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(30,10,
 .tgl.on { border-color: var(--green); background: #dff8ea; }
 .tgl .mark { font-size: 20px; }
 .aword { font-size: 40px; word-break: break-word; }
+.timer[hidden] { display: none; }
