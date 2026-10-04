@@ -103,52 +103,51 @@ const GAMES = {
 GAMES.kackac = {
   name: 'Kaç Kaç?',
   emoji: '🔢',
-  desc: 'Herkes kendi sayısını gizlice yazar: kaç saat uyudun, kaç fotoğrafın var… Grubun toplamını ve rekortmeni tahmin et!',
+  desc: 'Sırayla herkes kendisiyle ilgili bir sayı sorar: "Bugün kaç saat uyumuşumdur?" Diğerleri tahmin eder, tam bilen kazanır!',
   minPlayers: 2,
   defs: [
-    { key: 'qCount', label: 'Soru sayısı', type: 'num', def: 4, min: 1, max: 8, step: 1, unit: 'soru' },
-    { key: 'answerTime', label: 'Cevap süresi', type: 'num', def: 25, min: 10, max: 90, step: 5, unit: 'sn' },
-    { key: 'guessTime', label: 'Tahmin süresi', type: 'num', def: 30, min: 10, max: 90, step: 5, unit: 'sn' },
+    { key: 'perPlayer', label: 'Kişi başı soru', type: 'num', def: 1, min: 1, max: 3, step: 1, unit: 'soru' },
+    { key: 'askTime', label: 'Soru yazma süresi', type: 'num', def: 45, min: 15, max: 120, step: 5, unit: 'sn' },
+    { key: 'guessTime', label: 'Tahmin süresi', type: 'num', def: 25, min: 10, max: 90, step: 5, unit: 'sn' },
   ],
 };
 const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac'];
 
-const KAC_CLOSEST_POINTS = 100;  // closest guess of the group total
-const KAC_EXACT_BONUS = 50;      // ...and spot on
-const KAC_TOP_POINTS = 50;       // guessed who has the biggest number
-const KAC_REVEAL_MS = 14000;     // auto mode: the reveal animation needs a bit longer
-const KAC_MAX = 10000000;
+const KAC_EXACT_POINTS = 200;    // guessed the number exactly
+const KAC_CLOSE_POINTS = 100;    // nobody was exact: the closest guess(es)
+const KAC_REVEAL_MS = 12000;     // auto mode: time on the reveal screen
+const KAC_MAX = 1000000000;
 
-// Personal numbers everyone knows (or can check on their phone).
-const KAC_QUESTIONS = [
-  'Dün gece kaç saat uyudun?',
-  'Telefonunda kaç fotoğraf var?',
-  'Kaç kardeşin var?',
-  'Telefonunda kaç uygulama var?',
-  'Şu an okunmamış kaç mesajın var?',
-  'Telefonunun şarjı şu an yüzde kaç?',
-  'Rehberinde kaç kişi kayıtlı?',
-  'Kaç tane WhatsApp grubundasın?',
-  'Bugün kaç bardak su içtin?',
-  'Haftada kaç saat oyun oynuyorsun?',
-  'Kaç tane ayakkabın var?',
-  'Kaç tane tişörtün var? (tahmini)',
-  'Bugüne kadar kaç ülkeye gittin?',
-  'Kaç dil biliyorsun? (birazcık da olsa)',
-  'Bir oturuşta en fazla kaç dilim pizza yedin?',
-  'Dünkü ekran süren kaç saatti?',
-  'Tarayıcında şu an kaç sekme açık?',
-  'Bu yıl kaç kere sinemaya gittin?',
-  'Instagram\'da kaç kişiyi takip ediyorsun?',
-  'En son kaç gün önce saçını kestirdin?',
-  'Kaç yaşında bisiklet sürmeyi öğrendin?',
-  'Hayatında kaç evcil hayvanın oldu?',
-  'En sevdiğin çalma listesinde kaç şarkı var?',
-  'Bugün kaç kere güldün? (tahmini)',
-  'En uzun kaç saat hiç uyumadan kaldın?',
-  'Kaç tane yakın arkadaşın var?',
-  'Bu hafta kaç kere dışarıda yemek yedin?',
-  'Telefonunda kaç tane oyun yüklü?',
+// Ideas for the 🎲 button: questions about yourself that have a number answer.
+const KAC_IDEAS = [
+  'Dün gece kaç saat uyudum?',
+  'Telefonumda kaç fotoğraf var?',
+  'Telefonumda kaç uygulama var?',
+  'Şu an okunmamış kaç mesajım var?',
+  'Telefonumun şarjı şu an yüzde kaç?',
+  'Rehberimde kaç kişi kayıtlı?',
+  'Kaç tane WhatsApp grubundayım?',
+  'Bugün kaç bardak su içtim?',
+  'Kaç tane ayakkabım var?',
+  'Bugüne kadar kaç ülkeye gittim?',
+  'Bir oturuşta en fazla kaç dilim pizza yedim?',
+  'Dünkü ekran sürem kaç saatti?',
+  'Bu yıl kaç kere sinemaya gittim?',
+  'Instagram\'da kaç kişiyi takip ediyorum?',
+  'Kaç yaşında bisiklet sürmeyi öğrendim?',
+  'Hayatımda kaç evcil hayvanım oldu?',
+  'Kaç tane tişörtüm var?',
+  'Bugün kaç adım attım?',
+  'Kaç numara ayakkabı giyiyorum?',
+  'Boyum kaç santim?',
+  'En uzun kaç saat uyumadan kaldım?',
+  'Haftada kaç saat oyun oynuyorum?',
+  'Telefonumda kaç oyun yüklü?',
+  'Hayatımda kaç kere taşındım?',
+  'Kaç tane kuzenim var?',
+  'Bugün kaç kere güldüm?',
+  'Tarayıcımda şu an kaç sekme açık?',
+  'En sevdiğim çalma listemde kaç şarkı var?',
 ];
 const COMING_SOON = [];
 
@@ -690,24 +689,22 @@ const Host = {
         if (this.allWritersDone()) this.endWriting();
         return;
 
-      case 'knum': {
-        if (S.phase !== 'kac' || r.step !== 'answer' || !r.roster.includes(pid)) return;
-        const v = Math.round(Number(msg.v));
-        if (!Number.isFinite(v) || v < 0 || v > KAC_MAX) return;
-        r.nums[pid] = v;
-        if (this.kacAll(r.nums)) this.kacStartGuess(); else this.changed();
+      case 'kask': {
+        if (S.phase !== 'kac' || r.step !== 'ask' || pid !== r.turns[r.ti]) return;
+        const q = String(msg.q ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_Q_LEN);
+        const v = parseKacNumber(msg.v);
+        if (!q || v == null) return;
+        r.ask = { q, v };
+        this.kacStartGuess();
         return;
       }
 
       case 'kguess': {
-        if (S.phase !== 'kac' || r.step !== 'guess' || !r.roster.includes(pid) || r.guesses[pid]) return;
-        let total = msg.total == null ? NaN : Math.round(Number(msg.total));
-        if (!Number.isFinite(total) || total < 0) total = null;
-        else total = Math.min(total, KAC_MAX * MAX_PLAYERS);
-        const top = r.roster.includes(msg.top) ? msg.top : null;
-        if (total == null && !top) return;
-        r.guesses[pid] = { total, top };
-        if (this.kacAll(r.guesses)) this.kacReveal(); else this.changed();
+        if (S.phase !== 'kac' || r.step !== 'guess' || !r.roster.includes(pid) || pid === r.turns[r.ti] || r.guesses[pid] !== undefined) return;
+        const v = parseKacNumber(msg.v);
+        if (v == null) return;
+        r.guesses[pid] = v;
+        if (this.kacAllGuessed()) this.kacReveal(); else this.changed();
         return;
       }
 
@@ -900,24 +897,41 @@ const Host = {
   setupKac(r, now) {
     const scores = {};
     for (const id of r.roster) scores[id] = 0;
-    Object.assign(r, {
-      qs: shuffle(KAC_QUESTIONS).slice(0, r.cfg.qCount),
-      qi: 0,
-      step: 'answer',
-      nums: {},
-      guesses: {},
-      results: [],
-      scores,
-      deadline: now + r.cfg.answerTime * 1000,
-      deadlineTotal: r.cfg.answerTime * 1000,
-    });
+    const turns = [];
+    for (let k = 0; k < r.cfg.perPlayer; k++) turns.push(...shuffle(r.roster));
+    Object.assign(r, { turns, ti: 0, step: 'ask', ask: null, guesses: {}, results: [], scores });
+    this.kacBeginTurn(now);
   },
 
-  // Everyone still connected has sent something into `map`.
-  kacAll(map) {
+  kacLive(id) {
+    return !!(this.S.players[id] && this.S.players[id].connected);
+  },
+
+  // Start the asking step for the current turn, skipping askers who left.
+  kacBeginTurn(now = Date.now()) {
+    const S = this.S;
+    const r = S.round;
+    while (r.ti < r.turns.length && !this.kacLive(r.turns[r.ti])) r.ti++;
+    if (r.ti >= r.turns.length) {
+      r.final = computeKacFinal(r);
+      S.phase = 'final';
+      r.deadline = null;
+      this.changed();
+      return;
+    }
+    r.step = 'ask';
+    r.ask = null;
+    r.guesses = {};
+    r.deadline = now + r.cfg.askTime * 1000;
+    r.deadlineTotal = r.cfg.askTime * 1000;
+    this.changed();
+  },
+
+  kacAllGuessed() {
     const r = this.S.round;
-    const live = r.roster.filter((id) => this.S.players[id] && this.S.players[id].connected);
-    return live.length > 0 && live.every((id) => map[id] !== undefined);
+    const asker = r.turns[r.ti];
+    const live = r.roster.filter((id) => id !== asker && this.kacLive(id));
+    return live.length > 0 && live.every((id) => r.guesses[id] !== undefined);
   },
 
   kacStartGuess() {
@@ -930,24 +944,18 @@ const Host = {
 
   kacReveal() {
     const r = this.S.round;
-    const entries = r.roster.filter((id) => r.nums[id] !== undefined).map((id) => ({ id, v: r.nums[id] })).sort((a, b) => a.v - b.v);
-    const total = entries.reduce((a, e) => a + e.v, 0);
-    const max = entries.length ? entries[entries.length - 1].v : null;
-    const tops = entries.filter((e) => e.v === max).map((e) => e.id);
-    const guesses = {};
-    let best = Infinity;
-    for (const [id, g] of Object.entries(r.guesses)) {
-      const diff = g.total == null ? null : Math.abs(g.total - total);
-      guesses[id] = { total: g.total, top: g.top, diff, topRight: !!g.top && tops.includes(g.top) };
-      if (diff != null && diff < best) best = diff;
-    }
-    const closest = entries.length ? Object.keys(guesses).filter((id) => guesses[id].diff === best) : [];
+    const asker = r.turns[r.ti];
+    const answer = r.ask.v;
+    const guesses = Object.entries(r.guesses)
+      .map(([id, v]) => ({ id, v, diff: Math.round(Math.abs(v - answer) * 10) / 10 }))
+      .sort((a, b) => a.diff - b.diff);
+    const exact = guesses.filter((g) => g.diff === 0).map((g) => g.id);
+    const closest = exact.length || !guesses.length ? [] : guesses.filter((g) => g.diff === guesses[0].diff).map((g) => g.id);
     const delta = {};
-    const add = (id, n) => { delta[id] = (delta[id] || 0) + n; };
-    for (const id of closest) add(id, KAC_CLOSEST_POINTS + (best === 0 ? KAC_EXACT_BONUS : 0));
-    for (const [id, g] of Object.entries(guesses)) if (g.topRight) add(id, KAC_TOP_POINTS);
+    for (const id of exact) delta[id] = KAC_EXACT_POINTS;
+    for (const id of closest) delta[id] = KAC_CLOSE_POINTS;
     for (const id of Object.keys(delta)) r.scores[id] = (r.scores[id] || 0) + delta[id];
-    r.results.push({ q: r.qs[r.qi], entries, total, tops, max, guesses, closest, exact: best === 0, delta, scores: { ...r.scores } });
+    r.results.push({ asker, q: r.ask.q, v: answer, guesses, exact, closest, delta, scores: { ...r.scores } });
     r.step = 'reveal';
     r.deadline = r.cfg.revealMode === 'auto' ? Date.now() + KAC_REVEAL_MS : null;
     r.deadlineTotal = KAC_REVEAL_MS;
@@ -955,26 +963,13 @@ const Host = {
   },
 
   kacNext() {
-    const S = this.S;
-    const r = S.round;
-    r.qi++;
-    if (r.qi >= r.qs.length) {
-      r.final = computeKacFinal(r);
-      S.phase = 'final';
-      r.deadline = null;
-    } else {
-      r.step = 'answer';
-      r.nums = {};
-      r.guesses = {};
-      r.deadline = Date.now() + r.cfg.answerTime * 1000;
-      r.deadlineTotal = r.cfg.answerTime * 1000;
-    }
-    this.changed();
+    this.S.round.ti++;
+    this.kacBeginTurn();
   },
 
   kacSkip() {
     const r = this.S.round;
-    if (r.step === 'answer') this.kacStartGuess();
+    if (r.step === 'ask') this.kacNext();            // asker ran out of time: next person
     else if (r.step === 'guess') this.kacReveal();
     else this.kacNext();
   },
@@ -1291,8 +1286,8 @@ const Host = {
       else if (S.phase === 'kac' && now >= r.deadline) this.kacSkip();
     }
     if (S.phase === 'kac' && r) {
-      if (r.step === 'answer' && this.kacAll(r.nums)) this.kacStartGuess();
-      else if (r.step === 'guess' && this.kacAll(r.guesses)) this.kacReveal();
+      if (r.step === 'ask' && !this.kacLive(r.turns[r.ti])) this.kacNext();
+      else if (r.step === 'guess' && this.kacAllGuessed()) this.kacReveal();
     }
     if (S.phase === 'lie' && r) {
       if (r.step === 'clues' && !this.lieLive(this.lieCurrent())) this.lieBeginTurn();
@@ -1393,19 +1388,19 @@ const Host = {
       if (r.game !== 'kimyazdi' && !r.cfg.showAuthor) delete item.author;
       pub.reveal = { index: r.revealIndex, total: r.results.length, item };
     } else if (S.phase === 'kac') {
-      // Numbers stay on the host until the reveal; players only see who has answered.
-      const answered = {};
+      // The asker's real number stays on the host until the reveal.
+      const asker = r.turns[r.ti];
       const guessed = {};
-      for (const id of r.roster) { answered[id] = r.nums[id] !== undefined; guessed[id] = !!r.guesses[id]; }
+      for (const id of r.roster) if (id !== asker) guessed[id] = r.guesses[id] !== undefined;
       pub.kac = {
         step: r.step,
-        qi: r.qi,
-        qn: r.qs.length,
-        q: r.qs[r.qi],
-        answered,
+        ti: r.ti,
+        tn: r.turns.length,
+        asker,
+        q: r.ask ? r.ask.q : null,
         guessed,
-        myNum: r.nums[pid] ?? null,
-        myGuess: r.guesses[pid] || null,
+        myGuess: r.guesses[pid] ?? null,
+        myAnswer: pid === asker && r.ask ? r.ask.v : null,
         result: r.step === 'reveal' ? r.results[r.results.length - 1] : null,
       };
     } else if (S.phase === 'lie') {
@@ -1533,15 +1528,31 @@ function computeFinal(r) {
 
 /* ---------- Kaç Kaç? ---------- */
 
+// Accepts "7", "7,5", "12.000" (Turkish thousands dots). Keeps one decimal.
+function parseKacNumber(raw) {
+  let t = String(raw ?? '').trim().replace(/\s/g, '');
+  if (!t) return null;
+  if (/^\d{1,3}(\.\d{3})+(,\d+)?$/.test(t)) t = t.replace(/\./g, '');
+  t = t.replace(',', '.');
+  const v = Number(t);
+  if (!Number.isFinite(v) || v < 0 || v > KAC_MAX) return null;
+  return Math.round(v * 10) / 10;
+}
+
 function computeKacFinal(r) {
-  const closestWins = {};
-  for (const id of r.roster) closestWins[id] = 0;
-  for (const res of r.results) for (const id of res.closest) closestWins[id]++;
+  const exact = {};
+  const close = {};
+  for (const id of r.roster) { exact[id] = 0; close[id] = 0; }
+  for (const res of r.results) {
+    for (const id of res.exact) exact[id]++;
+    for (const id of res.closest) close[id]++;
+  }
   return {
-    ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a] || closestWins[b] - closestWins[a]),
+    ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a] || exact[b] - exact[a]),
     scores: { ...r.scores },
-    closestWins,
-    records: r.results.map((res) => ({ q: res.q, tops: res.tops, max: res.max, total: res.total, count: res.entries.length })),
+    exact,
+    close,
+    recap: r.results.map((res) => ({ asker: res.asker, q: res.q, v: res.v, exact: res.exact, closest: res.closest })),
   };
 }
 
@@ -1975,7 +1986,7 @@ function onState(s) {
   myId = s.you;
   store.set('hz-id', myId, true);
 
-  const dKey = s.phase + ':' + (s.roundId || '') + ':' + (s.reveal ? s.reveal.index : '') + ':' + (s.lie ? s.lie.step + s.lie.turn : '') + ':' + (s.kac ? s.kac.step + s.kac.qi : '');
+  const dKey = s.phase + ':' + (s.roundId || '') + ':' + (s.reveal ? s.reveal.index : '') + ':' + (s.lie ? s.lie.step + s.lie.turn : '') + ':' + (s.kac ? s.kac.step + s.kac.ti : '');
   if (s.left == null) {
     App.deadline = null;
   } else {
@@ -2016,7 +2027,7 @@ function render() {
   let key = screen + ':' + (s.roundId || '');
   if (screen === 'results') key += ':' + s.reveal.index;
   if (screen === 'lie:clues') key += ':' + s.lie.turn;
-  if (screen.startsWith('kac:')) key += ':' + s.kac.qi;
+  if (screen.startsWith('kac:')) key += ':' + s.kac.ti;
   if (screen === 'writing' && s.writing.stage) key += ':' + s.writing.stage;
 
   const fresh = key !== App.screenKey;
@@ -2398,60 +2409,66 @@ function castVote(target, btn) {
 
 const fmtNum = (n) => Number(n).toLocaleString('tr-TR');
 
-function kacHead(s, timerLabel) {
+function kacTop(s, timerLabel) {
   const K = s.kac;
   return header() + (timerLabel ? timerHTML(timerLabel) : '') +
-    '<div class="card qcard"><div class="meta">Soru ' + (K.qi + 1) + ' / ' + K.qn + '</div><div class="qtext">' + esc(K.q) + '</div></div>';
+    '<div class="dots">' + Array.from({ length: K.tn }, (_, i) => '<i class="' + (i <= K.ti ? 'on' : '') + '"></i>').join('') + '</div>';
 }
 
-function kacChips(s, map) {
-  return s.roster.map((id) => '<span class="chip ' + (map[id] ? 'done' : '') + '">' + avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) +
-    ' <span class="cnt">' + (map[id] ? '✓' : '⏳') + '</span></span>').join('');
+function kacQuestionCard(s, text) {
+  const a = nameOf(s.kac.asker);
+  return '<div class="card qcard"><div class="kasker">' + avatarHTML(a) + '<b>' + esc(a.name) + '</b> soruyor:</div><div class="qtext">' + esc(text) + '</div></div>';
 }
 
-Views['kac:answer'] = {
+Views['kac:ask'] = {
   mount(s) {
-    mount(kacHead(s, 'Cevap süresi') +
-      '<div class="card"><label class="lbl" for="kacNum">Senin gerçek sayın (kimse görmeyecek, açılışa kadar 🤫)</label>' +
-      '<div class="row"><input id="kacNum" class="field grow knum" type="text" inputmode="numeric" autocomplete="off" placeholder="0">' +
-      '<button class="btn green" data-act="knum">Gönder</button></div><p class="muted" id="kacMine" style="margin:8px 0 0"></p></div>' +
-      '<div class="card"><h2>Kim cevapladı?</h2><div class="chips" id="kacChips"></div></div>' +
-      (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ Tahmine geç</button></div>' : ''));
-    const el = $('#kacNum');
-    if (el && window.matchMedia('(pointer:fine)').matches) el.focus();
-  },
-  update(s) {
     const K = s.kac;
-    $('#kacMine').innerHTML = K.myNum != null ? '✅ Gönderdin: <b>' + fmtNum(K.myNum) + '</b> (istersen değiştirebilirsin)' : '';
-    $('#kacChips').innerHTML = kacChips(s, K.answered);
+    const a = nameOf(K.asker);
+    const mine = K.asker === s.you;
+    const body = mine
+      ? '<div class="card myturn"><h2>Sıra sende! 🎤</h2><p class="muted" style="margin:0 0 12px">Kendinle ilgili, cevabı sayı olan bir soru sor. Doğru cevabı sadece sen biliyorsun!</p>' +
+        '<label class="lbl" for="kacQ">Sorun</label>' +
+        '<div class="row"><input id="kacQ" class="field grow" maxlength="' + MAX_Q_LEN + '" placeholder="Örn: Bugün kaç saat uyumuşumdur?" autocomplete="off">' +
+        '<button class="dice" data-act="kidea" title="Fikir ver">🎲</button></div>' +
+        '<label class="lbl" for="kacAns" style="margin-top:12px">Doğru cevap (gizli 🤫)</label>' +
+        '<input id="kacAns" class="field knum" type="text" inputmode="decimal" autocomplete="off" placeholder="Örn: 7">' +
+        '<div style="height:14px"></div><button class="btn yellow big block" data-act="kask">Soruyu sor 🚀</button></div>'
+      : '<div class="card center turnwait">' + avatarHTML(a, 'lg') + '<h2 style="margin:8px 0 0">' + esc(a.name) + ' soru hazırlıyor…</h2>' +
+        '<p class="muted" style="margin:4px 0 0">Birazdan onun hakkında bir sayı tahmin edeceksin 🤔</p></div>';
+    mount(kacTop(s, 'Soru yazma süresi') + body +
+      (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ Bu kişiyi atla</button></div>' : ''));
+    if (mine) {
+      Sound.join();
+      const el = $('#kacQ');
+      if (el && window.matchMedia('(pointer:fine)').matches) el.focus();
+    }
   },
 };
 
 Views['kac:guess'] = {
   mount(s) {
     const K = s.kac;
-    App.kacTop = null;
-    const n = Object.values(K.answered).filter(Boolean).length;
-    mount(kacHead(s, 'Tahmin süresi') +
-      '<div id="kacGuessArea"><div class="card">' +
-        (K.myNum != null ? '<p class="muted" style="margin:0 0 10px">Senin sayın: <b>' + fmtNum(K.myNum) + '</b></p>' : '') +
-        '<label class="lbl" for="kacTotal">1) ' + n + ' kişinin toplamı kaç?</label>' +
-        '<input id="kacTotal" class="field knum" type="text" inputmode="numeric" autocomplete="off" placeholder="Toplam…">' +
-        '<div class="lbl" style="margin-top:14px">2) En yüksek sayı kimde?</div>' +
-        '<div class="choices">' + s.roster.filter((id) => K.answered[id]).map((id) => '<button class="choice" data-act="ktop" data-id="' + esc(id) + '">' +
-          avatarHTML(nameOf(id)) + '<span class="nm">' + esc(nameOf(id).name) + '</span></button>').join('') + '</div>' +
-        '<div style="height:14px"></div><button class="btn yellow big block" data-act="kguess">Tahmini gönder 🎯</button>' +
-      '</div></div>' +
+    const mine = K.asker === s.you;
+    mount(kacTop(s, 'Tahmin süresi') + kacQuestionCard(s, K.q) +
+      '<div id="kacArea">' + (mine
+        ? '<div class="card center"><div class="big-emoji">👀</div><h2>Arkadaşların tahmin ediyor</h2><p class="muted" style="margin:0">Senin cevabın: <b>' + fmtNum(K.myAnswer) + '</b></p></div>'
+        : '<div class="card"><label class="lbl" for="kacGuess">Sence cevap kaç?</label>' +
+          '<div class="row"><input id="kacGuess" class="field grow knum" type="text" inputmode="decimal" autocomplete="off" placeholder="Tahminin…">' +
+          '<button class="btn green" data-act="kguess">Gönder</button></div>' +
+          '<p class="muted" style="margin:8px 0 0">Tam bilirsen +' + KAC_EXACT_POINTS + ', kimse tam bilemezse en yakın olan +' + KAC_CLOSE_POINTS + '</p></div>') +
+      '</div>' +
       '<div class="card"><h2>Kim tahmin etti?</h2><div class="chips" id="kacChips"></div></div>' +
-      (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ Sonuçları aç</button></div>' : ''));
+      (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ Cevabı aç</button></div>' : ''));
+    const el = $('#kacGuess');
+    if (el && window.matchMedia('(pointer:fine)').matches) el.focus();
   },
   update(s) {
     const K = s.kac;
-    if (K.myGuess && !$('#kacSent')) {
-      $('#kacGuessArea').innerHTML = '<div class="waiting-pill" id="kacSent">Tahminin: toplam <b>' + fmtNum(K.myGuess.total) + '</b>' +
-        (K.myGuess.top ? ', en yüksek <b>' + esc(nameOf(K.myGuess.top).name) + '</b>' : '') + ' ✓ Diğerleri bekleniyor…</div>';
+    if (K.myGuess != null && K.asker !== s.you && !$('#kacSent')) {
+      $('#kacArea').innerHTML = '<div class="waiting-pill" id="kacSent">Tahminin: <b>' + fmtNum(K.myGuess) + '</b> ✓ Diğerleri bekleniyor…</div>';
     }
-    $('#kacChips').innerHTML = kacChips(s, K.guessed);
+    $('#kacChips').innerHTML = Object.keys(K.guessed).map((id) => '<span class="chip ' + (K.guessed[id] ? 'done' : '') + '">' +
+      avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) + ' <span class="cnt">' + (K.guessed[id] ? '✓' : '⏳') + '</span></span>').join('');
   },
 };
 
@@ -2459,44 +2476,37 @@ Views['kac:reveal'] = {
   mount(s) {
     const K = s.kac;
     const R = K.result;
-    const n = R.entries.length;
-    const step = n > 6 ? 0.45 : 0.7;          // seconds between numbers
-    const after = n * step + 0.6;              // when the numbers are all out
-    const max = R.max || 1;
-    const rows = R.entries.map((e, i) => {
-      const p = nameOf(e.id);
-      const top = R.tops.includes(e.id);
-      return '<div class="krow ' + (top ? 'top' : '') + '" style="--d:' + (i * step).toFixed(2) + 's">' + avatarHTML(p) +
-        '<div class="body"><div class="top2"><span class="nm">' + (top ? '👑 ' : '') + esc(p.name) + '</span><b class="kv">' + fmtNum(e.v) + '</b></div>' +
-        '<div class="track"><i style="--c:' + esc(p.col) + ';width:' + (max ? e.v / max * 100 : 0) + '%"></i></div></div></div>';
+    const step = R.guesses.length > 6 ? 0.35 : 0.5;
+    const start = 1.4;                                   // the answer pops first
+    const rows = R.guesses.map((g, i) => {
+      const p = nameOf(g.id);
+      const exact = R.exact.includes(g.id);
+      const close = R.closest.includes(g.id);
+      return '<div class="krow ' + (exact || close ? 'top' : '') + '" style="--d:' + (start + i * step).toFixed(2) + 's">' + avatarHTML(p) +
+        '<div class="body"><div class="top2"><span class="nm">' + esc(p.name) + '</span><b class="kv">' + fmtNum(g.v) + '</b></div>' +
+        '<div class="kdiff">' + (exact ? '🎯 Tam isabet!' : close ? '👌 En yakın tahmin (fark ' + fmtNum(g.diff) + ')' : 'fark ' + fmtNum(g.diff)) + '</div></div>' +
+        (R.delta[g.id] ? '<span class="dl">+' + R.delta[g.id] + '</span>' : '') + '</div>';
     }).join('');
-    const guessRows = s.roster.filter((id) => R.guesses[id]).sort((a, b) => (R.guesses[a].diff ?? 1e18) - (R.guesses[b].diff ?? 1e18)).map((id) => {
-      const g = R.guesses[id];
-      const close = R.closest.includes(id);
-      return '<div class="srow ' + (close ? 'win' : '') + '">' + avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) +
-        '<small>tahmin: ' + (g.total != null ? fmtNum(g.total) + ' (fark ' + fmtNum(g.diff) + ')' : '—') +
-        ' · en yüksek: ' + (g.top ? esc(nameOf(g.top).name) + (g.topRight ? ' ✅' : ' ❌') : '—') + '</small></span>' +
-        (R.delta[id] ? '<span class="dl">+' + R.delta[id] + '</span>' : '') + '</div>';
-    }).join('');
+    const after = start + R.guesses.length * step + 0.3;
     const board = s.roster.slice().sort((a, b) => R.scores[b] - R.scores[a]).map((id, i) => '<div class="srow"><span class="rk">' + (i + 1) + '</span>' +
       avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) + '</span>' + (R.delta[id] ? '<span class="dl">+' + R.delta[id] + '</span>' : '') +
       '<b>' + R.scores[id] + '</b></div>').join('');
-    const last = K.qi >= K.qn - 1;
+    const verdict = !R.guesses.length ? 'Kimse tahmin etmedi 🤷'
+      : R.exact.length ? '🎯 ' + R.exact.map((id) => nameOf(id).name).join(' & ') + ' tam bildi!'
+      : '👌 Kimse tam bilemedi, en yakın: ' + R.closest.map((id) => nameOf(id).name).join(' & ');
+    const last = K.ti >= K.tn - 1;
     const auto = s.settings.revealMode === 'auto';
     const ctrl = isHost()
-      ? '<div class="ctrl"><button class="btn yellow big" data-act="next">' + (last ? '🏆 Sonuçlar' : 'Sonraki soru ▶') + '</button></div>'
+      ? '<div class="ctrl"><button class="btn yellow big" data-act="next">' + (last ? '🏆 Sonuçlar' : 'Sıradaki ▶') + '</button></div>'
       : (auto ? '' : '<div class="waiting-pill">Lider bir sonrakine geçecek…</div>');
-    mount(kacHead(s, auto ? (last ? 'Sonuçlara geçiliyor' : 'Sonraki soruya') : null) +
-      (n
-        ? '<div class="card"><div class="kreveal">' + rows + '</div>' +
-          '<div class="ktotal" style="--d:' + after.toFixed(2) + 's">Toplam: <b>' + fmtNum(R.total) + '</b></div></div>' +
-          '<div class="card kafter" style="--d:' + (after + 0.5).toFixed(2) + 's"><h2>Tahminler ' + (R.exact ? '<small>🎯 tam isabet var!</small>' : '') + '</h2>' +
-            '<div class="board">' + (guessRows || '<p class="muted" style="margin:0">Kimse tahmin yapmadı.</p>') + '</div></div>' +
-          '<div class="card kafter" style="--d:' + (after + 0.9).toFixed(2) + 's"><h2>Puan durumu</h2><div class="board">' + board + '</div></div>'
-        : '<div class="card center"><div class="big-emoji">🤷</div><b>Bu soruya kimse sayı yazmadı.</b></div>') +
+    mount(kacTop(s, auto ? (last ? 'Sonuçlara geçiliyor' : 'Sıradakine geçiliyor') : null) + kacQuestionCard(s, R.q) +
+      '<div class="card center"><div class="muted" style="font-weight:700">Doğru cevap</div><div class="kanswer">' + fmtNum(R.v) + '</div>' +
+        '<div class="kreveal" style="text-align:left">' + rows + '</div>' +
+        '<div class="ktotal" style="--d:' + after.toFixed(2) + 's">' + esc(verdict) + '</div></div>' +
+      '<div class="card kafter" style="--d:' + (after + 0.4).toFixed(2) + 's"><h2>Puan durumu</h2><div class="board">' + board + '</div></div>' +
       ctrl);
-    R.entries.forEach((e, i) => setTimeout(() => Sound.beep(520 + i * 60, 0.08, 'triangle', 0.06), (i * step) * 1000));
-    if (n) setTimeout(() => Sound.beep(1046, 0.18, 'triangle', 0.08), after * 1000);
+    setTimeout(() => Sound.beep(880, 0.2, 'triangle', 0.09), 900);
+    if (R.exact.length) setTimeout(() => Sound.fanfare(), after * 1000);
   },
 };
 
@@ -2507,21 +2517,24 @@ function kacFinalMount(s) {
   let headline;
   if (!F.scores[lead]) headline = '<h1>Kimse puan alamadı 😅</h1><p>Hiç tahmin yapılmamış gibi görünüyor.</p>';
   else if (champs.length > 1) headline = '<h1>🤝 Berabere!</h1><p>' + esc(champs.map((id) => nameOf(id).name).join(' & ')) + ' eşit puan topladı.</p>';
-  else headline = '<h1>' + esc(nameOf(lead).av) + ' ' + esc(nameOf(lead).name) + ' kazandı!</h1><p>' + F.scores[lead] + ' puanla en iyi tahminci 🔢</p>';
+  else headline = '<h1>' + esc(nameOf(lead).av) + ' ' + esc(nameOf(lead).name) + ' kazandı!</h1><p>' + F.scores[lead] + ' puanla arkadaşlarını en iyi tanıyan o 🔢</p>';
 
   const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
-    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.closestWins[id] + ' kez toplama en yakın</small></span><b>' + F.scores[id] + '</b></div>').join('');
-  const records = F.records.map((r) => '<div><span class="q">' + esc(r.q) + '</span><span class="w">' +
-    (r.count ? '👑 ' + esc(r.tops.map((id) => nameOf(id).name).join(' & ')) + ': ' + fmtNum(r.max) + ' <span class="muted">(toplam ' + fmtNum(r.total) + ')</span>' : '—') +
-    '</span></div>').join('');
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.exact[id] + ' tam isabet · ' + F.close[id] + ' en yakın</small></span><b>' + F.scores[id] + '</b></div>').join('');
+  const recap = F.recap.map((r) => {
+    const who = r.exact.length ? '🎯 ' + r.exact.map((id) => nameOf(id).name).join(' & ')
+      : r.closest.length ? '👌 ' + r.closest.map((id) => nameOf(id).name).join(' & ') : '—';
+    return '<div><span class="q"><b>' + esc(nameOf(r.asker).name) + ':</b> ' + esc(r.q) + '</span><span class="w">' + fmtNum(r.v) +
+      ' <span class="muted">' + esc(who) + '</span></span></div>';
+  }).join('');
 
   mount(
     header() +
     '<div class="phase-title">' + headline + '</div>' +
     podiumHTML(F.ranking, (id) => F.scores[id] + ' puan') +
     '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
-      '<p class="muted" style="margin:10px 0 0;font-size:14px">Toplama en yakın: +' + KAC_CLOSEST_POINTS + ' (tam isabet +' + KAC_EXACT_BONUS + ' bonus) · En yükseği bilen: +' + KAC_TOP_POINTS + '</p></div>' +
-    '<div class="card"><h2>Rekorlar 👑</h2><div class="recap">' + records + '</div></div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Tam isabet: +' + KAC_EXACT_POINTS + ' · Kimse tam bilemezse en yakın: +' + KAC_CLOSE_POINTS + '</p></div>' +
+    '<div class="card"><h2>Bütün sorular</h2><div class="recap">' + recap + '</div></div>' +
     finalFooter(),
     true
   );
@@ -3318,28 +3331,27 @@ const actions = {
     const c = $('#rolecard');
     if (c) c.classList.toggle('hidden', !App.peek);
   },
-  knum() {
-    const el = $('#kacNum');
-    const raw = el ? el.value.replace(/[.\s]/g, '').replace(',', '.') : '';
-    const v = Number(raw);
-    if (raw === '' || !Number.isFinite(v) || v < 0) { toast('Bir sayı yaz 🙂'); if (el) el.focus(); return; }
-    if (v > KAC_MAX) { toast('Bu kadar büyük olamaz 😅'); return; }
+  kask() {
+    const q = ($('#kacQ') || {}).value || '';
+    const raw = ($('#kacAns') || {}).value || '';
+    if (!q.trim()) { toast('Önce sorunu yaz 🙂'); $('#kacQ').focus(); return; }
+    if (parseKacNumber(raw) == null) { toast('Doğru cevabı sayı olarak yaz 🔢'); $('#kacAns').focus(); return; }
     Sound.click();
-    send({ t: 'knum', v });
+    send({ t: 'kask', q, v: raw });
   },
-  ktop(el) {
-    App.kacTop = el.dataset.id;
-    $$('[data-act=ktop]').forEach((b) => b.classList.toggle('picked', b === el));
+  kidea() {
+    const el = $('#kacQ');
+    const pool = KAC_IDEAS.filter((x) => x !== el.value);
+    el.value = pool[Math.floor(Math.random() * pool.length)];
+    Sound.click();
+    const a = $('#kacAns');
+    if (a) a.focus();
   },
   kguess() {
-    const el = $('#kacTotal');
-    const raw = el ? el.value.replace(/[.\s]/g, '').replace(',', '.') : '';
-    const total = raw === '' ? null : Number(raw);
-    if (total != null && (!Number.isFinite(total) || total < 0)) { toast('Toplam için bir sayı yaz'); return; }
-    if (total == null) { toast('Grubun toplamını tahmin et 🙂'); if (el) el.focus(); return; }
-    if (!App.kacTop) { toast('En yüksek kimde? Birini seç 👆'); return; }
+    const raw = ($('#kacGuess') || {}).value || '';
+    if (parseKacNumber(raw) == null) { toast('Tahminini sayı olarak yaz 🔢'); $('#kacGuess').focus(); return; }
     Sound.click();
-    send({ t: 'kguess', total, top: App.kacTop });
+    send({ t: 'kguess', v: raw });
   },
   lieReset() { if (confirm('Odanın Yalancıyı Bul toplam puanları sıfırlansın mı?')) send({ t: 'lieReset' }); },
 };
@@ -3377,8 +3389,9 @@ document.addEventListener('input', (e) => {
 
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'clueInput') { e.preventDefault(); doAction('clue'); return; }
-  if (e.key === 'Enter' && e.target.id === 'kacNum') { e.preventDefault(); doAction('knum'); return; }
-  if (e.key === 'Enter' && e.target.id === 'kacTotal') { e.preventDefault(); doAction('kguess'); return; }
+  if (e.key === 'Enter' && e.target.id === 'kacQ') { e.preventDefault(); const a = $('#kacAns'); if (a) a.focus(); return; }
+  if (e.key === 'Enter' && e.target.id === 'kacAns') { e.preventDefault(); doAction('kask'); return; }
+  if (e.key === 'Enter' && e.target.id === 'kacGuess') { e.preventDefault(); doAction('kguess'); return; }
   if (e.key === 'Enter' && e.target.classList.contains('q-input')) {
     e.preventDefault();
     const next = $('.q-input[data-i="' + (Number(e.target.dataset.i) + 1) + '"]');

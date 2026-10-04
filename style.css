@@ -535,3 +535,12 @@ button.ansb:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(30,10,
 }
 .card .choice { background: var(--soft); }
 .card .choice.picked { background: var(--accent); }
+.kasker { display: flex; align-items: center; justify-content: center; gap: 8px; color: var(--muted); font-weight: 700; }
+.kasker .av { width: 30px; height: 30px; font-size: 16px; }
+.kanswer {
+  font-size: 64px; font-weight: 800; color: var(--bg2); line-height: 1; margin: 4px 0 12px;
+  animation: kpop .6s cubic-bezier(.3,1.6,.5,1) .6s both;
+}
+@keyframes kpop { from { transform: scale(0); opacity: 0; } }
+.kdiff { font-size: 14px; color: var(--muted); font-weight: 600; }
+.krow .dl { color: #12844a; font-weight: 800; }
