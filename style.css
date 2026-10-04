@@ -508,3 +508,5 @@ button.ansb:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(30,10,
   .games.compact .gcard:not(.on) .gb small { display: none; }
   .games.compact .gcard.on { grid-column: 1 / -1; align-items: flex-start; }
 }
+
+#lvoteArea { margin-bottom: 16px; }

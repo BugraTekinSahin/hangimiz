@@ -87,7 +87,7 @@ const GAMES = {
   yalanci: {
     name: 'Yalancıyı Bul',
     emoji: '🤥',
-    desc: 'Herkes gizli kelimeyi bilir, biri hariç! Sırayla ipucu verin, yalancıyı yakalayın.',
+    desc: 'Birinin gizli kelimesi farklı ama kendisi bile bilmiyor! Sırayla ipucu verin, yalancıyı yakalayın.',
     minPlayers: 3,
     hideCommon: ['revealMode'],
     defs: [
@@ -95,7 +95,8 @@ const GAMES = {
       { key: 'clueRounds', label: 'İpucu turu', type: 'num', def: 2, min: 1, max: 3, step: 1, unit: 'tur' },
       { key: 'clueTime', label: 'İpucu süresi', type: 'num', def: 30, min: 10, max: 90, step: 5, unit: 'sn' },
       { key: 'voteTime', label: 'Oylama süresi', type: 'num', def: 45, min: 15, max: 120, step: 5, unit: 'sn' },
-      { key: 'showCategory', label: 'Yalancı kategoriyi görsün', type: 'bool', def: true },
+      { key: 'liarKnows', label: 'Yalancı kendini bilsin', type: 'bool', def: false },
+      { key: 'showCategory', label: 'Yalancı kategoriyi görsün', type: 'bool', def: true, showIf: (c) => c.liarKnows },
     ],
   },
 };
@@ -108,13 +109,14 @@ const LIE_ESCAPE_POINTS = 200;  // liar not caught
 const LIE_GUESS_POINTS = 100;   // liar guessed the word
 const LIE_MAX_CLUE = 40;
 
+// Pairs of similar words. When the liar doesn't know their role, they get the partner word.
 const LIE_WORDS = {
-  yer: { name: 'Yerler', words: ['Plaj', 'Hastane', 'Okul', 'Sinema', 'Havalimanı', 'Süpermarket', 'Kütüphane', 'Hayvanat bahçesi', 'Uzay istasyonu', 'Lunapark', 'Restoran', 'Kamp alanı', 'Müze', 'Spor salonu', 'Berber', 'Tren', 'Gemi', 'Kale', 'Çiftlik', 'Düğün salonu', 'Otel', 'Banka', 'Karakol'] },
-  yemek: { name: 'Yiyecekler', words: ['Pizza', 'Lahmacun', 'Mantı', 'Sushi', 'Hamburger', 'Baklava', 'Dondurma', 'Döner', 'Kumpir', 'Menemen', 'Simit', 'Pilav', 'Çorba', 'Patlamış mısır', 'Çikolata', 'Karpuz', 'Köfte', 'İskender', 'Waffle', 'Makarna'] },
-  hayvan: { name: 'Hayvanlar', words: ['Kedi', 'Köpek', 'Penguen', 'Zürafa', 'Fil', 'Aslan', 'Yunus', 'Kartal', 'Tavşan', 'Kaplumbağa', 'Ahtapot', 'Maymun', 'Timsah', 'Baykuş', 'Arı', 'Köpekbalığı', 'At', 'Panda', 'Koala', 'Deve'] },
-  meslek: { name: 'Meslekler', words: ['Doktor', 'Öğretmen', 'Aşçı', 'Pilot', 'Polis', 'İtfaiyeci', 'Astronot', 'Berber', 'Futbolcu', 'YouTuber', 'Avukat', 'Garson', 'Ressam', 'Dişçi', 'Şoför', 'Çiftçi', 'Mühendis', 'Hemşire', 'Postacı', 'Sihirbaz'] },
-  esya: { name: 'Eşyalar', words: ['Telefon', 'Şemsiye', 'Diş fırçası', 'Kulaklık', 'Gözlük', 'Saat', 'Sırt çantası', 'Anahtar', 'Yastık', 'Ayna', 'Makas', 'Kumanda', 'Mum', 'Termos', 'Bisiklet', 'Kamera', 'Cüzdan', 'Şarj aleti', 'Tava', 'Balon'] },
-  hobi: { name: 'Spor & Hobi', words: ['Futbol', 'Basketbol', 'Yüzme', 'Satranç', 'Kayak', 'Bowling', 'Gitar çalmak', 'Resim yapmak', 'Kamp yapmak', 'Dans', 'Boks', 'Tenis', 'Okçuluk', 'Yoga', 'Balık tutmak', 'Bilardo', 'Kaykay', 'Örgü örmek', 'Dağcılık', 'Voleybol'] },
+  yer: { name: 'Yerler', pairs: [['Plaj', 'Havuz'], ['Hastane', 'Eczane'], ['Okul', 'Kütüphane'], ['Sinema', 'Tiyatro'], ['Havalimanı', 'Tren garı'], ['Süpermarket', 'Pazar yeri'], ['Hayvanat bahçesi', 'Akvaryum'], ['Lunapark', 'Su parkı'], ['Restoran', 'Kafe'], ['Kamp alanı', 'Orman'], ['Müze', 'Sanat galerisi'], ['Spor salonu', 'Stadyum'], ['Gemi', 'Denizaltı'], ['Kale', 'Saray'], ['Çiftlik', 'Köy'], ['Otel', 'Pansiyon'], ['Banka', 'Postane'], ['Uzay istasyonu', 'Ay'], ['Düğün salonu', 'Doğum günü partisi']] },
+  yemek: { name: 'Yiyecekler', pairs: [['Pizza', 'Lahmacun'], ['Mantı', 'Ravioli'], ['Sushi', 'Balık'], ['Hamburger', 'Tost'], ['Baklava', 'Künefe'], ['Dondurma', 'Puding'], ['Döner', 'İskender'], ['Kumpir', 'Patates kızartması'], ['Menemen', 'Omlet'], ['Simit', 'Poğaça'], ['Pilav', 'Makarna'], ['Patlamış mısır', 'Cips'], ['Çikolata', 'Gofret'], ['Karpuz', 'Kavun'], ['Köfte', 'Sucuk'], ['Waffle', 'Krep'], ['Çorba', 'Güveç']] },
+  hayvan: { name: 'Hayvanlar', pairs: [['Kedi', 'Köpek'], ['Penguen', 'Fok'], ['Zürafa', 'Deve'], ['Fil', 'Gergedan'], ['Aslan', 'Kaplan'], ['Yunus', 'Balina'], ['Kartal', 'Şahin'], ['Tavşan', 'Sincap'], ['Kaplumbağa', 'Kurbağa'], ['Ahtapot', 'Denizanası'], ['Maymun', 'Goril'], ['Timsah', 'Kertenkele'], ['Baykuş', 'Yarasa'], ['Arı', 'Sinek'], ['At', 'Eşek'], ['Panda', 'Koala']] },
+  meslek: { name: 'Meslekler', pairs: [['Doktor', 'Hemşire'], ['Öğretmen', 'Müdür'], ['Aşçı', 'Garson'], ['Pilot', 'Hostes'], ['Polis', 'Asker'], ['İtfaiyeci', 'Cankurtaran'], ['Astronot', 'Bilim insanı'], ['Berber', 'Kuaför'], ['Futbolcu', 'Basketbolcu'], ['YouTuber', 'TikTokçu'], ['Avukat', 'Hakim'], ['Ressam', 'Heykeltıraş'], ['Dişçi', 'Göz doktoru'], ['Taksici', 'Otobüs şoförü'], ['Çiftçi', 'Çoban'], ['Mühendis', 'Mimar'], ['Postacı', 'Kargocu'], ['Sihirbaz', 'Palyaço']] },
+  esya: { name: 'Eşyalar', pairs: [['Telefon', 'Tablet'], ['Şemsiye', 'Yağmurluk'], ['Diş fırçası', 'Tarak'], ['Kulaklık', 'Hoparlör'], ['Gözlük', 'Lens'], ['Saat', 'Bileklik'], ['Sırt çantası', 'Valiz'], ['Anahtar', 'Kilit'], ['Yastık', 'Battaniye'], ['Ayna', 'Pencere'], ['Makas', 'Bıçak'], ['Kumanda', 'Joystick'], ['Mum', 'El feneri'], ['Termos', 'Matara'], ['Bisiklet', 'Scooter'], ['Kamera', 'Dürbün'], ['Şarj aleti', 'Powerbank'], ['Tava', 'Tencere'], ['Balon', 'Uçurtma']] },
+  hobi: { name: 'Spor & Hobi', pairs: [['Futbol', 'Hentbol'], ['Basketbol', 'Voleybol'], ['Yüzme', 'Dalış'], ['Satranç', 'Dama'], ['Kayak', 'Snowboard'], ['Bowling', 'Bilardo'], ['Gitar çalmak', 'Piyano çalmak'], ['Resim yapmak', 'Fotoğraf çekmek'], ['Kamp yapmak', 'Piknik'], ['Dans', 'Jimnastik'], ['Boks', 'Güreş'], ['Tenis', 'Badminton'], ['Okçuluk', 'Dart'], ['Yoga', 'Pilates'], ['Balık tutmak', 'Kürek çekmek'], ['Kaykay', 'Paten'], ['Örgü örmek', 'Dikiş dikmek'], ['Dağcılık', 'Doğa yürüyüşü']] },
 };
 
 const KOMIK_VOTE_POINTS = 100;   // per vote your answer gets
@@ -657,7 +659,8 @@ const Host = {
       }
 
       case 'lvote': {
-        if (S.phase !== 'lie' || r.step !== 'vote' || !r.roster.includes(pid) || pid === r.liar || r.lvotes[pid]) return;
+        if (S.phase !== 'lie' || r.step !== 'vote' || !r.roster.includes(pid) || r.lvotes[pid]) return;
+        if (pid === r.liar && r.cfg.liarKnows) return;
         const target = String(msg.target || '');
         if (!r.roster.includes(target) || target === pid) return;
         r.lvotes[pid] = target;
@@ -666,7 +669,7 @@ const Host = {
       }
 
       case 'lguess':
-        if (S.phase !== 'lie' || r.step !== 'vote' || pid !== r.liar || r.guess !== null) return;
+        if (S.phase !== 'lie' || r.step !== 'vote' || pid !== r.liar || !r.cfg.liarKnows || r.guess !== null) return;
         if (!r.options.includes(msg.word)) return;
         r.guess = msg.word;
         if (this.lieAllVoted()) this.lieFinish(); else this.changed();
@@ -824,13 +827,16 @@ const Host = {
   setupLie(r, now) {
     const keys = Object.keys(LIE_WORDS);
     const cat = r.cfg.category === 'mix' ? keys[Math.floor(Math.random() * keys.length)] : r.cfg.category;
-    const words = LIE_WORDS[cat].words;
-    const word = words[Math.floor(Math.random() * words.length)];
+    const pairs = LIE_WORDS[cat].pairs;
+    const [word, partner] = shuffle(pairs[Math.floor(Math.random() * pairs.length)]);
+    const words = pairs.flat();
+    const knows = r.cfg.liarKnows;
     Object.assign(r, {
       liar: r.roster[Math.floor(Math.random() * r.roster.length)],
       category: LIE_WORDS[cat].name,
       word,
-      options: shuffle([word, ...shuffle(words.filter((w) => w !== word)).slice(0, 7)]),
+      liarWord: knows ? null : partner,
+      options: knows ? shuffle([word, ...shuffle(words.filter((w) => w !== word)).slice(0, 7)]) : null,
       order: shuffle(r.roster),
       turn: 0,
       totalTurns: r.cfg.clueRounds * r.roster.length,
@@ -884,7 +890,8 @@ const Host = {
   lieAllVoted() {
     const r = this.S.round;
     const live = r.roster.filter((id) => this.lieLive(id));
-    return live.length > 0 && live.every((id) => (id === r.liar ? r.guess !== null : !!r.lvotes[id]));
+    // A liar who knows guesses the word; an unaware liar votes like everyone else.
+    return live.length > 0 && live.every((id) => (id === r.liar && r.cfg.liarKnows ? r.guess !== null : !!r.lvotes[id]));
   },
 
   lieTimeout() {
@@ -918,7 +925,7 @@ const Host = {
     const totals = {};
     for (const id of r.roster) totals[id] = S.lieTotals[id] || 0;
     r.final = {
-      liar: r.liar, word: r.word, category: r.category, guess: r.guess, guessedRight, caught,
+      liar: r.liar, word: r.word, liarWord: r.liarWord, knows: r.cfg.liarKnows, category: r.category, guess: r.guess, guessedRight, caught,
       votes: r.lvotes, counts, leaders, delta, clues: r.clues, order: r.order, totals,
     };
     S.phase = 'final';
@@ -1224,15 +1231,17 @@ const Host = {
       if (r.game !== 'kimyazdi' && !r.cfg.showAuthor) delete item.author;
       pub.reveal = { index: r.revealIndex, total: r.results.length, item };
     } else if (S.phase === 'lie') {
-      // Only the liar learns they are the liar; everyone else gets the word.
+      // An aware liar learns their role; an unaware one just gets a slightly different word.
+      const knows = r.cfg.liarKnows;
       const liar = pid === r.liar;
       const voted = {};
-      for (const id of r.roster) voted[id] = id === r.liar ? r.guess !== null : !!r.lvotes[id];
+      for (const id of r.roster) voted[id] = id === r.liar && knows ? r.guess !== null : !!r.lvotes[id];
       pub.lie = {
         step: r.step,
-        amLiar: liar,
-        word: liar ? null : r.word,
-        category: !liar || r.cfg.showCategory ? r.category : null,
+        hidden: !knows,
+        amLiar: liar && knows,
+        word: liar ? (knows ? null : r.liarWord) : r.word,
+        category: !liar || !knows || r.cfg.showCategory ? r.category : null,
         order: r.order,
         turn: r.turn,
         totalTurns: r.totalTurns,
@@ -1241,8 +1250,8 @@ const Host = {
         ready: r.ready,
         voted,
         myVote: r.lvotes[pid] || null,
-        myGuess: liar ? r.guess : null,
-        options: liar && r.step === 'vote' ? r.options : null,
+        myGuess: liar && knows ? r.guess : null,
+        options: liar && knows && r.step === 'vote' ? r.options : null,
       };
     } else if (S.phase === 'final') {
       pub.final = r.final;
@@ -2201,7 +2210,9 @@ function roleCardHTML(L, open) {
       '<div class="rc-tip">İpuçlarından kelimeyi çözmeye çalış ve belli etme!</div>'
     : '<div class="rc-label">Gizli kelime</div><div class="rc-word">' + esc(L.word) + '</div>' +
       '<div class="rc-sub">Kategori: <b>' + esc(L.category) + '</b></div>' +
-      '<div class="rc-tip">Aranızda bir yalancı var. Kelimeyi belli etmeden ipucu ver!</div>';
+      '<div class="rc-tip">' + (L.hidden
+        ? 'Birinizin kelimesi biraz farklı ve kendisi bunu bilmiyor. O sen bile olabilirsin! 😏'
+        : 'Aranızda bir yalancı var. Kelimeyi belli etmeden ipucu ver!') + '</div>';
   return '<div id="rolecard" class="rolecard ' + (L.amLiar ? 'liar' : 'word') + (open ? '' : ' hidden') + '" data-act="peek">' +
     '<div class="rc-cover">🔒 Kartını görmek için dokun</div><div class="rc-body">' + body + '<div class="rc-hide">gizlemek için dokun</div></div></div>';
 }
@@ -2225,7 +2236,8 @@ Views['lie:roles'] = {
   mount(s) {
     App.peek = false;
     mount(header() + timerHTML('Kartını oku') +
-      '<div class="phase-title"><h1>Kartına bak! 🤫</h1><p>Kimseye gösterme. Birinizin kartında kelime yok: o yalancı.</p></div>' +
+      '<div class="phase-title"><h1>Kartına bak! 🤫</h1><p>Kimseye gösterme. ' +
+        (s.lie.hidden ? 'Birinizin kelimesi farklı ama kendisi bilmiyor!' : 'Birinizin kartında kelime yok: o yalancı.') + '</p></div>' +
       roleCardHTML(s.lie, false) +
       '<div id="lready"></div>' +
       '<div class="card"><h2>Hazır olanlar</h2><div class="chips" id="lreadyChips"></div></div>' +
@@ -2272,7 +2284,9 @@ Views['lie:vote'] = {
     const L = s.lie;
     mount(header() + timerHTML('Oylama süresi') +
       '<div class="phase-title"><h1>' + (L.amLiar ? 'Kelimeyi tahmin et! 🎯' : 'Yalancı kim? 🕵️') + '</h1><p>' +
-      (L.amLiar ? 'Doğru bilirsen +' + LIE_GUESS_POINTS + ' puan. Yakalanmazsan +' + LIE_ESCAPE_POINTS + '!' : 'Kelimeyi bilmiyormuş gibi davranan kimdi? Doğru oy: +' + LIE_CATCH_POINTS) + '</p></div>' +
+      (L.amLiar ? 'Doğru bilirsen +' + LIE_GUESS_POINTS + ' puan. Yakalanmazsan +' + LIE_ESCAPE_POINTS + '!'
+        : L.hidden ? 'Kimin kelimesi farklıydı? (Sen de olabilirsin!) Doğru oy: +' + LIE_CATCH_POINTS
+        : 'Kelimeyi bilmiyormuş gibi davranan kimdi? Doğru oy: +' + LIE_CATCH_POINTS) + '</p></div>' +
       '<div id="lvoteArea"></div>' +
       '<div class="card"><h2>Kim oy verdi?</h2><div class="chips" id="lvoted"></div></div>' +
       roleCardHTML(L, App.peek) +
@@ -2302,7 +2316,7 @@ function lieFinalMount(s) {
   const F = s.final;
   const liar = nameOf(F.liar);
   const headline = F.caught
-    ? '<h1>🎉 Yalancı yakalandı!</h1><p>' + (F.guessedRight ? 'Ama kelimeyi bildi, puanı kaptı 😏' : 'Kelimeyi de bilemedi 😅') + '</p>'
+    ? '<h1>🎉 Yalancı yakalandı!</h1><p>' + (!F.knows ? 'Kendisi bile bilmiyordu 😅' : F.guessedRight ? 'Ama kelimeyi bildi, puanı kaptı 😏' : 'Kelimeyi de bilemedi 😅') + '</p>'
     : '<h1>😈 Yalancı kaçtı!</h1><p>' + (F.leaders.length > 1 ? 'Oylar bölündü, kimse yakalanamadı.' : 'Yanlış kişiyi seçtiniz!') + '</p>';
 
   const max = Math.max(1, ...Object.values(F.counts));
@@ -2314,7 +2328,9 @@ function lieFinalMount(s) {
       '<div class="track"><i style="--c:' + esc(p.col) + '" data-w="' + (F.counts[id] / max * 100) + '"></i></div><div class="voters">' + voters + '</div></div></div>';
   }).join('');
 
-  const guess = F.guess
+  const guess = !F.knows
+    ? '🔀 Yalancının kelimesi: <b>' + esc(F.liarWord) + '</b>'
+    : F.guess
     ? (F.guessedRight ? '✅ ' + esc(liar.name) + ' kelimeyi bildi: <b>' + esc(F.guess) + '</b>' : '❌ Yalancının tahmini: <b>' + esc(F.guess) + '</b> (yanlış)')
     : '🤐 ' + esc(liar.name) + ' tahmin yapmadı';
 
@@ -2336,13 +2352,14 @@ function lieFinalMount(s) {
     '<div class="phase-title">' + headline + '</div>' +
     '<div class="card rescard" id="rescard"><div class="meta">Yalancı</div>' +
       '<div class="kyreveal late" style="border-top:0;margin-top:0;padding-top:4px">' + avatarHTML(liar, 'lg') + '<div class="kyname">' + esc(liar.name) + '</div></div>' +
-      '<div class="lieword">Gizli kelime: <b>' + esc(F.word) + '</b> <span class="muted">(' + esc(F.category) + ')</span></div>' +
+      '<div class="lieword">' + (F.knows ? 'Gizli kelime' : 'Herkesin kelimesi') + ': <b>' + esc(F.word) + '</b> <span class="muted">(' + esc(F.category) + ')</span></div>' +
       '<div class="center" style="margin-top:6px">' + guess + '</div>' +
       (bars ? '<div class="bars">' + bars + '</div>' : '<p class="center muted">Kimse oy vermedi.</p>') +
       (points ? '<div class="pts late">' + points + '</div>' : '') +
     '</div>' +
     '<div class="card"><h2>Odanın toplam puanı 🏅</h2><div class="board">' + board + '</div>' +
-      '<p class="muted" style="margin:10px 0 0;font-size:14px">Yalancıyı bulana +' + LIE_CATCH_POINTS + ' · Yalancı kaçarsa +' + LIE_ESCAPE_POINTS + ' · Kelimeyi bilirse +' + LIE_GUESS_POINTS + '</p>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Yalancıyı bulana +' + LIE_CATCH_POINTS + ' · Yalancı kaçarsa +' + LIE_ESCAPE_POINTS +
+        (F.knows ? ' · Kelimeyi bilirse +' + LIE_GUESS_POINTS : '') + '</p>' +
       (isHost() ? '<div class="ctrl" style="margin-top:10px"><button class="btn small ghost" data-act="lieReset">🧹 Toplamı sıfırla</button></div>' : '') + '</div>' +
     '<div class="card"><h2>Verilen ipuçları</h2><div class="clues">' + clues + '</div></div>' +
     finalFooter(),
