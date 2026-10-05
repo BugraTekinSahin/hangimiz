@@ -337,6 +337,10 @@ const KY_STARTERS = [
   'En son ağladığım şey: ',
 ];
 
+const CHAT_MAX = 200;           // characters per message
+const CHAT_KEEP = 40;           // messages the room remembers
+const CHAT_REACTIONS = ['😂', '😮', '👏', '🔥', '😍', '💀', '🤔', '👍'];
+
 // The first 16 are handed out automatically; the rest are extra choices in the picker.
 const AVATARS = ['🦊', '🐸', '🐼', '🐙', '🦄', '🐯', '🐵', '🐧', '🐨', '🦁', '🐷', '🐰', '🐻', '🐶', '🐱', '🦉',
   '🐲', '🦋', '🐝', '🐢', '🦖', '🐳', '🦩', '🦔', '🐺', '🦝', '🐮', '🐔', '👻', '👽', '🤖', '🤡', '🎃', '🌵', '🍕', '😎'];
@@ -747,6 +751,21 @@ const Host = {
         this.changed();
         return;
 
+      case 'chat': {
+        const text = String(msg.text ?? '').replace(/\s+/g, ' ').trim().slice(0, CHAT_MAX);
+        if (!text) return;
+        // Gartic-style: a message that gives the answer away never leaves the host.
+        const why = this.chatLimit(p) || chatBlockReason(S, pid, text);
+        if (why) { this.tell(pid, { t: 'chatBlocked', reason: why, text }); return; }
+        this.pushChat(p, { text });
+        return;
+      }
+
+      case 'react':
+        if (!CHAT_REACTIONS.includes(msg.e) || this.chatLimit(p)) return;
+        this.pushChat(p, { react: msg.e });
+        return;
+
       case 'look':
         if (S.phase !== 'lobby' || !validLook(msg.look)) return;
         p.av = msg.look.av;
@@ -978,6 +997,28 @@ const Host = {
         return;
       }
     }
+  },
+
+  chatLimit(p) {
+    const now = Date.now();
+    p.chatTimes = (p.chatTimes || []).filter((t) => now - t < 5000);
+    if (p.chatTimes.length >= 5) return 'Çok hızlı yazıyorsun, biraz yavaş 🙂';
+    p.chatTimes.push(now);
+    return null;
+  },
+
+  pushChat(p, body) {
+    const S = this.S;
+    S.chatSeq = (S.chatSeq || 0) + 1;
+    S.chat = (S.chat || []).concat({ id: S.chatSeq, from: p.id, name: p.name, av: p.av, col: p.col, ...body }).slice(-CHAT_KEEP);
+    this.changed();
+  },
+
+  // A message for one player only.
+  tell(pid, msg) {
+    if (pid === this.S.hostId) { onPrivate(msg); return; }
+    const c = this.conns.get(pid);
+    if (c && c.open) { try { c.send(msg); } catch { /* gone */ } }
   },
 
   connectedIds() {
@@ -1757,6 +1798,7 @@ const Host = {
       game: r ? r.game : S.game,
       settings: r ? r.cfg : this.cfg(),
       notice: S.notice,
+      chat: S.chat || [],
       players: S.order.map((id) => {
         const p = S.players[id];
         return { id, name: p.name, av: p.av, col: p.col, connected: p.connected, ready: p.ready, inRound: !!(r && r.roster.includes(id)) };
@@ -2000,6 +2042,57 @@ function computeFinal(r) {
 }
 
 /* ---------- Kaç Kaç? ---------- */
+
+/* ---------- chat guard ---------- */
+
+// Why a chat message must not be sent right now, or null if it's fine.
+function chatBlockReason(S, pid, text) {
+  const r = S.round;
+  if (!r || S.phase === 'lobby' || S.phase === 'final') return null;
+  const t = normWord(text);
+  const has = (secret) => {
+    if (secret == null) return false;
+    const k = normWord(secret);
+    return k.length >= 2 && t.includes(k);
+  };
+  const SECRET = '🤫 Bu mesaj cevabı ele veriyor, gönderilmedi!';
+  switch (S.phase) {
+    case 'lie':
+      return has(r.word) || has(r.liarWord) ? '🤫 Gizli kelimeyi sohbete yazamazsın!' : null;
+    case 'tele':
+      return r.step === 'play' && r.pairs[r.ri].includes(pid) ? '🤐 Telepati sırasında sohbet yok, kendi aklınla bul!' : null;
+    case 'ikiz':
+      return r.step === 'answer' && has(r.answers[pid]) ? SECRET : null;
+    case 'ayna':
+      return pid === r.turns[r.ti] && r.step !== 'reveal' && has(r.own) ? '🤫 Ayna cevabını sohbete yazamaz!' : null;
+    case 'kac': {
+      if (pid !== r.turns[r.ti] || !r.ask || r.step === 'reveal') return null;
+      const nums = (String(text).match(/\d+(?:[.,]\d+)*/g) || []).map(parseKacNumber);
+      return nums.includes(r.ask.v) ? '🤫 Doğru sayıyı sohbete yazamazsın!' : null;
+    }
+    case 'writing':
+    case 'answering': {
+      // Kim Yazdı? / Komik Cevap: your own (secret-author) texts can't be quoted.
+      if (r.game !== 'kimyazdi' && r.game !== 'komik') return null;
+      const mine = S.phase === 'writing' ? (r.drafts[pid] || []) : ownTexts(r, pid);
+      const leaks = (x) => {
+        if (!x) return false;
+        if (has(x) || (t.length >= 8 && normWord(x).includes(t))) return true;
+        // Two words in a row from your own text ("denize girmedim") also give it away.
+        const w = String(x).split(/\s+/).map(normWord).filter(Boolean);
+        for (let i = 0; i + 1 < w.length; i++) if ((w[i] + w[i + 1]).length >= 6 && t.includes(w[i] + w[i + 1])) return true;
+        return false;
+      };
+      return mine.some(leaks) ? SECRET : null;
+    }
+  }
+  return null;
+}
+
+function ownTexts(r, pid) {
+  if (r.game === 'komik') return r.questions.flatMap((q) => q.answers.filter((a) => a.author === pid).map((a) => a.text));
+  return r.questions.filter((q) => q.author === pid).map((q) => q.text);
+}
 
 /* ---------- word matching (Ruh İkizi / Telepati / Ayna) ---------- */
 
@@ -2302,6 +2395,9 @@ const Client = {
         this.stop();
         showError('Odadan çıkarıldın 👋', 'Lider seni odadan çıkardı.');
         break;
+      case 'chatBlocked':
+        onPrivate(msg);
+        break;
     }
   },
 
@@ -2362,6 +2458,8 @@ const Client = {
 
   stop() {
     this.stopped = true;
+    App.state = null;
+    closeChat();
     store.del('hz-joined', true);
     clearTimeout(this.retryTimer);
     this.retryTimer = null;
@@ -2382,7 +2480,8 @@ const Client = {
 const appEl = $('#app');
 
 function header(extra = '') {
-  return '<div class="top"><div class="logo">Hangimiz<span>?</span></div><div class="row">' + extra +
+  const chat = App.state ? '<button class="pill" data-act="chat" title="Sohbet">💬<span class="badge" id="chatBadge" hidden></span></button>' : '';
+  return '<div class="top"><div class="logo">Hangimiz<span>?</span></div><div class="row">' + extra + chat +
     '<button class="pill" data-act="mute" title="Ses">' + (Sound.muted ? '🔇' : '🔊') + '</button></div></div>';
 }
 
@@ -2513,6 +2612,7 @@ function onState(s) {
   if (prev && prev.phase === 'lobby' && s.phase === 'lobby' && s.players.length > prev.players.length) Sound.join();
 
   render();
+  updateChat(s);
 }
 
 function me() {
@@ -2551,6 +2651,100 @@ function render() {
   const view = Views[screen];
   if (fresh) view.mount(s);
   if (view.update) view.update(s);
+  updateChatBadge();
+}
+
+/* ---------- chat ---------- */
+
+function chatDom() {
+  if ($('#chatPanel')) return;
+  const box = document.createElement('div');
+  box.innerHTML =
+    '<div id="chatPanel" class="chatpanel" hidden>' +
+      '<div class="chathead"><b>💬 Sohbet</b><button class="pill dark" data-act="chat" aria-label="Kapat">✕</button></div>' +
+      '<div class="chatlist" id="chatList"></div>' +
+      '<div class="reacts">' + CHAT_REACTIONS.map((e) => '<button data-act="react" data-e="' + e + '">' + e + '</button>').join('') + '</div>' +
+      '<div class="row chatrow"><input id="chatInput" class="field grow" maxlength="' + CHAT_MAX + '" placeholder="Mesaj yaz…" autocomplete="off">' +
+      '<button class="btn small" data-act="chatSend">Gönder</button></div>' +
+    '</div>' +
+    '<div id="chatPeek" class="chatpeek" data-act="chat" hidden></div>' +
+    '<div id="reactLayer" class="reactlayer"></div>';
+  document.body.append(...box.children);
+}
+
+function chatMsgHTML(m, you) {
+  const who = { av: m.av, col: m.col };
+  const mine = m.from === you;
+  return '<div class="cmsg ' + (mine ? 'me' : '') + (m.react ? ' react' : '') + '">' + avatarHTML(who, 'sm') +
+    '<div class="bub">' + (mine ? '' : '<b>' + esc(m.name) + '</b>') + esc(m.react || m.text) + '</div></div>';
+}
+
+function renderChatList() {
+  const s = App.state;
+  const el = $('#chatList');
+  if (!s || !el) return;
+  const list = s.chat || [];
+  el.innerHTML = list.length ? list.map((m) => chatMsgHTML(m, s.you)).join('') : '<div class="chatempty">Henüz mesaj yok. İlk sen yaz! 👋</div>';
+  el.scrollTop = el.scrollHeight;
+}
+
+function updateChat(s) {
+  chatDom();
+  const list = s.chat || [];
+  const last = list.length ? list[list.length - 1].id : 0;
+  // On joining, the room's earlier messages are history, not news.
+  if (App.chatShown == null || last < App.chatShown) { App.chatShown = last; App.chatSeen = last; }
+  for (const m of list.filter((x) => x.id > App.chatShown)) {
+    if (m.react) floatReact(m.react);
+    else if (!App.chatOpen && m.from !== s.you) chatPeek(m);
+  }
+  App.chatShown = last;
+  if (App.chatOpen) { App.chatSeen = last; renderChatList(); }
+  updateChatBadge();
+}
+
+function updateChatBadge() {
+  const s = App.state;
+  const b = $('#chatBadge');
+  if (!s || !b) return;
+  const n = (s.chat || []).filter((m) => m.id > (App.chatSeen || 0) && !m.react && m.from !== s.you).length;
+  b.hidden = !n;
+  b.textContent = n > 9 ? '9+' : n;
+}
+
+function chatPeek(m) {
+  const el = $('#chatPeek');
+  el.innerHTML = avatarHTML({ av: m.av, col: m.col }, 'sm') + '<span><b>' + esc(m.name) + ':</b> ' + esc(m.text) + '</span>';
+  el.hidden = false;
+  Sound.beep(740, 0.05, 'sine', 0.05);
+  clearTimeout(App.peekTimer);
+  App.peekTimer = setTimeout(() => { el.hidden = true; }, 3500);
+}
+
+function floatReact(e) {
+  const layer = $('#reactLayer');
+  if (!layer) return;
+  const el = document.createElement('span');
+  el.textContent = e;
+  el.style.left = 8 + Math.random() * 80 + '%';
+  layer.appendChild(el);
+  setTimeout(() => el.remove(), 2700);
+}
+
+function closeChat() {
+  App.chatOpen = false;
+  document.body.classList.remove('chat-open');
+  const p = $('#chatPanel');
+  if (p) p.hidden = true;
+}
+
+// Messages meant only for this player (e.g. "that gives the answer away").
+function onPrivate(msg) {
+  if (msg.t !== 'chatBlocked') return;
+  toast(msg.reason, 3500);
+  Sound.beep(220, 0.15, 'square', 0.04);
+  const el = $('#chatInput');
+  if (el && !el.value) el.value = msg.text || '';
 }
 
 const Views = {};
@@ -4084,6 +4278,28 @@ function readName() {
 }
 
 const actions = {
+  chat() {
+    chatDom();
+    App.chatOpen = !App.chatOpen;
+    $('#chatPanel').hidden = !App.chatOpen;
+    document.body.classList.toggle('chat-open', App.chatOpen);
+    $('#chatPeek').hidden = true;
+    if (App.chatOpen) {
+      const s = App.state;
+      App.chatSeen = s && s.chat && s.chat.length ? s.chat[s.chat.length - 1].id : 0;
+      renderChatList();
+      updateChatBadge();
+      if (window.matchMedia('(pointer:fine)').matches) $('#chatInput').focus();
+    }
+  },
+  chatSend() {
+    const el = $('#chatInput');
+    const text = el.value.trim();
+    if (!text) return;
+    el.value = '';
+    send({ t: 'chat', text });
+  },
+  react(el) { send({ t: 'react', e: el.dataset.e }); },
   toggleLook() {
     App.lookOpen = !App.lookOpen;
     const box = $('#lookBox');
@@ -4275,6 +4491,7 @@ document.addEventListener('input', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.id === 'chatInput') { e.preventDefault(); doAction('chatSend'); return; }
   if (e.key === 'Enter' && e.target.id === 'clueInput') { e.preventDefault(); doAction('clue'); return; }
   if (e.key === 'Enter' && e.target.id === 'kacQ') { e.preventDefault(); const a = $('#kacAns'); if (a) a.focus(); return; }
   if (e.key === 'Enter' && e.target.id === 'kacAns') { e.preventDefault(); doAction('kask'); return; }
