@@ -337,6 +337,30 @@ const KY_STARTERS = [
   'En son ağladığım şey: ',
 ];
 
+// Badges handed out at the end of a round. Each player collects them on their own device.
+const BADGES = {
+  hz_king: { e: '👑', n: 'Hangimiz Kralı', d: "Hangimiz?'de en çok unvanı kaptın" },
+  hz_star: { e: '⭐', n: 'Herkesin Gözdesi', d: "Hangimiz?'de en çok oyu sen aldın" },
+  ky_champ: { e: '🏆', n: 'İtiraf Şampiyonu', d: "Kim Yazdı?'yı kazandın" },
+  ky_detective: { e: '🕵️', n: 'Dedektif', d: "Kim Yazdı?'da en çok doğru tahmini yaptın" },
+  ky_mystery: { e: '😎', n: 'Gizemli', d: "Kim Yazdı?'da en çok kişiyi kandırdın" },
+  as_adventurer: { e: '🤠', n: 'Maceracı', d: "Asla Yapmadım'da en çok şeyi yapmış çıktın" },
+  as_angel: { e: '😇', n: 'Melek', d: "Asla Yapmadım'da en masum sendin" },
+  km_comedian: { e: '😂', n: 'Komedyen', d: "Komik Cevap'ı kazandın" },
+  km_star: { e: '🎤', n: 'Sahnenin Yıldızı', d: 'Turun en komik cevabı seninkiydi' },
+  ly_master: { e: '🤥', n: 'Usta Yalancı', d: 'Yalancıyken yakalanmadın' },
+  ly_fox: { e: '🦊', n: 'Kurnaz Tilki', d: 'Yalancıyken yakalandın ama kelimeyi bildin' },
+  ly_hunter: { e: '🔍', n: 'Yalan Avcısı', d: 'Yalancıyı doğru buldun' },
+  kc_sniper: { e: '🎯', n: 'Keskin Nişancı', d: "Kaç Kaç?'ı kazandın" },
+  kc_bullseye: { e: '💯', n: 'Tam İsabet', d: "Kaç Kaç?'ta bir sayıyı tam bildin" },
+  ik_finder: { e: '💘', n: 'İkiz Bulucu', d: 'Ruh ikizini doğru tahmin ettin' },
+  ik_twins: { e: '👯', n: 'Ruh İkizleri', d: 'Turun en uyumlu ikilisi sizdiniz' },
+  tl_telepath: { e: '🧠', n: 'Telepat', d: "Telepati'yi kazandın" },
+  tl_mindreader: { e: '🔮', n: 'Zihin Okuyucu', d: "Telepati'de eşinle aynı cevabı verdin" },
+  ay_knower: { e: '🪞', n: 'Seni Tanıyorum', d: "Ayna'da en çok doğru tahmini yaptın" },
+  ay_openbook: { e: '📖', n: 'Açık Kitap', d: "Ayna'da seni en çok kişi bildi" },
+};
+
 const CHAT_MAX = 200;           // characters per message
 const CHAT_KEEP = 40;           // messages the room remembers
 const CHAT_REACTIONS = ['😂', '😮', '👏', '🔥', '😍', '💀', '🤔', '👍'];
@@ -563,7 +587,7 @@ const Host = {
       notice: null,
     };
     this.S = S;
-    this.addPlayer(myId, name, App.look);
+    this.addPlayer(myId, name, App.look).badges = sanitizeBadges(store.get('hz-badges'));
     S.players[myId].connected = true;
     this.open(code, false, 0);
   },
@@ -678,9 +702,11 @@ const Host = {
     if (!p) {
       if (S.order.length >= MAX_PLAYERS) { reply({ t: 'error', code: 'full' }); return; }
       p = this.addPlayer(id, name, msg.look);
+      p.badges = sanitizeBadges(msg.badges);
     } else if (S.phase === 'lobby') {
       p.name = name;
       if (validLook(msg.look)) { p.av = msg.look.av; p.col = msg.look.col; }
+      p.badges = sanitizeBadges(msg.badges);
     }
 
     const old = this.conns.get(id);
@@ -770,6 +796,11 @@ const Host = {
         if (S.phase !== 'lobby' || !S.gameVote || !GAMES[msg.id]) return;
         S.gameVote.votes[pid] = msg.id;
         if (this.connectedIds().every((id) => S.gameVote.votes[id])) this.finishGameVote(); else this.changed();
+        return;
+
+      case 'badges':
+        p.badges = sanitizeBadges(msg.badges);
+        this.changed();
         return;
 
       case 'look':
@@ -1813,6 +1844,9 @@ const Host = {
   },
 
   changed() {
+    // First time a round reaches its final screen: decide who earned which badges.
+    const S = this.S;
+    if (S.phase === 'final' && S.round && !S.round.awards) S.round.awards = computeAwards(S.round);
     if (!this.broadcastQueued) {
       this.broadcastQueued = true;
       setTimeout(() => { this.broadcastQueued = false; this.broadcast(); }, 30);
@@ -1854,7 +1888,7 @@ const Host = {
       } : null,
       players: S.order.map((id) => {
         const p = S.players[id];
-        return { id, name: p.name, av: p.av, col: p.col, connected: p.connected, ready: p.ready, inRound: !!(r && r.roster.includes(id)) };
+        return { id, name: p.name, av: p.av, col: p.col, connected: p.connected, ready: p.ready, inRound: !!(r && r.roster.includes(id)), badges: p.badges || null };
       }),
       left: r && r.deadline && !this.untimedNow() ? Math.max(0, r.deadline - now) : null,
       total: r ? r.deadlineTotal : 0,
@@ -1995,6 +2029,7 @@ const Host = {
       };
     } else if (S.phase === 'final') {
       pub.final = r.final;
+      pub.awards = r.awards || {};
     }
     return pub;
   },
@@ -2095,6 +2130,82 @@ function computeFinal(r) {
 }
 
 /* ---------- Kaç Kaç? ---------- */
+
+/* ---------- badges ---------- */
+
+function sanitizeBadges(b) {
+  const out = {};
+  if (b && typeof b === 'object') {
+    for (const [k, v] of Object.entries(b)) if (BADGES[k] && Number.isFinite(+v) && +v > 0) out[k] = Math.min(9999, Math.round(+v));
+  }
+  return out;
+}
+
+// Who earned what in a finished round: { playerId: [badgeId, …] }.
+function computeAwards(r) {
+  const F = r.final || {};
+  const out = {};
+  const give = (ids, b) => {
+    for (const id of ids || []) {
+      if (!r.roster.includes(id)) continue;
+      out[id] = out[id] || [];
+      if (!out[id].includes(b)) out[id].push(b);
+    }
+  };
+  const top = (obj) => {
+    const max = Math.max(0, ...Object.values(obj || {}));
+    return max > 0 ? Object.keys(obj).filter((k) => obj[k] === max) : [];
+  };
+  const positive = (obj) => Object.keys(obj || {}).filter((k) => obj[k] > 0);
+  switch (r.game) {
+    case 'hangimiz': {
+      const titles = {};
+      for (const id of r.roster) titles[id] = ((F.titles || {})[id] || []).length;
+      give(top(titles), 'hz_king');
+      give(top(F.votes), 'hz_star');
+      break;
+    }
+    case 'kimyazdi':
+      give(top(F.scores), 'ky_champ');
+      give(F.detective && F.detective.ids, 'ky_detective');
+      give(F.hider && F.hider.ids, 'ky_mystery');
+      break;
+    case 'asla':
+      if (!F.anon) { give(top(F.done), 'as_adventurer'); give(F.innocent, 'as_angel'); }
+      break;
+    case 'komik':
+      give(top(F.scores), 'km_comedian');
+      if (F.best) give([F.best.author], 'km_star');
+      break;
+    case 'yalanci':
+      if (!F.caught) give([F.liar], 'ly_master');
+      else if (F.guessedRight) give([F.liar], 'ly_fox');
+      give(Object.keys(F.votes || {}).filter((v) => F.votes[v] === F.liar), 'ly_hunter');
+      break;
+    case 'kackac':
+      give(top(F.scores), 'kc_sniper');
+      give(positive(F.exact), 'kc_bullseye');
+      break;
+    case 'ikiz': {
+      give(positive(F.right), 'ik_finder');
+      const together = (g) => (F.history || []).filter((h) => g.some((a) => g.some((b) => a < b && h.answers[a] != null &&
+        h.answers[b] != null && normWord(h.answers[a]) === normWord(h.answers[b])))).length;
+      const scored = (F.groups || []).map((g) => ({ g, n: together(g) }));
+      const best = Math.max(0, ...scored.map((x) => x.n));
+      if (best > 0) for (const x of scored) if (x.n === best) give(x.g, 'ik_twins');
+      break;
+    }
+    case 'tele':
+      give(top(F.scores), 'tl_telepath');
+      give(positive(F.hits), 'tl_mindreader');
+      break;
+    case 'ayna':
+      give(top(F.right), 'ay_knower');
+      give(top(F.known), 'ay_openbook');
+      break;
+  }
+  return out;
+}
 
 /* ---------- chat guard ---------- */
 
@@ -2416,7 +2527,7 @@ const Client = {
       clearTimeout(openTimer);
       if (conn._dead) return;
       this.lastMsg = Date.now();
-      conn.send({ t: 'hello', id: myId, name: myName, look: App.look });
+      conn.send({ t: 'hello', id: myId, name: myName, look: App.look, badges: store.get('hz-badges') || {} });
     });
     conn.on('data', (msg) => {
       if (conn._dead) return;
@@ -2581,6 +2692,9 @@ function showHome(err = '') {
       '<button class="btn" data-act="joinCode">Katıl</button></div>' +
       '<p class="err" id="err">' + esc(err) + '</p>' +
     '</div>' +
+    (Object.keys(store.get('hz-badges') || {}).length
+      ? '<div class="ctrl" style="margin-bottom:16px"><button class="btn ghost" data-act="myBadges">🏷️ Rozet koleksiyonum (' +
+        Object.values(store.get('hz-badges')).reduce((a, b) => a + b, 0) + ')</button></div>' : '') +
     '<div class="card"><h2>Nasıl oynanır?</h2><ol class="steps">' +
       '<li><b class="n">1</b><div><b>Oda kur, linki at.</b> Arkadaşların linke tıklayıp adını yazınca odaya girer.</div></li>' +
       '<li><b class="n">2</b><div><b>Oyunu seç.</b> Lider lobide hangi oyunu oynayacağınızı seçer.</div></li>' +
@@ -2685,10 +2799,42 @@ function onState(s) {
 
   render();
   updateChat(s);
+  collectBadges(s);
   // A new random pick / vote result: play the reveal (but not for history we just joined into).
   const seq = s.spin ? s.spin.seq : 0;
   if (App.spinSeen != null && seq > App.spinSeen) playSpin(s.spin);
   App.spinSeen = seq;
+}
+
+// Add this round's badges to my collection once, and tell the room.
+function collectBadges(s) {
+  if (s.phase !== 'final' || !s.awards || !s.roundId) return;
+  const seen = store.get('hz-badge-rounds') || [];
+  if (seen.includes(s.roundId)) return;
+  store.set('hz-badge-rounds', seen.concat(s.roundId).slice(-60));
+  const mine = s.awards[s.you] || [];
+  if (!mine.length) return;
+  const col = store.get('hz-badges') || {};
+  for (const b of mine) col[b] = (col[b] || 0) + 1;
+  store.set('hz-badges', col);
+  send({ t: 'badges', badges: col });
+  setTimeout(() => toast('🏷️ Yeni rozet: ' + mine.map((b) => BADGES[b].e + ' ' + BADGES[b].n).join(', '), 4000), 1200);
+}
+
+// Top few badge emojis for next to a name.
+function badgeEmojis(b, n = 3) {
+  return Object.entries(b || {}).filter(([k]) => BADGES[k]).sort((x, y) => y[1] - x[1]).slice(0, n).map(([k]) => BADGES[k].e).join('');
+}
+
+function awardsHTML() {
+  const s = App.state;
+  const A = (s && s.awards) || {};
+  const ids = Object.keys(A).filter((id) => A[id].length);
+  if (!ids.length) return '';
+  return '<div class="card"><h2>🏷️ Kazanılan rozetler</h2><div class="awards">' + ids.map((id) => '<div class="award">' + avatarHTML(nameOf(id), 'sm') +
+    '<div class="body"><b>' + esc(nameOf(id).name) + '</b><div class="tchips">' + A[id].map((b) => '<span class="bchip" title="' + esc(BADGES[b].d) + '">' +
+    BADGES[b].e + ' ' + esc(BADGES[b].n) + '</span>').join('') + '</div></div></div>').join('') + '</div>' +
+    '<div class="ctrl" style="margin-top:12px"><button class="btn small ghost" data-act="myBadges">🏷️ Rozet koleksiyonum</button></div></div>';
 }
 
 function playSpin(spin) {
@@ -2906,7 +3052,9 @@ Views.lobby = {
       if (!p.connected) tags.push('<span class="tag">Bağlantı yok</span>');
       const kick = host && p.id !== s.hostId ? '<button class="kick" data-act="kick" data-id="' + esc(p.id) + '" title="Odadan çıkar">✕</button>' : '';
       const edit = p.id === s.you ? '<button class="kick edit" data-act="toggleLook" title="Karakterini değiştir">🎨</button>' : '';
-      return '<div class="player ' + (p.connected ? '' : 'off') + '">' + avatarHTML(p) + '<span class="nm">' + esc(p.name) + '</span>' + tags.join('') + edit + kick + '</div>';
+      const be = badgeEmojis(p.badges);
+      const badges = be ? '<span class="pbadges' + (p.id === s.you ? ' mine" data-act="myBadges' : '') + '" title="Rozetler">' + be + '</span>' : '';
+      return '<div class="player ' + (p.connected ? '' : 'off') + '">' + avatarHTML(p) + '<span class="nm">' + esc(p.name) + '</span>' + badges + tags.join('') + edit + kick + '</div>';
     }).join('') + (App.lookOpen ? '<div class="card-in">' + lookPickerHTML() +
       '<button class="btn small block" data-act="toggleLook" style="margin-top:10px">Tamam ✓</button></div>' : '');
 
@@ -4159,7 +4307,7 @@ function podiumHTML(ranking, subFn) {
 }
 
 function finalFooter() {
-  const share = '<div class="ctrl" style="margin-bottom:12px"><button class="btn ghost" data-act="shareCard">📸 Sonucu paylaş</button></div>';
+  const share = awardsHTML() + '<div class="ctrl" style="margin-bottom:12px"><button class="btn ghost" data-act="shareCard">📸 Sonucu paylaş</button></div>';
   return share + (isHost()
     ? '<div class="startbar"><button class="btn yellow big block" data-act="lobby">🔁 Yeni tur (lobiye dön)</button></div>'
     : '<div class="waiting-pill">Lider yeni tur başlatabilir 🔁</div>');
@@ -4639,6 +4787,20 @@ const actions = {
     store.set('hz-theme', t);
     $$('[data-act=theme]').forEach((b) => { b.textContent = isDark() ? '☀️' : '🌙'; });
   },
+  myBadges() {
+    const col = store.get('hz-badges') || {};
+    const got = Object.keys(BADGES).filter((k) => col[k]).length;
+    const m = document.createElement('div');
+    m.id = 'badgeModal';
+    m.className = 'modal';
+    m.innerHTML = '<div class="modalbox"><div class="chathead"><b>🏷️ Rozet koleksiyonum</b><button class="pill dark" data-act="closeBadges">✕</button></div>' +
+      '<p class="muted" style="margin:0 0 10px">' + got + ' / ' + Object.keys(BADGES).length + ' rozet açıldı. Oyunların sonunda kazanılır.</p><div class="bgrid">' +
+      Object.entries(BADGES).map(([k, b]) => '<div class="bcell ' + (col[k] ? '' : 'locked') + '"><div class="be">' + b.e + '</div><b>' + esc(b.n) + '</b>' +
+        '<small>' + esc(b.d) + '</small>' + (col[k] ? '<span class="bcount">×' + col[k] + '</span>' : '') + '</div>').join('') + '</div></div>';
+    m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
+    document.body.appendChild(m);
+  },
+  closeBadges() { const m = $('#badgeModal'); if (m) m.remove(); },
   chat() {
     chatDom();
     App.chatOpen = !App.chatOpen;
