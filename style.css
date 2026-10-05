@@ -662,7 +662,9 @@ button.ansb:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(30,10,
 }
 .badge[hidden] { display: none; }
 .chatpanel {
-  position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); width: min(560px, 100%); max-height: 72vh; z-index: 30;
+  position: fixed; left: 50%; bottom: 0; transform: translateX(-50%); width: min(560px, 100%); z-index: 30;
+  /* Fixed size: messages scroll inside instead of the panel growing. */
+  height: min(62vh, 560px);
   background: var(--card); border-radius: 22px 22px 0 0; box-shadow: 0 -8px 30px rgba(30,10,80,.35);
   display: flex; flex-direction: column; padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
   animation: sheet .2s ease-out;
@@ -671,7 +673,11 @@ button.ansb:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(30,10,
 .chatpanel[hidden] { display: none; }
 .chathead { display: flex; justify-content: space-between; align-items: center; padding: 0 4px 8px; font-size: 18px; }
 .pill.dark { background: var(--soft); color: var(--ink); }
-.chatlist { flex: 1; overflow-y: auto; display: grid; gap: 6px; align-content: start; min-height: 140px; padding: 4px; }
+.chatlist {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; gap: 6px; padding: 4px;
+}
+.chatlist > * { flex: none; }
 .chatempty { text-align: center; color: var(--muted); padding: 24px 0; font-weight: 600; }
 .cmsg { display: flex; gap: 8px; align-items: flex-start; }
 .cmsg .bub { background: var(--soft); border-radius: 4px 14px 14px 14px; padding: 6px 10px; max-width: 78%; word-break: break-word; font-weight: 600; }

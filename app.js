@@ -2798,13 +2798,15 @@ function chatMsgHTML(m, you) {
     '<div class="bub">' + (mine ? '' : '<b>' + esc(m.name) + '</b>') + esc(m.react || m.text) + '</div></div>';
 }
 
-function renderChatList() {
+function renderChatList(forceBottom = false) {
   const s = App.state;
   const el = $('#chatList');
   if (!s || !el) return;
   const list = s.chat || [];
+  // Stay where the reader is if they scrolled up; otherwise follow the newest message.
+  const atBottom = forceBottom || el.scrollHeight - el.scrollTop - el.clientHeight < 60;
   el.innerHTML = list.length ? list.map((m) => chatMsgHTML(m, s.you)).join('') : '<div class="chatempty">Henüz mesaj yok. İlk sen yaz! 👋</div>';
-  el.scrollTop = el.scrollHeight;
+  if (atBottom) el.scrollTop = el.scrollHeight;
 }
 
 function updateChat(s) {
@@ -4646,7 +4648,7 @@ const actions = {
     if (App.chatOpen) {
       const s = App.state;
       App.chatSeen = s && s.chat && s.chat.length ? s.chat[s.chat.length - 1].id : 0;
-      renderChatList();
+      renderChatList(true);
       updateChatBadge();
       if (window.matchMedia('(pointer:fine)').matches) $('#chatInput').focus();
     }
@@ -4657,6 +4659,9 @@ const actions = {
     if (!text) return;
     el.value = '';
     send({ t: 'chat', text });
+    // Your own message should always bring you back to the bottom.
+    const list = $('#chatList');
+    if (list) list.scrollTop = list.scrollHeight;
   },
   react(el) { send({ t: 'react', e: el.dataset.e }); },
   toggleLook() {
