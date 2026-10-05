@@ -2479,10 +2479,27 @@ const Client = {
 
 const appEl = $('#app');
 
+/* ---------- theme ---------- */
+
+function isDark() {
+  const t = document.documentElement.dataset.theme;
+  return t ? t === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function themePill() {
+  return '<button class="pill" data-act="theme" title="Tema">' + (isDark() ? '☀️' : '🌙') + '</button>';
+}
+
+function applyTheme(t) {
+  if (t) document.documentElement.dataset.theme = t;
+  const meta = document.querySelector('meta[name=theme-color]');
+  if (meta) meta.content = isDark() ? '#1c1145' : '#5b2be0';
+}
+
 function header(extra = '') {
   const chat = App.state ? '<button class="pill" data-act="chat" title="Sohbet">💬<span class="badge" id="chatBadge" hidden></span></button>' : '';
   return '<div class="top"><div class="logo">Hangimiz<span>?</span></div><div class="row">' + extra + chat +
-    '<button class="pill" data-act="mute" title="Ses">' + (Sound.muted ? '🔇' : '🔊') + '</button></div></div>';
+    themePill() + '<button class="pill" data-act="mute" title="Ses">' + (Sound.muted ? '🔇' : '🔊') + '</button></div></div>';
 }
 
 function mount(html, wide = false) {
@@ -2496,6 +2513,7 @@ function mount(html, wide = false) {
 function showHome(err = '') {
   App.screenKey = 'home';
   mount(
+    '<div class="toprow">' + themePill() + '</div>' +
     '<div class="hero"><div class="big">Hangimiz<span>?</span></div>' +
     '<p>Arkadaşlarınla telefondan oynanan parti oyunları.<br>Oda kur, linki at, gerisi kendiliğinden!</p>' +
     '<div class="bubbles"><span>En zekimiz kim? 🧠</span><span>En yakışıklımız? 😎</span><span>İlk kim evlenir? 💍</span></div></div>' +
@@ -2555,6 +2573,7 @@ function showJoin(code, canRestore, err = '') {
   App.screenKey = 'join';
   App.code = code;
   mount(
+    '<div class="toprow">' + themePill() + '</div>' +
     '<div class="hero"><div class="big">Hangimiz<span>?</span></div><p>Seni bir odaya çağırdılar! 🎈</p></div>' +
     '<div class="card">' +
       '<div class="center muted" style="font-weight:700">Oda kodu</div>' +
@@ -4278,6 +4297,12 @@ function readName() {
 }
 
 const actions = {
+  theme() {
+    const t = isDark() ? 'light' : 'dark';
+    applyTheme(t);
+    store.set('hz-theme', t);
+    $$('[data-act=theme]').forEach((b) => { b.textContent = isDark() ? '☀️' : '🌙'; });
+  },
   chat() {
     chatDom();
     App.chatOpen = !App.chatOpen;
@@ -4524,6 +4549,8 @@ window.addEventListener('beforeunload', (e) => {
 /* =====================================================================
    BOOT
    ===================================================================== */
+
+applyTheme(store.get('hz-theme'));
 
 (function boot() {
   if (typeof Peer === 'undefined') {
