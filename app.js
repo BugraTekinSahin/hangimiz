@@ -766,6 +766,12 @@ const Host = {
         this.pushChat(p, { react: msg.e });
         return;
 
+      case 'gvote':
+        if (S.phase !== 'lobby' || !S.gameVote || !GAMES[msg.id]) return;
+        S.gameVote.votes[pid] = msg.id;
+        if (this.connectedIds().every((id) => S.gameVote.votes[id])) this.finishGameVote(); else this.changed();
+        return;
+
       case 'look':
         if (S.phase !== 'lobby' || !validLook(msg.look)) return;
         p.av = msg.look.av;
@@ -954,6 +960,26 @@ const Host = {
         store.set('hz-game', S.game);
         this.changed();
         return;
+      case 'spinGame': {
+        if (S.phase !== 'lobby') return;
+        const online = this.connectedIds().length;
+        let pool = GAME_ORDER.filter((g) => GAMES[g].minPlayers <= online);
+        if (!pool.length) pool = GAME_ORDER.slice();
+        this.pickGame(pool[Math.floor(Math.random() * pool.length)], 'spin', pool);
+        return;
+      }
+      case 'voteGame':
+        if (S.phase !== 'lobby') return;
+        S.gameVote = { votes: {} };
+        this.changed();
+        return;
+      case 'voteEnd':
+        if (S.gameVote) this.finishGameVote();
+        return;
+      case 'voteCancel':
+        S.gameVote = null;
+        this.changed();
+        return;
       case 'start':
         if (S.phase === 'lobby') this.startRound();
         return;
@@ -997,6 +1023,27 @@ const Host = {
         return;
       }
     }
+  },
+
+  // Choose the next game and let every screen play the reveal animation.
+  pickGame(id, kind, pool, counts) {
+    const S = this.S;
+    S.game = id;
+    S.notice = null;
+    S.gameVote = null;
+    store.set('hz-game', id);
+    S.spin = { seq: ((S.spin && S.spin.seq) || 0) + 1, kind, result: id, pool, counts: counts || null };
+    this.changed();
+  },
+
+  finishGameVote() {
+    const S = this.S;
+    const counts = {};
+    for (const g of Object.values(S.gameVote.votes)) counts[g] = (counts[g] || 0) + 1;
+    const max = Math.max(0, ...Object.values(counts));
+    if (!max) { S.gameVote = null; this.changed(); return; }
+    const tied = Object.keys(counts).filter((g) => counts[g] === max);
+    this.pickGame(tied[Math.floor(Math.random() * tied.length)], 'vote', tied, counts);
   },
 
   chatLimit(p) {
@@ -1799,6 +1846,12 @@ const Host = {
       settings: r ? r.cfg : this.cfg(),
       notice: S.notice,
       chat: S.chat || [],
+      spin: S.spin || null,
+      gameVote: S.gameVote ? {
+        counts: Object.values(S.gameVote.votes).reduce((c, g) => { c[g] = (c[g] || 0) + 1; return c; }, {}),
+        mine: S.gameVote.votes[pid] || null,
+        voted: Object.keys(S.gameVote.votes).length,
+      } : null,
       players: S.order.map((id) => {
         const p = S.players[id];
         return { id, name: p.name, av: p.av, col: p.col, connected: p.connected, ready: p.ready, inRound: !!(r && r.roster.includes(id)) };
@@ -2632,6 +2685,53 @@ function onState(s) {
 
   render();
   updateChat(s);
+  // A new random pick / vote result: play the reveal (but not for history we just joined into).
+  const seq = s.spin ? s.spin.seq : 0;
+  if (App.spinSeen != null && seq > App.spinSeen) playSpin(s.spin);
+  App.spinSeen = seq;
+}
+
+function playSpin(spin) {
+  let box = $('#spinBox');
+  if (!box) {
+    box = document.createElement('div');
+    box.id = 'spinBox';
+    box.className = 'spinwrap';
+    document.body.appendChild(box);
+  }
+  const target = GAMES[spin.result];
+  const title = spin.kind === 'vote'
+    ? (spin.pool.length > 1 ? '🗳️ Berabere! Kura çekiliyor…' : '🗳️ Oylama sonucu')
+    : '🎰 Sıradaki oyun…';
+  box.innerHTML = '<div class="spincard"><div class="spinlbl">' + esc(title) + '</div><div class="spinemoji"></div><div class="spinname"></div><div class="spinsub"></div></div>';
+  box.hidden = false;
+  const emojiEl = box.querySelector('.spinemoji');
+  const nameEl = box.querySelector('.spinname');
+  const show = (id) => { emojiEl.textContent = GAMES[id].emoji; nameEl.textContent = GAMES[id].name; };
+  const pool = spin.pool.length ? spin.pool : [spin.result];
+  // Slow down step by step and stop on the result.
+  const steps = pool.length > 1 ? 16 + Math.floor(Math.random() * 4) : 0;
+  let k = Math.floor(Math.random() * pool.length);
+  let i = 0;
+  const tick = () => {
+    if (i >= steps) {
+      show(spin.result);
+      box.querySelector('.spincard').classList.add('done');
+      const votes = spin.counts && spin.counts[spin.result];
+      box.querySelector('.spinsub').textContent = votes ? votes + ' oy ile seçildi!' : 'Hadi başlayalım!';
+      Sound.fanfare();
+      clearTimeout(App.spinHide);
+      App.spinHide = setTimeout(() => { box.hidden = true; }, 2200);
+      return;
+    }
+    k = (k + 1) % pool.length;
+    if (pool[k] === spin.result && i === steps - 1) k = (k + 1) % pool.length;
+    show(pool[k]);
+    Sound.tick();
+    i++;
+    setTimeout(tick, 60 + i * i * 1.1);
+  };
+  if (target) tick();
 }
 
 function me() {
@@ -2818,7 +2918,8 @@ Views.lobby = {
             (navigator.share ? '<button class="btn small yellow" data-act="share">📤 Paylaş</button>' : '') +
             '<a class="btn small wa" target="_blank" rel="noopener" href="https://wa.me/?text=' + encodeURIComponent('Oyun odama gel! 🎉 ' + link) + '">WhatsApp</a>' +
           '</div></div>' +
-        '<div class="card span2"><h2>Oyun ' + (host ? '<small>(seçmek için dokun)</small>' : '<small>(lider seçer)</small>') + '</h2>' + gamePickerHTML(s.game, host) + '</div>' +
+        '<div class="card span2"><h2>Oyun ' + (s.gameVote ? '<small>(oylama açık)</small>' : host ? '<small>(seçmek için dokun)</small>' : '<small>(lider seçer)</small>') + '</h2>' +
+          gameToolsHTML(s, host, online) + gamePickerHTML(s.game, host, s.gameVote) + '</div>' +
         '<div class="card"><h2>Oyuncular <small>(' + online + ' kişi)</small></h2><div class="players">' + players + '</div></div>' +
         '<div class="card"><h2>' + esc(game.emoji + ' ' + game.name) + ' ayarları ' + (host ? '' : '<small>(lider ayarlar)</small>') + '</h2>' + settingsHTML(s.settings, host, s.game) + '</div>' +
         '<div class="startbar span2">' + startArea + '</div>' +
@@ -2826,13 +2927,29 @@ Views.lobby = {
   },
 };
 
-function gamePickerHTML(current, editable) {
+// Random pick / vote controls above the game list.
+function gameToolsHTML(s, host, online) {
+  const V = s.gameVote;
+  if (V) {
+    return '<div class="votebar">🗳️ <b>Sıradaki oyunu oylayın!</b> Bir karta dokun. <span class="muted">(' + V.voted + '/' + online + ' oy)</span>' +
+      (host ? '<div class="gtools"><button class="btn small green" data-act="voteEnd">✅ Oylamayı bitir</button>' +
+        '<button class="btn small ghost" data-act="voteCancel">İptal</button></div>' : '') + '</div>';
+  }
+  if (!host) return '';
+  return '<div class="gtools"><button class="btn small yellow" data-act="spinGame">🎲 Rastgele seç</button>' +
+    '<button class="btn small" data-act="voteGame">🗳️ Oylayalım</button></div>';
+}
+
+function gamePickerHTML(current, editable, vote) {
   const cards = GAME_ORDER.map((id) => {
     const g = GAMES[id];
-    const on = id === current;
-    const attrs = editable ? ' data-act="game" data-id="' + id + '"' : ' disabled';
-    return '<button class="gcard ' + (on ? 'on' : '') + '"' + attrs + '><span class="ge">' + g.emoji + '</span><span class="gb"><b>' + esc(g.name) + '</b>' +
-      '<small>' + esc(g.desc) + '</small><small class="gmin">En az ' + g.minPlayers + ' kişi</small></span>' + (on ? '<span class="gcheck">✓</span>' : '') + '</button>';
+    const on = id === current && !vote;
+    const attrs = vote ? ' data-act="gvote" data-id="' + id + '"' : editable ? ' data-act="game" data-id="' + id + '"' : ' disabled';
+    const n = vote ? vote.counts[id] || 0 : 0;
+    const mine = vote && vote.mine === id;
+    return '<button class="gcard ' + (on ? 'on' : '') + (mine ? ' myvote' : '') + '"' + attrs + '><span class="ge">' + g.emoji + '</span><span class="gb"><b>' + esc(g.name) + '</b>' +
+      '<small>' + esc(g.desc) + '</small><small class="gmin">En az ' + g.minPlayers + ' kişi</small></span>' +
+      (on ? '<span class="gcheck">✓</span>' : '') + (n ? '<span class="gvotes">🗳️ ' + n + '</span>' : '') + '</button>';
   });
   const soon = COMING_SOON.map((x) => '<div class="gcard soon"><span class="ge">' + x[0] + '</span><span class="gb"><b>' + esc(x[1]) + '</b><small>Yakında…</small></span></div>');
   // In the lobby (a game is selected) phones get a compact two-column list.
@@ -4040,9 +4157,199 @@ function podiumHTML(ranking, subFn) {
 }
 
 function finalFooter() {
-  return isHost()
+  const share = '<div class="ctrl" style="margin-bottom:12px"><button class="btn ghost" data-act="shareCard">📸 Sonucu paylaş</button></div>';
+  return share + (isHost()
     ? '<div class="startbar"><button class="btn yellow big block" data-act="lobby">🔁 Yeni tur (lobiye dön)</button></div>'
-    : '<div class="waiting-pill">Lider yeni tur başlatabilir 🔁</div>';
+    : '<div class="waiting-pill">Lider yeni tur başlatabilir 🔁</div>');
+}
+
+/* ---------- shareable result card ---------- */
+
+// A few lines that sum up the round, per game.
+function shareLines(s) {
+  const F = s.final;
+  const n = (id) => (nameOf(id) || { name: '?' }).name;
+  const names = (ids) => ids.map(n).join(' & ');
+  const L = [];
+  switch (s.game) {
+    case 'hangimiz':
+      for (const r of F.recap) if (r.winners.length) L.push(r.text + ' → ' + names(r.winners));
+      break;
+    case 'kimyazdi':
+      if (F.detective.ids.length) L.push('🕵️ En iyi dedektif: ' + names(F.detective.ids));
+      if (F.hider.ids.length) L.push('😎 En iyi saklanan: ' + names(F.hider.ids));
+      for (const r of F.recap) L.push('“' + r.text + '” → ' + n(r.author));
+      break;
+    case 'asla':
+      if (!F.anon) {
+        L.push('✋ En maceracı: ' + n(F.ranking[0]));
+        if (F.innocent.length) L.push('😇 En masum: ' + names(F.innocent));
+      }
+      for (const r of F.recap) L.push('“' + r.text + '” → ' + r.yes + '/' + r.total + ' yaptı');
+      break;
+    case 'komik':
+      if (F.best) L.push('🏆 “' + F.best.text + '” — ' + n(F.best.author));
+      for (const r of F.recap) if (r.answers.length) L.push(r.prompt.replace('___', '…') + ' → “' + r.answers[0].text + '”');
+      break;
+    case 'yalanci':
+      L.push('🤥 Yalancı: ' + n(F.liar) + (F.caught ? ' — yakalandı!' : ' — kaçtı!'));
+      L.push('🔑 Kelime: ' + F.word + (F.liarWord ? ' · yalancınınki: ' + F.liarWord : ''));
+      break;
+    case 'kackac':
+      for (const r of F.recap) L.push(n(r.asker) + ': ' + r.q + ' → ' + fmtNum(r.v));
+      break;
+    case 'ikiz':
+      for (const g of F.groups) L.push('💞 ' + names(g));
+      break;
+    case 'tele':
+      for (const h of F.history) L.push((h.match ? '🧠 ' : '💥 ') + names(h.pair) + ': ' + h.pair.map((id) => h.words[id] ?? '—').join(' / '));
+      break;
+    case 'ayna':
+      for (const h of F.history) L.push('🪞 ' + n(h.mirror) + ': ' + h.q + ' → ' + (h.own ?? '—'));
+      break;
+  }
+  return L.slice(0, 4);
+}
+
+function wrapText(g, text, x, y, maxW, lineH, maxLines) {
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let line = '';
+  for (const w of words) {
+    const t = line ? line + ' ' + w : w;
+    if (g.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t;
+  }
+  if (line) lines.push(line);
+  const shown = lines.slice(0, maxLines);
+  if (lines.length > maxLines) shown[maxLines - 1] = shown[maxLines - 1].replace(/\s*\S*$/, '') + '…';
+  shown.forEach((l, i) => g.fillText(l, x, y + i * lineH));
+  return y + shown.length * lineH;
+}
+
+function roundRect(g, x, y, w, h, r) {
+  g.beginPath();
+  g.moveTo(x + r, y);
+  g.arcTo(x + w, y, x + w, y + h, r);
+  g.arcTo(x + w, y + h, x, y + h, r);
+  g.arcTo(x, y + h, x, y, r);
+  g.arcTo(x, y, x + w, y, r);
+  g.closePath();
+}
+
+// Draws the final screen as a 1080×1350 picture (Instagram portrait size).
+async function makeShareCard(s) {
+  if (document.fonts && document.fonts.ready) await document.fonts.ready;
+  const W = 1080;
+  const H = 1350;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const g = c.getContext('2d');
+  const font = (weight, size) => weight + ' ' + size + 'px "Baloo 2", system-ui, sans-serif';
+
+  const grad = g.createLinearGradient(0, 0, W * 0.6, H);
+  grad.addColorStop(0, '#5b2be0');
+  grad.addColorStop(0.55, '#8a3ae8');
+  grad.addColorStop(1, '#ff4f9a');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, W, H);
+  g.fillStyle = 'rgba(255,255,255,.08)';
+  for (let y = 23; y < H; y += 46) for (let x = 23; x < W; x += 46) { g.beginPath(); g.arc(x, y, 3, 0, Math.PI * 2); g.fill(); }
+
+  // Logo + game name
+  g.font = font(800, 96);
+  const logoW = g.measureText('Hangimiz?').width;
+  g.textAlign = 'left';
+  g.fillStyle = '#fff';
+  g.fillText('Hangimiz', W / 2 - logoW / 2, 140);
+  g.fillStyle = '#ffcc2e';
+  g.fillText('?', W / 2 - logoW / 2 + g.measureText('Hangimiz').width, 140);
+  g.textAlign = 'center';
+  const game = GAMES[s.game];
+  g.font = font(700, 44);
+  g.fillStyle = 'rgba(255,255,255,.92)';
+  g.fillText(game.emoji + ' ' + game.name, W / 2, 205);
+
+  // Headline from the final screen
+  const h1 = ($('.phase-title h1') || {}).textContent || '';
+  const sub = ($('.phase-title p') || {}).textContent || '';
+  g.fillStyle = '#fff';
+  g.font = font(800, 68);
+  let y = wrapText(g, h1, W / 2, 310, W - 120, 76, 2);
+  g.font = font(600, 38);
+  g.fillStyle = 'rgba(255,255,255,.9)';
+  y = wrapText(g, sub, W / 2, y + 4, W - 160, 46, 2);
+
+  // Podium (read from the screen so every game's own wording is kept)
+  const pods = $$('.podium .pod').map((el) => ({
+    place: el.classList.contains('p1') ? 1 : el.classList.contains('p2') ? 2 : el.classList.contains('p3') ? 3 : 0,
+    av: (el.querySelector('.av') || {}).textContent || '',
+    col: el.querySelector('.av') ? el.querySelector('.av').style.getPropertyValue('--c') : '#ddd',
+    name: (el.querySelector('.name') || {}).textContent || '',
+    sub: (el.querySelector('.sub') || {}).textContent || '',
+  })).filter((p) => p.place && p.name);
+  if (pods.length) {
+    const base = y + 470;
+    const heights = { 1: 170, 2: 120, 3: 85 };
+    const xs = { 2: W / 2 - 310, 1: W / 2, 3: W / 2 + 310 };
+    for (const p of pods) {
+      const x = xs[p.place];
+      const top = base - heights[p.place];
+      g.fillStyle = p.place === 1 ? '#ffcc2e' : 'rgba(255,255,255,.25)';
+      roundRect(g, x - 135, top, 270, heights[p.place] + 30, 26);
+      g.fill();
+      g.fillStyle = p.place === 1 ? '#4a3500' : '#fff';
+      g.font = font(800, 64);
+      g.fillText(String(p.place), x, top + 78);
+      const cy = top - 200;
+      g.fillStyle = p.col || '#ddd';
+      g.beginPath();
+      g.arc(x, cy, 72, 0, Math.PI * 2);
+      g.fill();
+      g.font = '84px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+      g.fillText(p.av, x, cy + 30);
+      g.fillStyle = '#fff';
+      g.font = font(800, 44);
+      wrapText(g, p.name, x, cy + 125, 280, 46, 1);
+      g.font = font(600, 30);
+      g.fillStyle = 'rgba(255,255,255,.9)';
+      wrapText(g, p.sub, x, cy + 165, 280, 34, 1);
+    }
+    y = base + 60;
+  } else {
+    y += 40;
+  }
+
+  // Highlights card
+  const lines = shareLines(s);
+  if (lines.length) {
+    g.font = font(700, 36);
+    const top = y + 10;
+    const bottom = Math.min(H - 100, top + 50 + lines.length * 70);
+    g.fillStyle = '#fff';
+    roundRect(g, 60, top, W - 120, bottom - top, 34);
+    g.fill();
+    g.textAlign = 'left';
+    g.fillStyle = '#23164a';
+    let ly = top + 66;
+    for (const line of lines) {
+      if (ly > bottom - 20) break;
+      ly = wrapText(g, line, 100, ly, W - 200, 44, 2) + 24;
+    }
+    g.textAlign = 'center';
+  }
+
+  g.font = font(700, 30);
+  g.fillStyle = 'rgba(255,255,255,.85)';
+  g.fillText('bugratekinsahin.github.io/hangimiz', W / 2, H - 50);
+
+  return new Promise((resolve) => c.toBlob(resolve, 'image/png'));
+}
+
+function closeShare() {
+  const m = $('#shareModal');
+  if (m) m.remove();
+  if (App.shareUrl) { URL.revokeObjectURL(App.shareUrl); App.shareUrl = null; }
 }
 
 function statsHTML(stats) {
@@ -4297,6 +4604,33 @@ function readName() {
 }
 
 const actions = {
+  async shareCard() {
+    toast('Kart hazırlanıyor… 🎨', 1500);
+    const blob = await makeShareCard(App.state);
+    if (!blob) { toast('Kart oluşturulamadı 😕'); return; }
+    closeShare();
+    App.shareFile = new File([blob], 'hangimiz-sonuc.png', { type: 'image/png' });
+    App.shareUrl = URL.createObjectURL(blob);
+    const canShare = !!(navigator.canShare && navigator.canShare({ files: [App.shareFile] }));
+    const m = document.createElement('div');
+    m.id = 'shareModal';
+    m.className = 'modal';
+    m.innerHTML = '<div class="modalbox"><img src="' + App.shareUrl + '" alt="Sonuç kartı">' +
+      '<div class="ctrl">' + (canShare ? '<button class="btn yellow" data-act="doShare">📤 Paylaş</button>' : '') +
+      '<a class="btn" href="' + App.shareUrl + '" download="hangimiz-sonuc.png">⬇️ İndir</a>' +
+      '<button class="btn ghost" data-act="closeShare">Kapat</button></div>' +
+      '<p class="muted center" style="margin:8px 0 0;font-size:14px">Telefonda resme basılı tutarak da kaydedebilirsin.</p></div>';
+    document.body.appendChild(m);
+  },
+  doShare() {
+    navigator.share({ files: [App.shareFile], title: 'Hangimiz?', text: 'Hangimiz? sonuçlarımız 😂' }).catch(() => {});
+  },
+  closeShare() { closeShare(); },
+  spinGame() { send({ t: 'spinGame' }); },
+  voteGame() { send({ t: 'voteGame' }); },
+  voteEnd() { send({ t: 'voteEnd' }); },
+  voteCancel() { send({ t: 'voteCancel' }); },
+  gvote(el) { Sound.click(); send({ t: 'gvote', id: el.dataset.id }); },
   theme() {
     const t = isDark() ? 'light' : 'dark';
     applyTheme(t);
