@@ -239,15 +239,26 @@ GAMES.patates = {
     { key: 'fuse', label: 'Bomba süresi', type: 'choice', def: 'normal', options: [['short', 'Kısa (10-25 sn)'], ['normal', 'Normal (20-45 sn)'], ['long', 'Uzun (35-70 sn)']] },
   ],
 };
-const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir', 'zar', 'patates'];
+GAMES.taklit = {
+  name: 'Taklitçi',
+  emoji: '🥸',
+  desc: 'Herkes gizlice bir arkadaşını oynuyor! Her soruya hem kendin hem de onun ağzından cevap yaz. Hangisi gerçek, hangisi taklit? Sonda maskeler düşer.',
+  minPlayers: 4,
+  defs: [
+    { key: 'rounds', label: 'Soru sayısı', type: 'num', def: 3, min: 2, max: 6, step: 1, unit: 'soru' },
+    { key: 'writeTime', label: 'Yazma süresi', type: 'num', def: 120, min: 45, max: 300, step: 15, unit: 'sn' },
+    { key: 'voteTime', label: 'Oylama süresi', type: 'num', def: 60, min: 20, max: 180, step: 10, unit: 'sn' },
+  ],
+};
+const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir', 'zar', 'patates', 'taklit'];
 // Each game's theme colour (cards in the game picker).
 const GAME_COLORS = {
   hangimiz: '#8b5cf6', kimyazdi: '#6366f1', asla: '#f59e0b', komik: '#eab308', yalanci: '#ef4444', kackac: '#06b6d4',
   ikiz: '#ec4899', tele: '#d946ef', ayna: '#60a5fa', emoji: '#fb923c', cogunluk: '#22c55e', ikidogru: '#f43f5e',
-  sirala: '#84cc16', adam: '#b45309', vampir: '#b91c1c', zar: '#0f9488', patates: '#ea580c',
+  sirala: '#84cc16', adam: '#b45309', vampir: '#b91c1c', zar: '#0f9488', patates: '#ea580c', taklit: '#2dd4bf',
 };
 // Games with their own flow instead of write → answer → results.
-const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp', zar: 'zar', patates: 'pat' };
+const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp', zar: 'zar', patates: 'pat', taklit: 'tak' };
 
 const EMO_POINTS = [300, 200];      // 1st and 2nd correct guess; everyone after gets EMO_POINTS_REST
 const EMO_POINTS_REST = 100;
@@ -266,6 +277,31 @@ const SIR_PERFECT_BONUS = 100;
 
 // t = answer shown, a = other accepted spellings.
 // EMO_ITEMS (Emojiyle Anlat titles) lives in emo-items.js, loaded before this file.
+
+/* ---------- Taklitçi data ---------- */
+
+const TAK_MAX = 120;              // characters per answer
+const TAK_REAL_POINTS = 100;      // you picked the real answer
+const TAK_FOOL_POINTS = 100;      // per person who took your imitation for the real thing
+const TAK_GUESS_POINTS = 200;     // you found who was playing you
+const TAK_HIDDEN_POINTS = 100;    // the person you played never found you
+const TAK_GUESS_SECONDS = 60;
+
+const TAK_QUESTIONS = [
+  'Alarm çalınca ilk ne yaparsın?', 'Bir milyon lira kazansan ilk ne alırsın?', 'En sevdiğin yemek ne?', 'Cuma akşamı ideal planın ne?',
+  'Seni en çok ne sinirlendirir?', 'Çocukken ne olmak istiyordun?', 'Telefonunda en çok hangi uygulamada vakit geçirirsin?',
+  'Bir süper gücün olsa ne olurdu?', 'Issız adaya yanına alacağın tek şey?', 'En büyük korkun ne?', 'Kahvaltıda ne yersin?',
+  'Bir günlüğüne kim olmak isterdin?', 'Tatilde dağ mı deniz mi, neden?', 'Bu grubu bir kelimeyle anlat', 'Kendini bir hayvana benzetsen hangisi?',
+  'En sevdiğin dizi ya da film?', 'Bir şarkıyı sonsuza dek dinlemek zorunda kalsan hangisi?', 'Paranı en çok neye harcarsın?',
+  'Sınav ya da önemli bir gün öncesi gece ne yaparsın?', 'Mesaja geç dönünce bahanen ne olur?', 'Yalnız kalınca ne yaparsın?',
+  'En sevdiğin mevsim ve nedeni?', 'En kötü huyun ne?', 'Bir gün görünmez olsan ne yaparsın?', 'Kızınca ne yaparsın?',
+  'En son aldığın gereksiz şey ne?', 'Doğum gününde ne hediye istersin?', 'Pazar günü saat kaçta kalkarsın?', 'Zombi kıyametinde ilk ne yaparsın?',
+  'Restoranda hep ne sipariş edersin?', 'Kendini 3 emojiyle anlat', 'Asla yemem dediğin yemek ne?', 'En çok kullandığın laf ya da kelime ne?',
+  'Telefonun düşüp kırılsa ilk tepkin ne olur?', 'Hayalindeki ev nasıl?', 'Bir saat boş vaktin olsa ne yaparsın?', 'Grup sohbetine en çok ne atarsın?',
+  'Seni en çok ne güldürür?', 'Bir yeteneğin olsun isterdin, ne?', 'En iyi yaptığın yemek ne?', 'Bir günlük kral olsan ilk kanunun ne olurdu?',
+  'Uyumadan önce son yaptığın şey ne?', 'Ünlü olsan neyle ünlü olurdun?', 'En sevdiğin atıştırmalık ne?', 'Tanımadığın biriyle asansörde kalsan ne yaparsın?',
+  'Hayatının filmi çekilse adı ne olurdu?', 'Hangi devirde yaşamak isterdin?', 'Bir arkadaşın sana sır verse ne yaparsın?', 'Sabahları nasıl bir insansın?',
+];
 
 /* ---------- Yalan Zar / Sıcak Patates data ---------- */
 
@@ -691,6 +727,8 @@ const BADGES = {
   ad_hangman: { e: '🪢', n: 'Cellat', d: "Adam Asmaca'da kelimenle en çok adam astın" },
   zr_king: { e: '🎲', n: 'Zar Kralı', d: "Yalan Zar'da son kalan sen oldun" },
   zr_hunter: { e: '🔍', n: 'Yalan Avcısı', d: "Yalan Zar'da en çok yalanı sen yakaladın" },
+  tk_master: { e: '🥸', n: 'Usta Taklitçi', d: "Taklitçi'de taklidinle en çok kişiyi kandırdın" },
+  tk_knower: { e: '🔍', n: 'Herkesi Tanıyan', d: "Taklitçi'de en çok gerçeği sen buldun" },
   pt_cool: { e: '🧊', n: 'Soğukkanlı', d: "Sıcak Patates'te son kalan sen oldun" },
   vm_night: { e: '🧛', n: 'Gecenin Efendisi', d: "Vampir Köyü'nü vampirlerle kazandın" },
   vm_hero: { e: '🏡', n: 'Köyün Kahramanı', d: "Vampir Köyü'nde köyü kurtardın" },
@@ -1324,6 +1362,40 @@ const Host = {
         return;
       }
 
+      case 'tans': {
+        if (S.phase !== 'tak' || r.step !== 'write' || !r.roster.includes(pid)) return;
+        const clean = (t) => String(t ?? '').replace(/\s+/g, ' ').trim().slice(0, TAK_MAX);
+        const real = clean(msg.real);
+        const fake = clean(msg.fake);
+        if (!real || !fake) return;
+        r.answers[pid] = { real, fake };
+        this.changed();
+        this.takCheck();
+        return;
+      }
+
+      case 'tvote': {
+        if (S.phase !== 'tak' || r.step !== 'vote' || !r.roster.includes(pid)) return;
+        const subject = String(msg.subject || '');
+        const idx = Number(msg.idx);
+        if (subject === pid || ![0, 1].includes(idx) || !r.cards.some((c) => c.subject === subject)) return;
+        r.votes[pid] = r.votes[pid] || {};
+        r.votes[pid][subject] = idx;
+        this.changed();
+        this.takCheck();
+        return;
+      }
+
+      case 'tguess': {
+        if (S.phase !== 'tak' || r.step !== 'guess' || !r.roster.includes(pid)) return;
+        const target = String(msg.target || '');
+        if (target === pid || !r.roster.includes(target)) return;
+        r.guesses[pid] = target;
+        this.changed();
+        this.takCheck();
+        return;
+      }
+
       case 'zbid': {
         if (S.phase !== 'zar' || r.step !== 'bid' || pid !== this.zarTurn()) return;
         const q = Math.round(Number(msg.q));
@@ -1580,6 +1652,7 @@ const Host = {
         else if (S.phase === 'vamp') this.vampSkip();
         else if (S.phase === 'zar') this.zarSkip();
         else if (S.phase === 'pat') this.patSkip();
+        else if (S.phase === 'tak') this.takSkip();
         return;
       case 'lieReset':
         S.lieTotals = {};
@@ -1600,6 +1673,8 @@ const Host = {
         else if (S.phase === 'vamp' && r.step === 'reveal') this.vampNext();
         else if (S.phase === 'zar' && r.step === 'reveal') this.zarNext();
         else if (S.phase === 'pat' && r.step === 'reveal') this.patNext();
+        else if (S.phase === 'tak' && r.step === 'reveal') this.takNext();
+        else if (S.phase === 'tak' && r.step === 'unmask') this.takFinish();
         return;
       case 'prev':
         if (S.phase === 'results' && r.revealIndex > 0) {
@@ -1733,6 +1808,7 @@ const Host = {
     if (S.game === 'vampir') this.setupVamp(S.round);
     if (S.game === 'zar') this.setupZar(S.round);
     if (S.game === 'patates') this.setupPat(S.round);
+    if (S.game === 'taklit') this.setupTak(S.round);
     S.phase = GAME_PHASE[S.game] || 'writing';
     this.changed();
   },
@@ -2305,6 +2381,143 @@ const Host = {
     const r = this.S.round;
     const live = this.liveIds();
     if (r.step === 'rank' && live.length && live.every((id) => r.ranks[id])) this.sirReveal();
+  },
+
+  /* ---------- Taklitçi ---------- */
+
+  // Everyone secretly plays someone else (nobody plays themselves).
+  setupTak(r) {
+    const ids = r.roster.slice();
+    let perm;
+    do { perm = shuffle(ids); } while (perm.some((id, i) => id === ids[i]));
+    const target = {};
+    const imp = {};
+    ids.forEach((id, i) => { target[id] = perm[i]; imp[perm[i]] = id; });
+    Object.assign(r, { target, imp, qs: shuffle(TAK_QUESTIONS).slice(0, r.cfg.rounds), ri: 0, history: [], scores: this.zeroScores(r), guesses: {}, unmask: null });
+    this.takBegin(true);
+  },
+
+  takBegin(silent) {
+    const r = this.S.round;
+    if (r.ri >= r.qs.length) { this.takStartGuess(); return; }
+    Object.assign(r, { step: 'write', answers: {}, cards: [], votes: {} });
+    this.setStepDeadline(r.cfg.writeTime);
+    if (!silent) this.changed();
+  },
+
+  // One card per person: their real answer next to the imitation of them, in random order.
+  takStartVote() {
+    const r = this.S.round;
+    r.cards = shuffle(r.roster.filter((sub) => r.answers[sub] && r.answers[r.imp[sub]]).map((sub) => {
+      const real = r.answers[sub].real;
+      const fake = r.answers[r.imp[sub]].fake;
+      const realIdx = Math.random() < 0.5 ? 0 : 1;
+      return { subject: sub, opts: realIdx ? [fake, real] : [real, fake], realIdx };
+    }));
+    r.votes = {};
+    if (!r.cards.length) { this.takReveal(); return; }
+    r.step = 'vote';
+    this.setStepDeadline(r.cfg.voteTime);
+    this.changed();
+  },
+
+  takVotedAll(id) {
+    const r = this.S.round;
+    const v = r.votes[id] || {};
+    return r.cards.every((c) => c.subject === id || v[c.subject] != null);
+  },
+
+  takCheck() {
+    const r = this.S.round;
+    const live = this.liveIds();
+    if (!live.length) return;
+    if (r.step === 'write' && live.every((id) => r.answers[id])) this.takStartVote();
+    else if (r.step === 'vote' && live.every((id) => this.takVotedAll(id))) this.takReveal();
+    else if (r.step === 'guess' && live.every((id) => r.guesses[id])) this.takUnmask();
+  },
+
+  // Everyone except the person themselves votes on a card, the hidden imitator too (so nobody stands out).
+  takReveal() {
+    const r = this.S.round;
+    const delta = {};
+    const add = (id, n) => { delta[id] = (delta[id] || 0) + n; };
+    const cards = r.cards.map((c) => {
+      const picks = {};
+      for (const [voter, v] of Object.entries(r.votes)) if (voter !== c.subject && v[c.subject] != null) picks[voter] = v[c.subject];
+      let fooled = 0;
+      for (const [voter, idx] of Object.entries(picks)) {
+        if (idx === c.realIdx) add(voter, TAK_REAL_POINTS);
+        else { fooled++; add(r.imp[c.subject], TAK_FOOL_POINTS); }
+      }
+      return { ...c, picks, fooled };
+    });
+    this.addPoints(r, delta);
+    r.history.push({ q: r.qs[r.ri], cards, delta, scores: { ...r.scores } });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  takNext() {
+    this.S.round.ri++;
+    this.takBegin();
+  },
+
+  takStartGuess() {
+    const r = this.S.round;
+    r.step = 'guess';
+    r.guesses = {};
+    this.setStepDeadline(TAK_GUESS_SECONDS);
+    this.changed();
+  },
+
+  takUnmask() {
+    const r = this.S.round;
+    const delta = {};
+    const rows = shuffle(r.roster).map((sub) => {
+      const imp = r.imp[sub];
+      const guess = r.guesses[sub] || null;
+      const right = guess === imp;
+      if (right) delta[sub] = (delta[sub] || 0) + TAK_GUESS_POINTS;
+      else delta[imp] = (delta[imp] || 0) + TAK_HIDDEN_POINTS;
+      return { subject: sub, imp, guess, right };
+    });
+    this.addPoints(r, delta);
+    r.unmask = { rows, delta, scores: { ...r.scores } };
+    r.step = 'unmask';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  takFinish() {
+    const r = this.S.round;
+    const found = {};
+    const fooled = {};
+    for (const id of r.roster) { found[id] = 0; fooled[id] = 0; }
+    let best = null;
+    for (const h of r.history) {
+      for (const c of h.cards) {
+        const imp = r.imp[c.subject];
+        fooled[imp] += c.fooled;
+        for (const [v, idx] of Object.entries(c.picks)) if (idx === c.realIdx) found[v]++;
+        if (c.fooled && (!best || c.fooled > best.fooled)) best = { imp, subject: c.subject, text: c.opts[1 - c.realIdx], q: h.q, fooled: c.fooled };
+      }
+    }
+    const caught = {};
+    for (const row of (r.unmask ? r.unmask.rows : [])) caught[row.imp] = row.right;
+    this.finishCustom({
+      scores: { ...r.scores }, found, fooled, caught, best, target: { ...r.target },
+      ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a]),
+    });
+  },
+
+  takSkip() {
+    const r = this.S.round;
+    if (r.step === 'write') this.takStartVote();
+    else if (r.step === 'vote') this.takReveal();
+    else if (r.step === 'reveal') this.takNext();
+    else if (r.step === 'guess') this.takUnmask();
+    else this.takFinish();
   },
 
   /* ---------- Yalan Zar ---------- */
@@ -3333,6 +3546,7 @@ const Host = {
       else if (S.phase === 'vamp' && now >= r.deadline) this.vampSkip();
       else if (S.phase === 'zar' && now >= r.deadline) this.zarSkip();
       else if (S.phase === 'pat' && now >= r.deadline) this.patSkip();
+      else if (S.phase === 'tak' && now >= r.deadline) this.takSkip();
     }
     if (S.phase === 'ikiz' && r) this.ikizCheck();
     if (S.phase === 'tele' && r) this.teleCheck();
@@ -3342,6 +3556,7 @@ const Host = {
     if (S.phase === 'iky' && r) this.ikyCheck();
     if (S.phase === 'sir' && r) this.sirCheck();
     if (S.phase === 'vamp' && r) this.vampCheck();
+    if (S.phase === 'tak' && r) this.takCheck();
     // The bomb ignores "Süresiz": it is the whole game.
     if (S.phase === 'pat' && r && r.step === 'play' && now >= r.boomAt) this.patBoom();
     if (S.phase === 'kac' && r) {
@@ -3548,6 +3763,29 @@ const Host = {
         step: r.step, ti: r.ti, tn: r.turns.length, asker, amAsker: pid === asker, q: r.q, done,
         rankIds: r.step === 'rank' ? r.rankIds : null, myRank: (r.ranks && r.ranks[pid]) || null,
         result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
+      };
+    } else if (S.phase === 'tak') {
+      // Scores stay hidden until the masks come off: other people's points would give the imitators away.
+      const mine = r.roster.includes(pid);
+      const last = r.history[r.history.length - 1];
+      const done = {};
+      for (const id of r.roster) done[id] = r.step === 'write' ? !!r.answers[id] : r.step === 'vote' ? this.takVotedAll(id) : r.step === 'guess' ? !!r.guesses[id] : true;
+      pub.stepKey = r.step + r.ri;
+      pub.tak = {
+        step: r.step, ri: r.ri, rn: r.qs.length, q: r.qs[Math.min(r.ri, r.qs.length - 1)], done,
+        myTarget: mine ? r.target[pid] : null, myScore: mine ? r.scores[pid] : 0,
+        mine: r.step === 'write' ? r.answers[pid] || null : null,
+        cards: r.step === 'vote' ? r.cards.map((c) => ({ subject: c.subject, opts: c.opts })) : null,
+        myVotes: r.step === 'vote' ? r.votes[pid] || {} : null,
+        result: r.step === 'reveal' && last ? { q: last.q, cards: last.cards } : null,
+        myDelta: r.step === 'reveal' && last ? last.delta[pid] || 0 : 0,
+        // Clues for the final guess: everything that was written pretending to be me.
+        aboutMe: r.step === 'guess' && mine ? r.history.map((h) => {
+          const c = h.cards.find((x) => x.subject === pid);
+          return c ? { q: h.q, text: c.opts[1 - c.realIdx], fooled: c.fooled } : null;
+        }).filter(Boolean) : null,
+        myGuess: r.step === 'guess' ? r.guesses[pid] || null : null,
+        unmask: r.step === 'unmask' ? r.unmask : null,
       };
     } else if (S.phase === 'zar') {
       const reveal = r.step === 'reveal';
@@ -3831,6 +4069,10 @@ function computeAwards(r) {
     case 'adam':
       give(top(F.solved), 'ad_hunter');
       give(top(F.hanged), 'ad_hangman');
+      break;
+    case 'taklit':
+      give(top(F.fooled), 'tk_master');
+      give(top(F.found), 'tk_knower');
       break;
     case 'zar':
       give(F.ranking.slice(0, 1), 'zr_king');
@@ -4636,15 +4878,15 @@ function render() {
   if (!s) return;
   const inRound = !!(s.roster && s.roster.includes(s.you));
   let screen = s.phase;
-  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat'].includes(s.phase) && !inRound) screen = 'spectate';
+  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak'].includes(s.phase) && !inRound) screen = 'spectate';
   if (screen === 'lie') screen = 'lie:' + s.lie.step;
   if (screen === 'kac') screen = 'kac:' + s.kac.step;
-  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat'].includes(screen)) screen += ':' + s[screen].step;
+  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak'].includes(screen)) screen += ':' + s[screen].step;
   let key = screen + ':' + (s.roundId || '');
   if (screen === 'results') key += ':' + s.reveal.index;
   if (screen === 'lie:clues') key += ':' + s.lie.turn;
   if (screen.startsWith('kac:')) key += ':' + s.kac.ti;
-  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp|zar|pat):/.test(screen)) key += ':' + s.stepKey;
+  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp|zar|pat|tak):/.test(screen)) key += ':' + s.stepKey;
   if (screen === 'writing' && s.writing.stage) key += ':' + s.writing.stage;
 
   const fresh = key !== App.screenKey;
@@ -5936,6 +6178,155 @@ function sirFinalMount(s) {
   );
 }
 
+/* ---------- Taklitçi ---------- */
+
+function takRoleCard(T) {
+  if (!T.myTarget) return '';
+  const t = nameOf(T.myTarget);
+  return '<div class="card takrole"><div class="takmask">🥸</div><div><div class="muted" style="font-weight:700;font-size:14px">Gizli rolün</div>' +
+    '<div class="takwho">' + avatarHTML(t) + '<b>' + esc(t.name) + '</b> rolündesin</div>' +
+    '<small class="muted">Kimse bilmiyor 🤫 Seni kimin oynadığını da sen bilmiyorsun!</small></div></div>';
+}
+
+function takQuestion(T) {
+  return '<div class="card qcard"><div class="meta">Soru ' + (Math.min(T.ri, T.rn - 1) + 1) + ' / ' + T.rn + '</div><div class="qtext">' + esc(T.q) + '</div></div>';
+}
+
+Views['tak:write'] = {
+  mount(s) {
+    const T = s.tak;
+    if (!T.myTarget) { mount(header() + takQuestion(T) + '<div class="waiting-pill">Oyuncular yazıyor…</div>'); return; }
+    const t = nameOf(T.myTarget);
+    mount(header() + timerHTML('Yazma süresi') + stepDots(T.ri, T.rn) + takRoleCard(T) + takQuestion(T) +
+      '<div class="card"><label class="lbl" for="takReal">1) Senin gerçek cevabın</label>' +
+        '<textarea id="takReal" class="field tarea" maxlength="' + TAK_MAX + '" rows="2" placeholder="Sen ne dersin?"></textarea>' +
+        '<label class="lbl" for="takFake" style="margin-top:14px">2) 🥸 Taklit: ' + esc(t.name) + ' olsa ne derdi?</label>' +
+        '<textarea id="takFake" class="field tarea fake" maxlength="' + TAK_MAX + '" rows="2" placeholder="Onun ağzından, onun gibi yaz…"></textarea>' +
+        '<p class="muted" style="margin:8px 0 0;font-size:13px">💡 Kendi yazı tarzını belli etme! Taklit cevap, gerçek cevabın yanında gösterilecek.</p>' +
+        '<button class="btn green big block" data-act="takSend" style="margin-top:12px">✅ Gönder</button>' +
+        '<p class="muted center" id="takMine" style="margin:8px 0 0"></p></div>' +
+      '<div class="card"><h2>Kim bitirdi?</h2><div class="chips" id="takChips"></div></div>' + hostSkip('Oylamaya geç'));
+    if (T.mine) { $('#takReal').value = T.mine.real; $('#takFake').value = T.mine.fake; } else focusFine('#takReal');
+    if (T.ri === 0) Sound.join();
+  },
+  update(s) {
+    if (!$('#takChips')) return;
+    $('#takChips').innerHTML = doneChips(s, s.tak.done);
+    $('#takMine').textContent = s.tak.mine ? '✅ Gönderildi (istersen değiştirip tekrar gönderebilirsin)' : '';
+  },
+};
+
+Views['tak:vote'] = {
+  mount(s) {
+    const T = s.tak;
+    const cards = T.cards.map((c) => {
+      const p = nameOf(c.subject);
+      const own = c.subject === s.you;
+      return '<div class="card takcard"><div class="takwho">' + avatarHTML(p) + (own ? '<b>Senin kartın</b>' : '<span>Hangisi gerçek <b>' + esc(p.name) + '</b>?</span>') + '</div>' +
+        '<div class="takopts">' + c.opts.map((o, i) => (own ? '<div class="ansb mine">' + esc(o) + '</div>'
+          : '<button class="ansb" data-act="takVote" data-s="' + esc(c.subject) + '" data-i="' + i + '">' + esc(o) + '</button>')).join('') + '</div>' +
+        (own ? '<p class="muted center" style="margin:8px 0 0;font-size:14px">👀 Biri senin taklidin! Bakalım seni tanıyorlar mı?</p>' : '') + '</div>';
+    }).join('');
+    mount(header() + timerHTML('Oylama süresi') + stepDots(T.ri, T.rn) + takQuestion(T) +
+      '<p class="muted center" style="margin:0 0 12px">Her kartta biri gerçek cevap, biri taklit. Gerçeği bul! 🔍</p>' + cards +
+      '<div class="card"><h2>Kim oyladı?</h2><div class="chips" id="takChips"></div></div>' + hostSkip('Sonuçları aç'));
+    Sound.beep(660, 0.12, 'triangle', 0.06);
+  },
+  update(s) {
+    const T = s.tak;
+    $$('[data-act=takVote]').forEach((b) => b.classList.toggle('picked', T.myVotes[b.dataset.s] === Number(b.dataset.i)));
+    $('#takChips').innerHTML = doneChips(s, T.done);
+  },
+};
+
+Views['tak:reveal'] = {
+  mount(s) {
+    const T = s.tak;
+    const R = T.result;
+    const last = T.ri >= T.rn - 1;
+    const cards = R.cards.map((c, k) => {
+      const p = nameOf(c.subject);
+      const opt = (i) => {
+        const real = i === c.realIdx;
+        const vs = Object.keys(c.picks).filter((v) => c.picks[v] === i);
+        return '<div class="takres ' + (real ? 'real' : 'fake') + '"><div class="tag">' + (real ? '✅ Gerçek' : '🥸 Taklit') + '</div><div class="t">' + esc(c.opts[i]) + '</div>' +
+          '<div class="voters">' + (vs.length ? vs.map((v) => '<span class="chip">' + avatarHTML(nameOf(v), 'sm') + esc(nameOf(v).name) + '</span>').join('') : '<span class="muted">kimse seçmedi</span>') + '</div></div>';
+      };
+      const total = Object.keys(c.picks).length;
+      const line = !total ? 'Kimse oy vermedi' : c.fooled ? '🥸 Taklitçi ' + c.fooled + ' kişiyi kandırdı!' : '🔍 Herkes gerçeği buldu';
+      return '<div class="card takcard takpop" style="--d:' + (0.2 + k * 0.45).toFixed(2) + 's"><div class="takwho">' + avatarHTML(p) + '<b>' + esc(p.name) + '</b></div>' +
+        opt(0) + opt(1) + '<div class="takline">' + line + '</div></div>';
+    }).join('');
+    mount(header() + revealTimer(s) + stepDots(T.ri, T.rn) +
+      '<div class="card qcard"><div class="meta">Soru ' + (T.ri + 1) + ' / ' + T.rn + '</div><div class="qtext">' + esc(R.q) + '</div></div>' + cards +
+      (T.myTarget ? '<div class="card center takme"><b>Bu tur: +' + T.myDelta + '</b> · Toplam puanın: <b>' + T.myScore + '</b>' +
+        '<p class="muted" style="margin:6px 0 0;font-size:14px">🤫 Herkesin puanı maskeler düşünce açıklanacak (yoksa taklitçiler belli olurdu!)</p></div>' : '') +
+      hostNext(s, last ? '🥸 Son tahmine geç' : 'Sonraki soru ▶'));
+    Sound.beep(880, 0.15, 'triangle', 0.07);
+  },
+};
+
+Views['tak:guess'] = {
+  mount(s) {
+    const T = s.tak;
+    const clues = (T.aboutMe || []).map((c) => '<div class="takclue"><div class="muted" style="font-size:14px">' + esc(c.q) + '</div><div><b>🥸 "' + esc(c.text) + '"</b></div>' +
+      (c.fooled ? '<small>' + c.fooled + ' kişi bunu senin cevabın sandı</small>' : '') + '</div>').join('');
+    const others = s.roster.filter((id) => id !== s.you);
+    mount(header() + timerHTML('Tahmin süresi') +
+      '<div class="phase-title"><h1>Seni kim oynadı? 🥸</h1><p>Bütün oyun boyunca biri senin kılığındaydı. Bulursan +' + TAK_GUESS_POINTS + '!</p></div>' +
+      (clues ? '<div class="card"><h2>Senin ağzından yazılanlar</h2>' + clues + '</div>' : '') +
+      (T.myTarget ? '<div class="card"><h2>Tahminin</h2><div class="vtargets">' + others.map((id) => '<button class="vt" data-act="takGuess" data-id="' + esc(id) + '">' +
+        avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) + '</button>').join('') + '</div></div>' : '') +
+      '<div class="card"><h2>Kim tahmin etti?</h2><div class="chips" id="takChips"></div></div>' + hostSkip('Maskeleri düşür'));
+    Sound.join();
+  },
+  update(s) {
+    $$('[data-act=takGuess]').forEach((b) => b.classList.toggle('on', s.tak.myGuess === b.dataset.id));
+    $('#takChips').innerHTML = doneChips(s, s.tak.done);
+  },
+};
+
+Views['tak:unmask'] = {
+  mount(s) {
+    const U = s.tak.unmask;
+    const STEP = 1.1;
+    const rows = U.rows.map((u, k) => '<div class="takun" style="--d:' + (0.6 + k * STEP).toFixed(2) + 's">' +
+      '<div class="who">' + avatarHTML(nameOf(u.subject), 'sm') + '<span><b>' + esc(nameOf(u.subject).name) + '</b> rolünde…</span></div>' +
+      '<div class="imp">🥸 ' + avatarHTML(nameOf(u.imp), 'sm') + '<b>' + esc(nameOf(u.imp).name) + '</b></div>' +
+      '<div class="res">' + (u.right ? '✅ ' + esc(nameOf(u.subject).name) + ' buldu! +' + TAK_GUESS_POINTS
+        : (u.guess ? '❌ Tahmin: ' + esc(nameOf(u.guess).name) : '❌ Tahmin yok') + ' · ' + esc(nameOf(u.imp).name) + ' gizli kaldı +' + TAK_HIDDEN_POINTS) + '</div></div>').join('');
+    const after = 0.6 + U.rows.length * STEP;
+    mount(header() + revealTimer(s) +
+      '<div class="phase-title"><h1>Maskeler düşüyor! 🥸</h1><p>Kim kimin kılığındaydı?</p></div><div class="card">' + rows + '</div>' +
+      '<div class="card kafter" style="--d:' + after.toFixed(2) + 's"><h2>Puanlar açıklandı!</h2>' + scoreBoard(s, U.scores, U.delta) + '</div>' +
+      hostNext(s, '🏆 Sonuçlar'));
+    U.rows.forEach((u, k) => setTimeout(() => Sound.beep(u.right ? 988 : 330, 0.15, 'triangle', 0.07), (0.6 + k * STEP) * 1000 + 300));
+  },
+};
+
+function takFinalMount(s) {
+  const F = s.final;
+  const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.found[id] + ' kez gerçeği buldu · taklidiyle ' + F.fooled[id] + ' kişiyi kandırdı' +
+    (F.caught[id] ? ' · maskesi düştü' : ' · hiç yakalanmadı 🥸') + '</small></span><b>' + F.scores[id] + '</b></div>').join('');
+  const pairs = s.roster.filter((id) => F.target[id]).map((id) => '<div><span class="q"><b>' + esc(nameOf(id).name) + '</b></span><span class="w">🥸 ' +
+    esc(nameOf(F.target[id]).name) + ' rolündeydi</span></div>').join('');
+  const best = F.best ? '<div class="card center takbest"><h2>🏆 En inandırıcı taklit</h2><div class="muted">' + esc(F.best.q) + '</div>' +
+    '<div class="qtext" style="margin:8px 0">"' + esc(F.best.text) + '"</div><div>' + esc(nameOf(F.best.imp).name) + ', ' + esc(nameOf(F.best.subject).name) +
+    ' rolünde · ' + F.best.fooled + ' kişi gerçek sandı</div></div>' : '';
+  mount(
+    header() +
+    '<div class="phase-title">' + finalHeadline(F, F.scores, 'usta taklitçi 🥸') + '</div>' +
+    podiumHTML(F.ranking, (id) => F.scores[id] + ' puan') +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Gerçeği bulmak +' + TAK_REAL_POINTS + ' · Taklidinle kandırdığın her kişi +' + TAK_FOOL_POINTS +
+      ' · Seni oynayanı bulmak +' + TAK_GUESS_POINTS + ' · Hiç yakalanmamak +' + TAK_HIDDEN_POINTS + '</p></div>' +
+    best + '<div class="card"><h2>Kim kimi oynadı?</h2><div class="recap">' + pairs + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
 /* ---------- Yalan Zar ---------- */
 
 const DIE_PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
@@ -7139,6 +7530,7 @@ Views.final = {
     else if (s.game === 'vampir') vampFinalMount(s);
     else if (s.game === 'zar') zarFinalMount(s);
     else if (s.game === 'patates') patFinalMount(s);
+    else if (s.game === 'taklit') takFinalMount(s);
     else hangimizFinalMount(s);
     confetti();
     Sound.fanfare();
@@ -7216,6 +7608,10 @@ function shareLines(s) {
       break;
     case 'sirala':
       for (const r of F.recap) if (r.top) L.push(n(r.asker) + ': ' + r.q + ' → 👑 ' + n(r.top));
+      break;
+    case 'taklit':
+      if (F.best) L.push('🏆 En inandırıcı taklit: "' + F.best.text + '" (' + n(F.best.imp) + ', ' + n(F.best.subject) + ' rolünde)');
+      for (const id of Object.keys(F.target)) L.push('🥸 ' + n(id) + ' → ' + n(F.target[id]) + ' rolündeydi');
       break;
     case 'zar':
       F.ranking.slice(0, 3).forEach((id, i) => L.push(['🥇', '🥈', '🥉'][i] + ' ' + n(id)));
@@ -7951,6 +8347,15 @@ const actions = {
   },
   sreset() { App.sirOrder = []; sirPaint(); },
   srank() { Sound.click(); send({ t: 'srank', order: App.sirOrder }); },
+  takSend() {
+    const real = $('#takReal').value.trim();
+    const fake = $('#takFake').value.trim();
+    if (!real || !fake) { toast('İki cevabı da yaz 🙂'); (real ? $('#takFake') : $('#takReal')).focus(); return; }
+    Sound.click();
+    send({ t: 'tans', real, fake });
+  },
+  takVote(el) { Sound.click(); send({ t: 'tvote', subject: el.dataset.s, idx: Number(el.dataset.i) }); },
+  takGuess(el) { Sound.click(); send({ t: 'tguess', target: el.dataset.id }); },
   zQ(el) {
     const Z = App.state.zar;
     App.zarQ = Math.max(1, Math.min(Z.total, App.zarQ + Number(el.dataset.d)));
@@ -8093,6 +8498,8 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'emoClue') { e.preventDefault(); doAction('eclue'); return; }
   if (e.key === 'Enter' && e.target.id === 'emoGuess') { e.preventDefault(); doAction('eguess'); return; }
   if (e.key === 'Enter' && (e.target.id === 'adamWord' || e.target.id === 'adamHint')) { e.preventDefault(); doAction('hmWord'); return; }
+  if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'takReal') { e.preventDefault(); $('#takFake').focus(); return; }
+  if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'takFake') { e.preventDefault(); doAction('takSend'); return; }
   if (e.key === 'Enter' && e.target.id === 'patIn') { e.preventDefault(); doAction('pSend'); return; }
   if (e.key === 'Enter' && e.target.id === 'vchatIn') { e.preventDefault(); doAction('vChat'); return; }
   if (e.key === 'Enter' && e.target.id === 'adamSolve') { e.preventDefault(); doAction('hmSolve'); return; }

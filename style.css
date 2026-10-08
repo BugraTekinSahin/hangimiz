@@ -986,3 +986,31 @@ button.gcard[style*="--gc"]:not(:disabled):hover { border-color: var(--gc); }
 .prefseg { display: flex; gap: 6px; flex-wrap: wrap; }
 /* Phones: theme and sound live in ⚙️ Ayarlar, so the header keeps room for the rest. */
 @media (max-width: 480px) { .top [data-act=theme], .top [data-act=mute] { display: none; } }
+
+/* ---------- Taklitçi ---------- */
+.tarea { resize: vertical; min-height: 64px; font: inherit; line-height: 1.35; }
+.tarea.fake { border-style: dashed; border-color: var(--purple); }
+.takrole { display: flex; align-items: center; gap: 14px; border: 3px dashed var(--purple); }
+.takmask { font-size: 46px; line-height: 1; flex: none; }
+.takwho { display: flex; align-items: center; gap: 8px; font-size: 17px; flex-wrap: wrap; }
+.takopts { display: grid; gap: 10px; margin-top: 10px; }
+.takcard .ansb { font-size: 17px; }
+.takres { border-radius: 16px; padding: 10px 12px; background: var(--soft); margin-top: 10px; }
+.takres.real { background: var(--hl-green); }
+.takres.fake { background: var(--hl-pink); }
+.takres .tag { font-size: 13px; font-weight: 800; }
+.takres .t { font-weight: 700; font-size: 17px; word-break: break-word; margin-top: 2px; }
+.takres .voters { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 6px; }
+.takline { margin-top: 10px; font-weight: 800; text-align: center; }
+.takpop { animation: takin .5s ease-out both; animation-delay: var(--d, 0s); }
+@keyframes takin { from { opacity: 0; transform: translateY(12px); } }
+.takme { border: 3px solid var(--accent); }
+.takclue { background: var(--soft); border-radius: 12px; padding: 8px 12px; margin-bottom: 8px; word-break: break-word; }
+.takclue small { color: var(--muted); font-weight: 600; }
+.takun { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; padding: 12px 0; border-bottom: 1px dashed var(--line); align-items: center; }
+.takun:last-child { border-bottom: 0; }
+.takun .who, .takun .imp { display: inline-flex; align-items: center; gap: 6px; }
+.takun .imp { font-size: 18px; animation: takin .5s ease-out both; animation-delay: var(--d); }
+.takun .res { grid-column: 1 / -1; font-size: 14px; font-weight: 700; animation: takin .5s ease-out both; animation-delay: calc(var(--d) + .35s); }
+.takbest { border: 3px solid var(--accent); }
+@media (prefers-reduced-motion: reduce) { .takpop, .takun .imp, .takun .res { animation: none; } }
