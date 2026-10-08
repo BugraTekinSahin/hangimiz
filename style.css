@@ -903,3 +903,14 @@ body.chat-open #toast { top: calc(16px + env(safe-area-inset-top)); bottom: auto
 .vvoters .av { width: 24px; height: 24px; font-size: 13px; }
 .vendline { font-size: 22px; font-weight: 800; color: var(--red); margin: 10px 0 0; }
 .vfinal .srow { flex-wrap: wrap; }
+
+/* ---------- emoji picker ---------- */
+.emopick { margin-top: 10px; background: var(--soft); border-radius: 16px; overflow: hidden; }
+.emotabs { display: flex; gap: 2px; padding: 6px; overflow-x: auto; border-bottom: 2px solid var(--line); }
+.emotab { flex: 1 0 auto; border: 0; background: transparent; font-size: 22px; padding: 4px 6px; border-radius: 10px; opacity: .55; }
+.emotab.on { background: var(--card); opacity: 1; }
+.emogrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(42px, 1fr)); max-height: 230px; overflow-y: auto; padding: 6px; }
+.emob { border: 0; background: transparent; font-size: 28px; line-height: 1; padding: 6px 0; border-radius: 10px; }
+.emob:hover { background: var(--card); }
+.emob:active { transform: scale(.85); }
+.linkbtn { border: 0; background: none; color: var(--purple); font: inherit; font-weight: 700; text-decoration: underline; padding: 0; cursor: pointer; }
