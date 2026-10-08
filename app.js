@@ -225,7 +225,10 @@ const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', 
 const EMO_POINTS = [300, 200];      // 1st and 2nd correct guess; everyone after gets EMO_POINTS_REST
 const EMO_POINTS_REST = 100;
 const EMO_NARRATOR_POINTS = 50;      // narrator, per player who got it
-const EMO_MAX_CLUE = 30;        // emoji per clue (counted as people see them, so 👨‍🍳 is one)
+const EMO_MAX_CLUE = 3;         // emoji per clue (counted as people see them, so 👨‍🍳 is one)
+const EMO_HINT_FIRST = 20;      // seconds of guessing before the first letter hint
+const EMO_HINT_EVERY = 15;      // then one more letter this often
+const EMO_HINT_SHARE = 0.5;     // never give away more than half of the letters
 const EMO_REROLLS = 2;
 const COG_EXACT_POINTS = 200;
 const COG_CLOSE_POINTS = 100;        // off by one
@@ -1185,6 +1188,8 @@ const Host = {
         if (!isEmojiOnly(text)) { this.tell(pid, { t: 'toast', text: 'Sadece emoji kullanabilirsin 🙂 Harf ve rakam yok!' }); return; }
         r.clue = text;
         r.step = 'guess';
+        r.hintIdx = [];
+        r.hintAt = Date.now() + EMO_HINT_FIRST * 1000;
         this.setStepDeadline(r.cfg.guessTime);
         this.changed();
         return;
@@ -1945,7 +1950,20 @@ const Host = {
 
   emoCheck() {
     const r = this.S.round;
-    if (r.step === 'guess' && this.emoAllGuessed()) this.emoReveal();
+    if (r.step === 'guess' && this.emoAllGuessed()) { this.emoReveal(); return; }
+    if (r.step === 'guess' && r.hintAt && Date.now() >= r.hintAt) this.emoHint();
+  },
+
+  // Nobody's getting it: open one more letter of the title for everyone.
+  emoHint() {
+    const r = this.S.round;
+    const chars = [...r.item.t];
+    const letters = chars.map((c, i) => (/[\p{L}\p{N}]/u.test(c) ? i : -1)).filter((i) => i >= 0);
+    const hidden = letters.filter((i) => !r.hintIdx.includes(i));
+    if (!hidden.length || r.hintIdx.length >= Math.max(1, Math.floor(letters.length * EMO_HINT_SHARE))) { r.hintAt = null; return; }
+    r.hintIdx.push(hidden[Math.floor(Math.random() * hidden.length)]);
+    r.hintAt = Date.now() + EMO_HINT_EVERY * 1000;
+    this.changed();
   },
 
   emoFinish() {
@@ -3176,6 +3194,8 @@ const Host = {
         cat: r.item ? r.item.cat : '', title: showItem && r.item ? r.item.t : null,
         rerollsLeft: EMO_REROLLS - (r.rerolls || 0), clue: r.clue,
         correct: r.correct || [], feed: r.feed || [], iGot: (r.correct || []).includes(pid),
+        hint: r.step === 'guess' && r.hintIdx && r.hintIdx.length
+          ? [...r.item.t].map((c, i) => (c === ' ' ? ' ' : !/[\p{L}\p{N}]/u.test(c) || r.hintIdx.includes(i) ? c : '')) : null,
         result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
       };
     } else if (S.phase === 'cog') {
@@ -5198,17 +5218,24 @@ Views['emo:write'] = {
 
 Views['emo:guess'] = {
   mount(s) {
+    App.emoHintSeen = '';
     const E = s.emo;
     const n = nameOf(E.narr);
     mount(emoTop(s, timerHTML('Tahmin süresi')) +
       '<div class="card center"><div class="kasker">' + avatarHTML(n) + '<b>' + esc(n.name) + '</b> anlatıyor · ' + esc(E.cat) + '</div>' +
-      '<div class="emoclue">' + esc(E.clue) + '</div></div>' +
+      '<div class="emoclue">' + esc(E.clue) + '</div><div id="emoHint"></div></div>' +
       '<div id="emoArea"></div>' +
       '<div class="card"><h2>Tahminler</h2><div class="emofeed" id="emoFeed"></div></div>' +
       hostSkip('Cevabı aç'));
   },
   update(s) {
     const E = s.emo;
+    const hintKey = E.hint ? E.hint.join('|') : '';
+    if (hintKey !== App.emoHintSeen) {
+      App.emoHintSeen = hintKey;
+      $('#emoHint').innerHTML = E.hint ? '<div class="emohint"><div class="muted">💡 Harf ipucu</div><div class="amask">' + adamMaskHTML(E.hint) + '</div></div>' : '';
+      if (E.hint) Sound.beep(1175, 0.12, 'triangle', 0.06);
+    }
     const area = $('#emoArea');
     const state = E.amNarr ? 'narr' : E.iGot ? 'got' : 'guess';
     if (state === 'narr') {
