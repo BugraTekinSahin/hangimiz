@@ -811,3 +811,35 @@ body.chat-open #toast { top: calc(16px + env(safe-area-inset-top)); bottom: auto
   display: grid; place-items: center; font-weight: 800;
 }
 .sirbtn.on .sirpos { background: var(--accent); color: var(--accent-ink); border: 0; }
+
+/* ---------- Adam Asmaca ---------- */
+.hang { display: flex; justify-content: center; margin: 10px 0 6px; }
+.hangsvg { width: 150px; height: 188px; stroke: var(--ink); stroke-width: 4; stroke-linecap: round; fill: none; }
+.hangsvg .off { opacity: .05; }
+.hangsvg .new { animation: hangpop .45s ease-out; stroke: var(--red); }
+.hangsvg .face { stroke: var(--red); stroke-width: 2.5; }
+@keyframes hangpop { from { opacity: 0; transform: scale(.6); transform-origin: 86px 60px; } }
+.amask { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; margin: 8px 0; }
+.agrp { display: inline-flex; gap: 4px; }
+.abox {
+  width: 30px; height: 38px; border-bottom: 4px solid var(--purple); display: grid; place-items: center;
+  font-size: 24px; font-weight: 800; color: var(--ink);
+}
+.abox.on { animation: kpop .35s cubic-bezier(.3,1.6,.5,1); }
+.abox.miss { color: var(--red); }
+@media (max-width: 420px) { .abox { width: 24px; height: 32px; font-size: 20px; } }
+.awrong { font-size: 15px; color: var(--muted); font-weight: 600; }
+.awrong .bad { color: var(--red); font-weight: 800; letter-spacing: 2px; }
+.aturn { text-align: center; font-size: 18px; padding: 8px 10px; border-radius: 14px; background: var(--soft); margin-bottom: 8px; }
+.aturn.me { background: var(--hl-yellow); }
+.alast { text-align: center; min-height: 22px; font-size: 15px; margin-bottom: 10px; }
+.akeys { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+.akey {
+  border: 0; border-radius: 10px; background: var(--soft); color: var(--ink); font-size: 18px; font-weight: 800; padding: 10px 0;
+  box-shadow: 0 3px 0 var(--line);
+}
+.akey:not(:disabled):active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+.akey:disabled { opacity: .45; }
+.akey.hit { background: var(--green); color: #fff; opacity: 1; }
+.akey.miss { background: var(--red); color: #fff; opacity: .55; }
+.winline.adamwin { opacity: 1; transform: none; }

@@ -189,9 +189,23 @@ GAMES.sirala = {
     { key: 'rankTime', label: 'Sıralama süresi', type: 'num', def: 45, min: 15, max: 120, step: 5, unit: 'sn' },
   ],
 };
-const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala'];
+GAMES.adam = {
+  name: 'Adam Asmaca',
+  emoji: '🪢',
+  desc: 'Sırayla biri gizli bir kelime yazar, diğerleri sırayla harf seçer. Adam asılmadan kelimeyi bulun!',
+  minPlayers: 2,
+  defs: [
+    { key: 'source', label: 'Kelimeler', type: 'choice', def: 'own', options: [['own', 'Oyuncular yazsın'], ['bank', 'Hazır kelimeler']] },
+    { key: 'category', label: 'Kategori', type: 'choice', def: 'mix', options: [['mix', 'Karışık'], ['hayvan', 'Hayvanlar'], ['yiyecek', 'Yiyecekler'], ['yer', 'Şehir & Ülke'], ['meslek', 'Meslekler'], ['esya', 'Eşyalar'], ['film', 'Film & Dizi']], showIf: (c) => c.source === 'bank' },
+    { key: 'perPlayer', label: 'Kişi başı kelime', type: 'num', def: 1, min: 1, max: 3, step: 1, unit: 'kelime' },
+    { key: 'lives', label: 'Hak', type: 'choice', def: '8', options: [['6', '6 hak (zor)'], ['8', '8 hak'], ['10', '10 hak (kolay)']] },
+    { key: 'writeTime', label: 'Kelime yazma süresi', type: 'num', def: 40, min: 15, max: 120, step: 5, unit: 'sn', showIf: (c) => c.source === 'own' },
+    { key: 'moveTime', label: 'Hamle süresi', type: 'num', def: 20, min: 10, max: 60, step: 5, unit: 'sn' },
+  ],
+};
+const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam'];
 // Games with their own flow instead of write → answer → results.
-const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir' };
+const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam' };
 
 const EMO_POINTS = [300, 200];      // 1st and 2nd correct guess; everyone after gets EMO_POINTS_REST
 const EMO_POINTS_REST = 100;
@@ -206,6 +220,82 @@ const SIR_PERFECT_BONUS = 100;
 
 // t = answer shown, a = other accepted spellings.
 // EMO_ITEMS (Emojiyle Anlat titles) lives in emo-items.js, loaded before this file.
+
+const ADAM_ALPHABET = 'ABCÇDEFGĞHIİJKLMNOÖPRSŞTUÜVYZQWX';
+const ADAM_MAX_LEN = 24;
+const ADAM_PARTS = 10;            // gallows (4) + stick man (6); fewer lives = gallows already standing
+const ADAM_LETTER_POINTS = 10;    // per letter revealed by your guess
+const ADAM_SOLVE_POINTS = 100;    // guessing the whole word…
+const ADAM_HIDDEN_POINTS = 10;    // …plus this per letter that was still hidden
+const ADAM_LAST_POINTS = 50;      // revealing the final letter
+const ADAM_MISS_POINTS = 15;      // word owner, per wrong guess
+const ADAM_HANG_POINTS = 100;     // word owner, nobody found it
+
+const ADAM_BANK = {
+  hayvan: { name: 'Hayvan', words: [
+    'Zürafa', 'Penguen', 'Timsah', 'Kanguru', 'Su aygırı', 'Gergedan', 'Kirpi', 'Ahtapot', 'Denizatı', 'Yarasa', 'Baykuş',
+    'Flamingo', 'Bukalemun', 'Kaplumbağa', 'Sincap', 'Tavuskuşu', 'Papağan', 'Karınca', 'Kelebek', 'Yunus', 'Balina',
+    'Köpekbalığı', 'Deve', 'Leopar', 'Çita', 'Panda', 'Koala', 'Tilki', 'Kurbağa', 'Salyangoz', 'Örümcek', 'Akrep',
+    'Kartal', 'Martı', 'Leylek', 'Hamster', 'Tavşan', 'Eşek', 'Goril', 'Fil', 'Ayı', 'Kunduz', 'Ateşböceği', 'Denizanası',
+  ] },
+  yiyecek: { name: 'Yiyecek', words: [
+    'Lahmacun', 'Mantı', 'İskender', 'Baklava', 'Künefe', 'Menemen', 'Pide', 'Kokoreç', 'Midye dolma', 'Çiğ köfte',
+    'Sucuklu yumurta', 'Mercimek çorbası', 'Karnıyarık', 'İmam bayıldı', 'Sütlaç', 'Aşure', 'Simit', 'Poğaça', 'Gözleme',
+    'Pizza', 'Hamburger', 'Spagetti', 'Patates kızartması', 'Dondurma', 'Çikolata', 'Ananas', 'Karpuz', 'Avokado',
+    'Brokoli', 'Patlıcan', 'Pastırma', 'Börek', 'Lokum', 'Tantuni', 'Kumpir', 'Waffle', 'Sushi', 'Pankek', 'Cheesecake',
+    'Mısır', 'Nar', 'Kestane', 'Turşu', 'Ayran',
+  ] },
+  yer: { name: 'Şehir & Ülke', words: [
+    'İstanbul', 'Ankara', 'İzmir', 'Antalya', 'Trabzon', 'Kapadokya', 'Eskişehir', 'Gaziantep', 'Mardin', 'Bodrum',
+    'Erzurum', 'Rize', 'Pamukkale', 'Safranbolu', 'Paris', 'Londra', 'New York', 'Tokyo', 'Roma', 'Venedik', 'Barselona',
+    'Amsterdam', 'Dubai', 'Kahire', 'Moskova', 'Berlin', 'Rio de Janeiro', 'Japonya', 'Brezilya', 'Kanada', 'Avustralya',
+    'Meksika', 'Mısır', 'Hindistan', 'İtalya', 'İspanya', 'Norveç', 'İzlanda', 'Arjantin', 'Güney Kore', 'Maldivler',
+  ] },
+  meslek: { name: 'Meslek', words: [
+    'Astronot', 'İtfaiyeci', 'Dişçi', 'Veteriner', 'Pilot', 'Aşçı', 'Berber', 'Kuaför', 'Dedektif', 'Arkeolog',
+    'Fotoğrafçı', 'Avukat', 'Hakem', 'Garson', 'Postacı', 'Kaptan', 'Çiftçi', 'Bahçıvan', 'Mimar', 'Mühendis', 'Eczacı',
+    'Hemşire', 'Öğretmen', 'Kütüphaneci', 'Sihirbaz', 'Palyaço', 'Youtuber', 'Futbolcu', 'Ressam', 'Heykeltıraş',
+    'Marangoz', 'Elektrikçi', 'Tesisatçı', 'Kasap', 'Fırıncı', 'Balıkçı', 'Dalgıç', 'Muhabir', 'Programcı', 'Psikolog',
+  ] },
+  esya: { name: 'Eşya', words: [
+    'Şemsiye', 'Buzdolabı', 'Çamaşır makinesi', 'Süpürge', 'Saksı', 'Kumanda', 'Şarj aleti', 'Kulaklık', 'Klavye',
+    'Dürbün', 'Pusula', 'Mıknatıs', 'Termos', 'Çaydanlık', 'Tava', 'Kevgir', 'Oklava', 'Makas', 'Zımba', 'Cetvel',
+    'Silgi', 'Hesap makinesi', 'Valiz', 'Sırt çantası', 'Yastık', 'Battaniye', 'Ayna', 'Saat', 'Gözlük', 'Eldiven',
+    'Atkı', 'Bisiklet', 'Kaykay', 'Paten', 'Fener', 'Mum', 'Kibrit', 'Çekiç', 'Tornavida', 'Merdiven', 'Oyun konsolu',
+  ] },
+  film: { name: 'Film & Dizi', words: null }, // filled from EMO_ITEMS
+};
+
+function adamClean(t) {
+  const up = String(t ?? '').toLocaleUpperCase('tr');
+  let out = '';
+  for (const ch of up) out += ADAM_ALPHABET.includes(ch) ? ch : ch === ' ' ? ' ' : '';
+  return out.replace(/ +/g, ' ').trim().slice(0, ADAM_MAX_LEN).trim();
+}
+
+function adamLetterCount(word) {
+  return [...word].filter((c) => c !== ' ').length;
+}
+
+function adamBankWords(cat) {
+  const B = ADAM_BANK[cat];
+  if (B.words) return B.words;
+  // Film & series titles that are plain words (no numbers or signs) and not too long.
+  B.words = ['film', 'dizi', 'cizgi'].flatMap((c) => EMO_ITEMS[c].items.map((it) => it.t))
+    .filter((t) => /^[\p{L} ]+$/u.test(t) && t.length <= ADAM_MAX_LEN && adamLetterCount(adamClean(t)) >= 4);
+  return B.words;
+}
+
+// A random { word, hint } from the bank; cat 'mix' picks any category.
+function adamPick(cat, avoid = []) {
+  const cats = cat === 'mix' || !ADAM_BANK[cat] ? Object.keys(ADAM_BANK) : [cat];
+  for (let k = 0; k < 20; k++) {
+    const c = cats[Math.floor(Math.random() * cats.length)];
+    const list = adamBankWords(c);
+    const w = list[Math.floor(Math.random() * list.length)];
+    if (!avoid.includes(adamClean(w)) || k === 19) return { word: w, hint: ADAM_BANK[c].name };
+  }
+}
 
 const COG_QUESTIONS = [
   'Ananaslı pizza sever misin?', 'Hiç uçağa bindin mi?', 'Sabah insanı mısın?', 'Korku filmlerini sever misin?',
@@ -443,6 +533,8 @@ const BADGES = {
   iy_poker: { e: '🃏', n: 'Poker Yüzü', d: "İki Doğru Bir Yalan'da en çok kişiyi kandırdın" },
   iy_detector: { e: '👃', n: 'Yalan Dedektörü', d: "İki Doğru Bir Yalan'da en çok yalanı buldun" },
   sr_ruler: { e: '📏', n: 'Cetvel', d: "Sıralama'yı kazandın" },
+  ad_hunter: { e: '🧩', n: 'Kelime Avcısı', d: "Adam Asmaca'da en çok kelimeyi sen buldun" },
+  ad_hangman: { e: '🪢', n: 'Cellat', d: "Adam Asmaca'da kelimenle en çok adam astın" },
   ay_openbook: { e: '📖', n: 'Açık Kitap', d: "Ayna'da seni en çok kişi bildi" },
 };
 
@@ -1058,6 +1150,32 @@ const Host = {
         return;
       }
 
+      case 'hword': {
+        if (S.phase !== 'adam' || r.step !== 'write' || pid !== r.setter) return;
+        const word = adamClean(msg.word);
+        if (adamLetterCount(word) < 2) return;
+        r.word = word;
+        r.hint = String(msg.hint ?? '').replace(/\s+/g, ' ').trim().slice(0, 30);
+        this.adamStartPlay();
+        return;
+      }
+
+      case 'hletter': {
+        if (S.phase !== 'adam' || r.step !== 'play' || pid !== this.adamTurn()) return;
+        const l = String(msg.l ?? '').toLocaleUpperCase('tr');
+        if (l.length !== 1 || !ADAM_ALPHABET.includes(l) || r.used[l] !== undefined) return;
+        this.adamLetter(pid, l);
+        return;
+      }
+
+      case 'hsolve': {
+        if (S.phase !== 'adam' || r.step !== 'play' || pid !== this.adamTurn()) return;
+        const text = adamClean(msg.text);
+        if (!text) return;
+        this.adamSolve(pid, text);
+        return;
+      }
+
       case 'srank': {
         if (S.phase !== 'sir' || r.step !== 'rank' || !r.roster.includes(pid) || !Array.isArray(msg.order)) return;
         const order = msg.order.map(String);
@@ -1207,6 +1325,7 @@ const Host = {
         else if (S.phase === 'cog') this.cogSkip();
         else if (S.phase === 'iky') this.ikySkip();
         else if (S.phase === 'sir') this.sirSkip();
+        else if (S.phase === 'adam') this.adamSkip();
         return;
       case 'lieReset':
         S.lieTotals = {};
@@ -1223,6 +1342,7 @@ const Host = {
         else if (S.phase === 'cog' && r.step === 'reveal') this.cogNext();
         else if (S.phase === 'iky' && r.step === 'reveal') this.ikyNext();
         else if (S.phase === 'sir' && r.step === 'reveal') this.sirNext();
+        else if (S.phase === 'adam' && r.step === 'reveal') this.adamNext();
         return;
       case 'prev':
         if (S.phase === 'results' && r.revealIndex > 0) {
@@ -1352,6 +1472,7 @@ const Host = {
     if (S.game === 'cogunluk') this.setupCog(S.round);
     if (S.game === 'ikidogru') this.setupIky(S.round);
     if (S.game === 'sirala') this.setupSir(S.round);
+    if (S.game === 'adam') this.setupAdam(S.round);
     S.phase = GAME_PHASE[S.game] || 'writing';
     this.changed();
   },
@@ -1913,6 +2034,137 @@ const Host = {
     if (r.step === 'rank' && live.length && live.every((id) => r.ranks[id])) this.sirReveal();
   },
 
+  /* ---------- Adam Asmaca ---------- */
+
+  // Own mode: each turn one player writes the word and the rest take turns guessing.
+  // Bank mode: the word comes from the list and everyone guesses.
+  setupAdam(r) {
+    const own = r.cfg.source !== 'bank';
+    const turns = [];
+    for (let k = 0; k < r.cfg.perPlayer; k++) turns.push(...(own ? shuffle(r.roster) : r.roster.map(() => null)));
+    Object.assign(r, { turns, ti: 0, lives: Number(r.cfg.lives) || 8, history: [], scores: this.zeroScores(r), order: shuffle(r.roster) });
+    this.adamBegin(true);
+  },
+
+  adamBegin(silent) {
+    const r = this.S.round;
+    if (r.ti >= r.turns.length) { this.adamFinish(); return; }
+    const setter = r.turns[r.ti];
+    // Guessers take turns starting with the player after the word owner.
+    const base = r.order;
+    const start = setter ? (base.indexOf(setter) + 1) % base.length : r.ti % base.length;
+    const guessers = base.slice(start).concat(base.slice(0, start)).filter((id) => id !== setter);
+    Object.assign(r, { setter, word: null, hint: '', used: {}, wrong: 0, gi: 0, guessers, last: null, rd: {} });
+    if (setter) {
+      r.step = 'write';
+      this.setStepDeadline(r.cfg.writeTime);
+      if (!silent) this.changed();
+    } else {
+      const pick = adamPick(r.cfg.category, r.history.map((h) => h.word));
+      r.word = adamClean(pick.word);
+      r.hint = pick.hint;
+      this.adamStartPlay(silent);
+    }
+  },
+
+  adamStartPlay(silent) {
+    const r = this.S.round;
+    r.step = 'play';
+    this.setStepDeadline(r.cfg.moveTime);
+    if (!silent) this.changed();
+  },
+
+  adamTurn() {
+    const r = this.S.round;
+    return r && r.guessers && r.guessers.length ? r.guessers[r.gi % r.guessers.length] : null;
+  },
+
+  adamPass(last) {
+    const r = this.S.round;
+    r.last = last;
+    r.gi++;
+    this.setStepDeadline(r.cfg.moveTime);
+    this.changed();
+  },
+
+  adamMiss(last) {
+    const r = this.S.round;
+    r.wrong++;
+    if (r.wrong >= r.lives) { r.last = last; this.adamReveal('hanged', null); return; }
+    this.adamPass(last);
+  },
+
+  adamLetter(pid, l) {
+    const r = this.S.round;
+    const n = [...r.word].filter((c) => c === l).length;
+    r.used[l] = n > 0;
+    if (!n) { this.adamMiss({ id: pid, l, n: 0 }); return; }
+    r.rd[pid] = (r.rd[pid] || 0) + n * ADAM_LETTER_POINTS;
+    const last = { id: pid, l, n, pts: n * ADAM_LETTER_POINTS };
+    if ([...r.word].every((c) => c === ' ' || r.used[c])) {
+      r.rd[pid] += ADAM_LAST_POINTS;
+      r.last = last;
+      this.adamReveal('letters', pid);
+      return;
+    }
+    // A right letter keeps the turn.
+    r.last = last;
+    this.setStepDeadline(r.cfg.moveTime);
+    this.changed();
+  },
+
+  adamSolve(pid, text) {
+    const r = this.S.round;
+    if (normWord(text) !== normWord(r.word)) { this.adamMiss({ id: pid, text, bad: true }); return; }
+    const hidden = [...r.word].filter((c) => c !== ' ' && !r.used[c]).length;
+    r.rd[pid] = (r.rd[pid] || 0) + ADAM_SOLVE_POINTS + hidden * ADAM_HIDDEN_POINTS;
+    r.last = { id: pid, text, ok: true };
+    this.adamReveal('solved', pid);
+  },
+
+  adamReveal(outcome, solver) {
+    const r = this.S.round;
+    const delta = { ...r.rd };
+    if (r.setter) {
+      const pts = r.wrong * ADAM_MISS_POINTS + (outcome === 'hanged' ? ADAM_HANG_POINTS : 0);
+      if (pts) delta[r.setter] = (delta[r.setter] || 0) + pts;
+    }
+    for (const id of Object.keys(delta)) if (!delta[id]) delete delta[id];
+    this.addPoints(r, delta);
+    r.history.push({ setter: r.setter, word: r.word, hint: r.hint, used: { ...r.used }, outcome, solver, wrong: r.wrong, lives: r.lives, delta, scores: { ...r.scores } });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  adamNext() {
+    this.S.round.ti++;
+    this.adamBegin();
+  },
+
+  adamSkip() {
+    const r = this.S.round;
+    if (r.step === 'write') this.adamNext();
+    else if (r.step === 'play') this.adamPass({ id: this.adamTurn(), pass: true });
+    else this.adamNext();
+  },
+
+  adamFinish() {
+    const r = this.S.round;
+    const solved = {};
+    const hanged = {};
+    for (const id of r.roster) { solved[id] = 0; hanged[id] = 0; }
+    for (const h of r.history) {
+      if (h.solver && solved[h.solver] != null) solved[h.solver]++;
+      if (h.outcome === 'hanged' && h.setter && hanged[h.setter] != null) hanged[h.setter]++;
+    }
+    this.finishCustom({
+      scores: { ...r.scores }, solved, hanged, own: r.cfg.source !== 'bank',
+      ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a]),
+      history: r.history.map((h) => ({ setter: h.setter, word: h.word, outcome: h.outcome, solver: h.solver, wrong: h.wrong, lives: h.lives })),
+    });
+  },
+
   /* ---------- Kaç Kaç? ---------- */
 
   setupKac(r, now) {
@@ -2314,6 +2566,7 @@ const Host = {
       else if (S.phase === 'cog' && now >= r.deadline) this.cogSkip();
       else if (S.phase === 'iky' && now >= r.deadline) this.ikySkip();
       else if (S.phase === 'sir' && now >= r.deadline) this.sirSkip();
+      else if (S.phase === 'adam' && now >= r.deadline) this.adamSkip();
     }
     if (S.phase === 'ikiz' && r) this.ikizCheck();
     if (S.phase === 'tele' && r) this.teleCheck();
@@ -2523,6 +2776,19 @@ const Host = {
       pub.sir = {
         step: r.step, ti: r.ti, tn: r.turns.length, asker, amAsker: pid === asker, q: r.q, done,
         rankIds: r.step === 'rank' ? r.rankIds : null, myRank: (r.ranks && r.ranks[pid]) || null,
+        result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
+      };
+    } else if (S.phase === 'adam') {
+      // Guessers only ever get the masked word; the owner and the reveal get the real one.
+      const turn = r.step === 'play' ? this.adamTurn() : null;
+      const amSetter = !!r.setter && pid === r.setter;
+      pub.stepKey = r.step + r.ti;
+      pub.adam = {
+        step: r.step, ti: r.ti, tn: r.turns.length, setter: r.setter, amSetter, hint: r.hint,
+        word: r.step === 'reveal' || amSetter ? r.word : null,
+        mask: r.word ? [...r.word].map((c) => (c === ' ' ? ' ' : r.used[c] ? c : '')) : null,
+        used: r.used, wrong: r.wrong, lives: r.lives, turn, myTurn: turn === pid, guessers: r.guessers,
+        last: r.last, rd: r.rd,
         result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
       };
     } else if (S.phase === 'kac') {
@@ -2754,6 +3020,10 @@ function computeAwards(r) {
     case 'sirala':
       give(top(F.scores), 'sr_ruler');
       break;
+    case 'adam':
+      give(top(F.solved), 'ad_hunter');
+      give(top(F.hanged), 'ad_hangman');
+      break;
   }
   return out;
 }
@@ -2796,6 +3066,8 @@ function chatBlockReason(S, pid, text) {
     case 'emo':
       // Nobody may type the answer into the chat while it's still being guessed.
       return r.step !== 'reveal' && r.item && [r.item.t, ...(r.item.a || [])].some((x) => hasTitle(x)) ? SHADOW : null;
+    case 'adam':
+      return r.setter === pid && r.word && r.step !== 'reveal' && hasTitle(r.word) ? SHADOW : null;
     case 'kac': {
       if (pid !== r.turns[r.ti] || !r.ask || r.step === 'reveal') return null;
       const nums = (String(text).match(/\d+(?:[.,]\d+)*/g) || []).map(parseKacNumber);
@@ -3502,15 +3774,15 @@ function render() {
   if (!s) return;
   const inRound = !!(s.roster && s.roster.includes(s.you));
   let screen = s.phase;
-  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir'].includes(s.phase) && !inRound) screen = 'spectate';
+  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam'].includes(s.phase) && !inRound) screen = 'spectate';
   if (screen === 'lie') screen = 'lie:' + s.lie.step;
   if (screen === 'kac') screen = 'kac:' + s.kac.step;
-  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir'].includes(screen)) screen += ':' + s[screen].step;
+  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam'].includes(screen)) screen += ':' + s[screen].step;
   let key = screen + ':' + (s.roundId || '');
   if (screen === 'results') key += ':' + s.reveal.index;
   if (screen === 'lie:clues') key += ':' + s.lie.turn;
   if (screen.startsWith('kac:')) key += ':' + s.kac.ti;
-  if (/^(ikiz|tele|ayna|emo|cog|iky|sir):/.test(screen)) key += ':' + s.stepKey;
+  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam):/.test(screen)) key += ':' + s.stepKey;
   if (screen === 'writing' && s.writing.stage) key += ':' + s.writing.stage;
 
   const fresh = key !== App.screenKey;
@@ -4772,6 +5044,178 @@ function sirFinalMount(s) {
   );
 }
 
+/* ---------- Adam Asmaca ---------- */
+
+// Gallows first (base, pole, beam, rope), then the stick man.
+const ADAM_SVG_PARTS = [
+  '<line x1="8" y1="132" x2="84" y2="132"/>', '<line x1="28" y1="132" x2="28" y2="8"/>', '<line x1="26" y1="8" x2="88" y2="8"/>',
+  '<line x1="86" y1="8" x2="86" y2="26"/>', '<circle cx="86" cy="38" r="12"/>', '<line x1="86" y1="50" x2="86" y2="88"/>',
+  '<line x1="86" y1="60" x2="70" y2="76"/>', '<line x1="86" y1="60" x2="102" y2="76"/>',
+  '<line x1="86" y1="88" x2="72" y2="112"/>', '<line x1="86" y1="88" x2="100" y2="112"/>',
+];
+
+function adamSVG(lives, wrong, dead) {
+  const shown = ADAM_PARTS - lives + wrong;
+  const face = dead ? '<path class="face" d="M79 34l5 5M84 34l-5 5M88 34l5 5M93 34l-5 5"/>' : '';
+  return '<svg class="hangsvg" viewBox="0 0 112 140">' +
+    ADAM_SVG_PARTS.map((part, i) => part.replace('/>', ' class="' + (i < shown ? 'on' : 'off') + (i === shown - 1 && wrong && !dead ? ' new' : '') + '"/>')).join('') +
+    (shown >= 5 ? face : '') + '</svg>';
+}
+
+// The word as letter boxes, one group per word so long phrases wrap nicely.
+function adamMaskHTML(chars, missing = []) {
+  const groups = [];
+  let cur = [];
+  for (let i = 0; i < chars.length; i++) {
+    if (chars[i] === ' ') { groups.push(cur); cur = []; continue; }
+    cur.push('<span class="abox ' + (chars[i] ? 'on' : '') + (missing.includes(i) ? ' miss' : '') + '">' + esc(chars[i] || '') + '</span>');
+  }
+  groups.push(cur);
+  return groups.map((g) => '<span class="agrp">' + g.join('') + '</span>').join('');
+}
+
+function adamLastText(last) {
+  if (!last) return '';
+  const nm = esc(nameOf(last.id).name);
+  if (last.pass) return '⏭ ' + nm + ' pas geçti';
+  if (last.text) return last.ok ? '🎉 ' + nm + ' kelimeyi bildi!' : '❌ ' + nm + ' "' + esc(last.text) + '" dedi, yanlış!';
+  return last.n ? '✅ ' + nm + ' <b>' + esc(last.l) + '</b> dedi, ' + last.n + ' tane var! +' + last.pts : '❌ ' + nm + ' <b>' + esc(last.l) + '</b> dedi, yok!';
+}
+
+// Physical keyboard: on your turn, typing a letter outside any input picks it.
+function adamTypedLetter(e) {
+  const s = App.state;
+  if (!s || s.phase !== 'adam' || !s.adam || s.adam.step !== 'play' || !s.adam.myTurn) return false;
+  if (e.ctrlKey || e.metaKey || e.altKey || e.key.length !== 1 || /^(INPUT|TEXTAREA|SELECT)$/.test(document.activeElement.tagName)) return false;
+  const l = e.key.toLocaleUpperCase('tr');
+  if (!ADAM_ALPHABET.includes(l) || s.adam.used[l] !== undefined) return false;
+  e.preventDefault();
+  send({ t: 'hletter', l });
+  return true;
+}
+
+function adamHintHTML(A) {
+  return A.hint ? '<div class="muted" style="font-weight:700">İpucu: <b style="color:var(--ink)">' + esc(A.hint) + '</b></div>' : '';
+}
+
+Views['adam:write'] = {
+  mount(s) {
+    const A = s.adam;
+    const a = nameOf(A.setter);
+    const body = A.amSetter
+      ? '<div class="card myturn"><h2>Sıra sende! 🪢</h2><p class="muted" style="margin:0 0 10px">Gizli bir kelime ya da kısa bir söz yaz. Diğerleri harf harf bulmaya çalışacak!</p>' +
+        '<div class="row"><input id="adamWord" class="field grow" maxlength="' + ADAM_MAX_LEN + '" placeholder="Örn: Kapadokya" autocomplete="off">' +
+        '<button class="dice" data-act="hmDice" title="Rastgele kelime">🎲</button></div>' +
+        '<div style="height:8px"></div><input id="adamHint" class="field" maxlength="30" placeholder="İpucu (isteğe bağlı): Şehir" autocomplete="off">' +
+        '<div style="height:12px"></div><button class="btn yellow big block" data-act="hmWord">Kelimeyi gönder 🚀</button></div>'
+      : '<div class="card center turnwait">' + avatarHTML(a, 'lg') + '<h2 style="margin:8px 0 0">' + esc(a.name) + ' gizli kelimeyi seçiyor… 🤫</h2>' +
+        '<p class="muted" style="margin:4px 0 0">Birazdan sırayla harf tahmin edeceksiniz</p></div>';
+    mount(header() + timerHTML('Kelime yazma süresi') + stepDots(A.ti, A.tn) + body + OFFLINE_NOTE + hostSkip('Sırayı geç'));
+    if (A.amSetter) { Sound.join(); focusFine('#adamWord', true); }
+  },
+  update(s) { updateOffline(s, [s.adam.setter]); },
+};
+
+Views['adam:play'] = {
+  mount(s) {
+    const A = s.adam;
+    App.adamWasTurn = false;
+    App.adamLastSeen = JSON.stringify(A.last);
+    App.adamWrongSeen = App.adamMaskSeen = null;
+    const owner = A.setter ? '<div class="kasker">Kelimeyi seçen: ' + avatarHTML(nameOf(A.setter)) + '<b>' + esc(nameOf(A.setter).name) + '</b></div>' : '<div class="kasker">🎲 Hazır kelime</div>';
+    const keys = [...ADAM_ALPHABET].map((l) => '<button class="akey" data-act="hmKey" data-l="' + l + '">' + l + '</button>').join('');
+    mount(header() + timerHTML('Hamle süresi') + stepDots(A.ti, A.tn) +
+      '<div class="card center">' + owner + adamHintHTML(A) +
+        (A.amSetter ? '<div class="mybanner">🤫 Senin kelimen: <b>' + esc(A.word) + '</b></div>' : '') +
+        '<div class="hang" id="adamHang"></div><div class="amask" id="adamMask"></div>' +
+        '<div class="awrong" id="adamWrong"></div></div>' +
+      '<div class="card"><div class="aturn" id="adamTurn"></div><div class="alast" id="adamLast"></div>' +
+        '<div class="akeys" id="adamKeys">' + keys + '</div>' +
+        (A.amSetter ? '' : '<div class="row" id="adamSolveRow" style="margin-top:12px"><input id="adamSolve" class="field grow" maxlength="' + ADAM_MAX_LEN + '" placeholder="Kelimeyi biliyorsan yaz…" autocomplete="off">' +
+          '<button class="btn green" data-act="hmSolve">Tahmin</button></div><p class="muted" id="adamSolveNote" style="margin:6px 0 0;font-size:13px">Yanlış tahmin de bir hak götürür!</p>') +
+        '<div class="chips" id="adamOrder" style="margin-top:12px"></div></div>' +
+      OFFLINE_NOTE + hostSkip('Sırayı geç'));
+  },
+  update(s) {
+    const A = s.adam;
+    // Only redraw what changed, so the little animations don't replay on every update.
+    if (App.adamWrongSeen !== A.wrong) { App.adamWrongSeen = A.wrong; $('#adamHang').innerHTML = adamSVG(A.lives, A.wrong, false); }
+    const maskKey = A.mask.join('|');
+    if (App.adamMaskSeen !== maskKey) { App.adamMaskSeen = maskKey; $('#adamMask').innerHTML = adamMaskHTML(A.mask); }
+    const wrongs = Object.keys(A.used).filter((l) => !A.used[l]);
+    $('#adamWrong').innerHTML = 'Kalan hak: <b>' + (A.lives - A.wrong) + '</b>' + (wrongs.length ? ' · Olmayanlar: <span class="bad">' + wrongs.map(esc).join(' ') + '</span>' : '');
+    const t = nameOf(A.turn);
+    $('#adamTurn').innerHTML = A.myTurn ? '🎯 <b>Sıra sende!</b> Bir harf seç ya da kelimeyi tahmin et' : '⏳ Sıra: <b>' + esc(t.name) + '</b>';
+    $('#adamTurn').classList.toggle('me', A.myTurn);
+    $('#adamLast').innerHTML = adamLastText(A.last);
+    for (const b of $$('.akey')) {
+      const u = A.used[b.dataset.l];
+      b.classList.toggle('hit', u === true);
+      b.classList.toggle('miss', u === false);
+      b.disabled = !A.myTurn || u !== undefined;
+    }
+    const row = $('#adamSolveRow');
+    if (row) { row.hidden = !A.myTurn; $('#adamSolveNote').hidden = !A.myTurn; }
+    $('#adamOrder').innerHTML = A.guessers.map((id) => '<span class="chip ' + (id === A.turn ? 'done' : '') + '">' + avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) +
+      (A.rd[id] ? ' <span class="cnt">+' + A.rd[id] + '</span>' : '') + '</span>').join('');
+    updateOffline(s, [A.turn]);
+    // Little sounds for each move, and a nudge when the turn comes to you.
+    const lastKey = JSON.stringify(A.last);
+    if (lastKey !== App.adamLastSeen) {
+      App.adamLastSeen = lastKey;
+      if (A.last && !A.last.pass) Sound.beep(A.last.n || A.last.ok ? 880 : 220, 0.15, A.last.n || A.last.ok ? 'triangle' : 'square', 0.06);
+    }
+    if (A.myTurn && !App.adamWasTurn) {
+      Sound.join();
+      if (App.chatOpen) toast('🎤 Sıra sende! Harf seçmek için sohbeti kapat.', 3000);
+    }
+    App.adamWasTurn = A.myTurn;
+  },
+};
+
+Views['adam:reveal'] = {
+  mount(s) {
+    const A = s.adam;
+    const R = A.result;
+    const chars = [...R.word];
+    const missing = chars.map((c, i) => (c !== ' ' && !R.used[c] ? i : -1)).filter((i) => i >= 0);
+    const solverName = R.solver ? esc(nameOf(R.solver).name) : '';
+    const verdict = R.outcome === 'hanged' ? '🪢 Adam asıldı! Kelimeyi kimse bulamadı'
+      : R.outcome === 'solved' ? '🧩 ' + solverName + ' kelimeyi bildi!'
+      : '🔤 Harfler tamamlandı! Son harfi ' + solverName + ' buldu';
+    const last = A.ti >= A.tn - 1;
+    const owner = R.setter ? '<div class="kasker">Kelimeyi seçen: ' + avatarHTML(nameOf(R.setter)) + '<b>' + esc(nameOf(R.setter).name) + '</b></div>' : '';
+    mount(header() + revealTimer(s) + stepDots(A.ti, A.tn) +
+      '<div class="card center">' + owner + (R.hint ? '<div class="muted">İpucu: ' + esc(R.hint) + '</div>' : '') +
+        '<div class="hang">' + adamSVG(R.lives, R.wrong, R.outcome === 'hanged') + '</div>' +
+        '<div class="amask">' + adamMaskHTML(chars, missing) + '</div>' +
+        '<div class="winline adamwin">' + verdict + '</div>' +
+        '<p class="muted" style="margin:6px 0 0">' + R.wrong + ' yanlış tahmin · ' + R.lives + ' hak vardı</p></div>' +
+      '<div class="card"><h2>Puan durumu</h2>' + scoreBoard(s, R.scores, R.delta) +
+        (R.setter ? '<p class="muted" style="margin:10px 0 0;font-size:14px">Kelime sahibi her yanlış tahmin için +' + ADAM_MISS_POINTS + ', adam asılırsa +' + ADAM_HANG_POINTS + ' alır</p>' : '') + '</div>' +
+      hostNext(s, last ? '🏆 Sonuçlar' : 'Sıradaki ▶'));
+    if (R.outcome === 'hanged') Sound.beep(180, 0.4, 'sawtooth', 0.05); else Sound.fanfare();
+  },
+};
+
+function adamFinalMount(s) {
+  const F = s.final;
+  const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.solved[id] + ' kelime buldu' + (F.own ? ' · ' + F.hanged[id] + ' adam astı' : '') + '</small></span><b>' + F.scores[id] + '</b></div>').join('');
+  const recap = F.history.map((h) => '<div><span class="q">' + (h.setter ? '<b>' + esc(nameOf(h.setter).name) + ':</b> ' : '') + esc(h.word) + '</span><span class="w">' +
+    (h.outcome === 'hanged' ? '🪢 asıldı' : '🧩 ' + esc(nameOf(h.solver).name)) + '</span></div>').join('');
+  mount(
+    header() +
+    '<div class="phase-title">' + finalHeadline(F, F.scores, 'kelime ustası 🪢') + '</div>' +
+    podiumHTML(F.ranking, (id) => F.scores[id] + ' puan') +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Bulduğun her harf +' + ADAM_LETTER_POINTS + ' · Kelimeyi bilmek +' + ADAM_SOLVE_POINTS + ' (+' + ADAM_HIDDEN_POINTS + ' her gizli harf için) · Son harf +' + ADAM_LAST_POINTS + '</p></div>' +
+    '<div class="card"><h2>Bütün kelimeler</h2><div class="recap">' + (recap || '<p class="muted" style="margin:0">—</p>') + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
 /* ---------- Kaç Kaç? ---------- */
 
 const fmtNum = (n) => Number(n).toLocaleString('tr-TR');
@@ -5319,6 +5763,7 @@ Views.final = {
     else if (s.game === 'cogunluk') cogFinalMount(s);
     else if (s.game === 'ikidogru') ikyFinalMount(s);
     else if (s.game === 'sirala') sirFinalMount(s);
+    else if (s.game === 'adam') adamFinalMount(s);
     else hangimizFinalMount(s);
     confetti();
     Sound.fanfare();
@@ -5396,6 +5841,9 @@ function shareLines(s) {
       break;
     case 'sirala':
       for (const r of F.recap) if (r.top) L.push(n(r.asker) + ': ' + r.q + ' → 👑 ' + n(r.top));
+      break;
+    case 'adam':
+      for (const h of F.history) L.push((h.outcome === 'hanged' ? '🪢 ' : '🧩 ') + h.word + (h.solver ? ' → ' + n(h.solver) : ''));
       break;
     case 'ayna':
       for (const h of F.history) L.push('🪞 ' + n(h.mirror) + ': ' + h.q + ' → ' + (h.own ?? '—'));
@@ -6061,6 +6509,30 @@ const actions = {
   },
   sreset() { App.sirOrder = []; sirPaint(); },
   srank() { Sound.click(); send({ t: 'srank', order: App.sirOrder }); },
+  hmDice() {
+    const p = adamPick('mix', [adamClean($('#adamWord').value)]);
+    $('#adamWord').value = p.word;
+    $('#adamHint').value = p.hint;
+    Sound.click();
+  },
+  hmWord() {
+    const el = $('#adamWord');
+    const word = adamClean(el ? el.value : '');
+    if (adamLetterCount(word) < 2) { toast('En az 2 harflik bir kelime yaz 🙂 (rakam ve işaret olmaz)'); if (el) el.focus(); return; }
+    Sound.click();
+    send({ t: 'hword', word, hint: $('#adamHint').value });
+  },
+  hmKey(el) {
+    if (!App.state.adam.myTurn) return;
+    send({ t: 'hletter', l: el.dataset.l });
+  },
+  hmSolve() {
+    const el = $('#adamSolve');
+    const text = el ? el.value.trim() : '';
+    if (!text) return;
+    el.value = '';
+    send({ t: 'hsolve', text });
+  },
   kask() {
     const q = ($('#kacQ') || {}).value || '';
     const raw = ($('#kacAns') || {}).value || '';
@@ -6127,6 +6599,9 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'teleWord') { e.preventDefault(); doAction('tword'); return; }
   if (e.key === 'Enter' && e.target.id === 'emoClue') { e.preventDefault(); doAction('eclue'); return; }
   if (e.key === 'Enter' && e.target.id === 'emoGuess') { e.preventDefault(); doAction('eguess'); return; }
+  if (e.key === 'Enter' && (e.target.id === 'adamWord' || e.target.id === 'adamHint')) { e.preventDefault(); doAction('hmWord'); return; }
+  if (e.key === 'Enter' && e.target.id === 'adamSolve') { e.preventDefault(); doAction('hmSolve'); return; }
+  if (adamTypedLetter(e)) return;
   if (e.key === 'Enter' && e.target.id === 'sirQ') { e.preventDefault(); doAction('sask'); return; }
   if (e.key === 'Enter' && e.target.id === 'aynaText') { e.preventDefault(); doAction('asend'); return; }
   if (e.key === 'Enter' && e.target.classList.contains('q-input')) {
