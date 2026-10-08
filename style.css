@@ -1014,3 +1014,33 @@ button.gcard[style*="--gc"]:not(:disabled):hover { border-color: var(--gc); }
 .takun .res { grid-column: 1 / -1; font-size: 14px; font-weight: 700; animation: takin .5s ease-out both; animation-delay: calc(var(--d) + .35s); }
 .takbest { border: 3px solid var(--accent); }
 @media (prefers-reduced-motion: reduce) { .takpop, .takun .imp, .takun .res { animation: none; } }
+
+/* ---------- Bilgi Yarışması ---------- */
+.quizq .qimg { margin-top: 10px; border-radius: 14px; overflow: hidden; background: var(--soft); aspect-ratio: 16 / 10; }
+.quizq .qimg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.qcredit { font-size: 11px; color: var(--muted); text-align: right; margin-top: 4px; }
+.qopts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 4px; }
+@media (max-width: 420px) { .qopts { grid-template-columns: 1fr; } }
+.qopt {
+  display: flex; align-items: center; gap: 10px; border: 0; border-radius: 16px; padding: 14px; min-height: 64px; color: #fff;
+  font-size: 18px; font-weight: 800; text-align: left; box-shadow: 0 5px 0 rgba(0,0,0,.25); word-break: break-word; transition: transform .1s, opacity .2s;
+}
+.qopt .sh { font-size: 20px; flex: none; }
+.qopt.c0 { background: #e21b3c; } .qopt.c1 { background: #1368ce; } .qopt.c2 { background: #d89e00; } .qopt.c3 { background: #26890c; }
+button.qopt:not(:disabled):active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.25); }
+.qopt:disabled { opacity: .45; }
+.qopt.picked { opacity: 1; outline: 4px solid var(--accent); }
+.qopts.reveal .qopt.wrong { opacity: .4; }
+.qopts.reveal .qopt.right { outline: 4px solid #fff; }
+.qopt .tx { flex: 1; }
+.qwho { display: flex; flex-wrap: wrap; gap: 2px; }
+.qwho .av { width: 24px; height: 24px; font-size: 13px; }
+.qmap { height: 340px; border-radius: 14px; overflow: hidden; background: var(--soft); }
+@media (max-width: 480px) { .qmap { height: 300px; } }
+.qpin { background: none; border: 0; }
+.qpin .av { width: 30px; height: 30px; font-size: 16px; box-shadow: 0 2px 6px rgba(0,0,0,.4); }
+.qpin.me .av { outline: 3px solid var(--accent); }
+.qpin.truth { font-size: 30px; line-height: 34px; text-align: center; filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+.qanswer { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 10px; }
+.qme { text-align: center; font-size: 22px; font-weight: 800; margin: 6px 0 14px; }
+.qme.ok { color: var(--green); } .qme.no { color: var(--muted); }

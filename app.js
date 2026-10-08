@@ -250,15 +250,26 @@ GAMES.taklit = {
     { key: 'voteTime', label: 'Oylama süresi', type: 'num', def: 60, min: 20, max: 180, step: 10, unit: 'sn' },
   ],
 };
-const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir', 'zar', 'patates', 'taklit'];
+const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir', 'zar', 'patates', 'taklit', 'quiz'];
+GAMES.quiz = {
+  name: 'Bilgi Yarışması',
+  emoji: '🧠',
+  desc: 'Fotoğraftan ülkeyi bul, haritada yerini işaretle, Türk ve yabancı diziler, genel kültür… Herkes aynı anda cevaplar, hızlı bilen daha çok puan alır!',
+  minPlayers: 2,
+  defs: [
+    { key: 'category', label: 'Konu', type: 'choice', def: 'mix', options: [['mix', 'Karışık (hepsi)'], ['yer', '📸 Fotoğraflı yerler'], ['harita', '🗺️ Haritada Bul'], ['trdizi', '🇹🇷 Türk dizileri'], ['dizi', '📺 Yabancı diziler'], ['genel', '💡 Genel kültür']] },
+    { key: 'qCount', label: 'Soru sayısı', type: 'num', def: 10, min: 5, max: 25, step: 1, unit: 'soru' },
+    { key: 'time', label: 'Soru süresi', type: 'num', def: 20, min: 10, max: 60, step: 5, unit: 'sn' },
+  ],
+};
 // Each game's theme colour (cards in the game picker).
 const GAME_COLORS = {
   hangimiz: '#8b5cf6', kimyazdi: '#6366f1', asla: '#f59e0b', komik: '#eab308', yalanci: '#ef4444', kackac: '#06b6d4',
   ikiz: '#ec4899', tele: '#d946ef', ayna: '#60a5fa', emoji: '#fb923c', cogunluk: '#22c55e', ikidogru: '#f43f5e',
-  sirala: '#84cc16', adam: '#b45309', vampir: '#b91c1c', zar: '#0f9488', patates: '#ea580c', taklit: '#2dd4bf',
+  sirala: '#84cc16', adam: '#b45309', vampir: '#b91c1c', zar: '#0f9488', patates: '#ea580c', taklit: '#2dd4bf', quiz: '#3b82f6',
 };
 // Games with their own flow instead of write → answer → results.
-const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp', zar: 'zar', patates: 'pat', taklit: 'tak' };
+const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp', zar: 'zar', patates: 'pat', taklit: 'tak', quiz: 'quiz' };
 
 const EMO_POINTS = [300, 200];      // 1st and 2nd correct guess; everyone after gets EMO_POINTS_REST
 const EMO_POINTS_REST = 100;
@@ -277,6 +288,72 @@ const SIR_PERFECT_BONUS = 100;
 
 // t = answer shown, a = other accepted spellings.
 // EMO_ITEMS (Emojiyle Anlat titles) lives in emo-items.js, loaded before this file.
+
+/* ---------- Bilgi Yarışması ---------- */
+
+const QUIZ_BASE = 500;          // right answer
+const QUIZ_SPEED = 500;         // up to this much more for answering fast
+const QUIZ_MAP_EXTRA = 10;      // map questions get extra seconds
+const QUIZ_WORLD_KM = 3000;     // map guesses this far away score 0
+const QUIZ_TR_KM = 500;
+
+function quizImg(file) {
+  return 'https://commons.wikimedia.org/wiki/Special:FilePath/' + encodeURIComponent(file) + '?width=960';
+}
+
+function distKm(a, b, c, d) {
+  const rad = Math.PI / 180;
+  const x = Math.sin((c - a) * rad / 2) ** 2 + Math.cos(a * rad) * Math.cos(c * rad) * Math.sin((d - b) * rad / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(x));
+}
+
+// Picks the questions for one game: photo (4 options), map (click on a map) and text questions.
+function buildQuiz(cat, n) {
+  const places = shuffle(QUIZ_PLACES);
+  const texts = shuffle(QUIZ_TEXT);
+  const takePlace = (mapOk) => {
+    const i = places.findIndex((p) => mapOk || !p.mapOnly);
+    return i < 0 ? null : places.splice(i, 1)[0];
+  };
+  const takeText = (c) => {
+    const i = texts.findIndex((x) => !c || x.c === c);
+    return i < 0 ? null : texts.splice(i, 1)[0];
+  };
+  const photo = (p) => {
+    const right = p.c;
+    const pool = p.tr ? QUIZ_ILLER : QUIZ_COUNTRIES;
+    const opts = shuffle([right, ...shuffle(pool.filter((x) => x !== right)).slice(0, 3)]);
+    return { type: 'photo', cat: p.tr ? '📸 Türkiye' : '📸 Dünya', text: p.tr ? 'Bu fotoğraf hangi ilimizde?' : 'Bu fotoğraf hangi ülkede?',
+      img: quizImg(p.f), opts, ans: opts.indexOf(right), place: p.n + ' · ' + right };
+  };
+  const map = (p) => ({ type: 'map', cat: '🗺️ Haritada Bul', text: 'Bu fotoğraf nerede? Haritada işaretle!', img: quizImg(p.f), tr: p.tr,
+    lat: p.lat, lng: p.lng, place: p.n + ' · ' + p.c });
+  const text = (x) => {
+    const opts = shuffle([x.a, ...x.w]);
+    return { type: 'text', cat: QUIZ_CAT_NAMES[x.c], text: x.q, opts, ans: opts.indexOf(x.a), place: x.a };
+  };
+  // What kinds of question to ask, in order.
+  let plan;
+  if (cat === 'harita') plan = Array(n).fill('map');
+  else if (cat === 'yer') plan = Array.from({ length: n }, (_, i) => (i % 5 === 2 || i % 5 === 4 ? 'map' : 'photo'));
+  else if (cat === 'mix') {
+    const nPhoto = Math.round(n * 0.3);
+    const nMap = Math.round(n * 0.2);
+    const kinds = ['trdizi', 'dizi', 'genel'];
+    plan = [...Array(nPhoto).fill('photo'), ...Array(nMap).fill('map'), ...Array.from({ length: n - nPhoto - nMap }, (_, i) => 'text:' + kinds[i % 3])];
+    plan = shuffle(plan);
+  } else plan = Array(n).fill('text:' + cat);
+  const out = [];
+  for (const k of plan) {
+    let q = null;
+    if (k === 'photo') { const p = takePlace(false); if (p) q = photo(p); }
+    else if (k === 'map') { const p = takePlace(true); if (p) q = map(p); }
+    else { const x = takeText(k.split(':')[1]); if (x) q = text(x); }
+    if (!q) { const x = takeText(null); if (x) q = text(x); }
+    if (q) out.push(q);
+  }
+  return out;
+}
 
 /* ---------- Taklitçi data ---------- */
 
@@ -727,6 +804,8 @@ const BADGES = {
   ad_hangman: { e: '🪢', n: 'Cellat', d: "Adam Asmaca'da kelimenle en çok adam astın" },
   zr_king: { e: '🎲', n: 'Zar Kralı', d: "Yalan Zar'da son kalan sen oldun" },
   zr_hunter: { e: '🔍', n: 'Yalan Avcısı', d: "Yalan Zar'da en çok yalanı sen yakaladın" },
+  qz_brain: { e: '🧠', n: 'Ansiklopedi', d: "Bilgi Yarışması'nı kazandın" },
+  qz_compass: { e: '🧭', n: 'Pusula', d: "Bilgi Yarışması'nda haritada en isabetli sendin" },
   tk_master: { e: '🥸', n: 'Usta Taklitçi', d: "Taklitçi'de taklidinle en çok kişiyi kandırdın" },
   tk_knower: { e: '🔍', n: 'Herkesi Tanıyan', d: "Taklitçi'de en çok gerçeği sen buldun" },
   pt_cool: { e: '🧊', n: 'Soğukkanlı', d: "Sıcak Patates'te son kalan sen oldun" },
@@ -1362,6 +1441,25 @@ const Host = {
         return;
       }
 
+      case 'qans': {
+        if (S.phase !== 'quiz' || r.step !== 'q' || !r.roster.includes(pid) || r.ans[pid]) return;
+        const q = r.qs[r.qi];
+        const t = Date.now() - r.qStart;
+        if (q.type === 'map') {
+          const lat = Number(msg.lat);
+          const lng = Number(msg.lng);
+          if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90) return;
+          r.ans[pid] = { lat, lng: ((((lng + 180) % 360) + 360) % 360) - 180, t };
+        } else {
+          const i = Math.round(Number(msg.i));
+          if (!(i >= 0 && i < q.opts.length)) return;
+          r.ans[pid] = { i, t };
+        }
+        this.changed();
+        this.quizCheck();
+        return;
+      }
+
       case 'tans': {
         if (S.phase !== 'tak' || r.step !== 'write' || !r.roster.includes(pid)) return;
         const clean = (t) => String(t ?? '').replace(/\s+/g, ' ').trim().slice(0, TAK_MAX);
@@ -1653,6 +1751,7 @@ const Host = {
         else if (S.phase === 'zar') this.zarSkip();
         else if (S.phase === 'pat') this.patSkip();
         else if (S.phase === 'tak') this.takSkip();
+        else if (S.phase === 'quiz') this.quizSkip();
         return;
       case 'lieReset':
         S.lieTotals = {};
@@ -1675,6 +1774,7 @@ const Host = {
         else if (S.phase === 'pat' && r.step === 'reveal') this.patNext();
         else if (S.phase === 'tak' && r.step === 'reveal') this.takNext();
         else if (S.phase === 'tak' && r.step === 'unmask') this.takFinish();
+        else if (S.phase === 'quiz' && r.step === 'reveal') this.quizNext();
         return;
       case 'prev':
         if (S.phase === 'results' && r.revealIndex > 0) {
@@ -1809,6 +1909,7 @@ const Host = {
     if (S.game === 'zar') this.setupZar(S.round);
     if (S.game === 'patates') this.setupPat(S.round);
     if (S.game === 'taklit') this.setupTak(S.round);
+    if (S.game === 'quiz') this.setupQuiz(S.round);
     S.phase = GAME_PHASE[S.game] || 'writing';
     this.changed();
   },
@@ -2381,6 +2482,80 @@ const Host = {
     const r = this.S.round;
     const live = this.liveIds();
     if (r.step === 'rank' && live.length && live.every((id) => r.ranks[id])) this.sirReveal();
+  },
+
+  /* ---------- Bilgi Yarışması ---------- */
+
+  setupQuiz(r) {
+    const zero = () => Object.fromEntries(r.roster.map((id) => [id, 0]));
+    Object.assign(r, { qs: buildQuiz(r.cfg.category, r.cfg.qCount), qi: 0, scores: zero(), mapPts: zero(), right: zero(), result: null });
+    this.quizBegin(true);
+  },
+
+  quizTime() {
+    const r = this.S.round;
+    return r.cfg.time + (r.qs[r.qi] && r.qs[r.qi].type === 'map' ? QUIZ_MAP_EXTRA : 0);
+  },
+
+  quizBegin(silent) {
+    const r = this.S.round;
+    if (r.qi >= r.qs.length) { this.quizFinish(); return; }
+    Object.assign(r, { step: 'q', ans: {}, qStart: Date.now(), result: null });
+    this.setStepDeadline(this.quizTime());
+    if (!silent) this.changed();
+  },
+
+  quizCheck() {
+    const r = this.S.round;
+    const live = this.liveIds();
+    if (r.step === 'q' && live.length && live.every((id) => r.ans[id])) this.quizReveal();
+  },
+
+  quizReveal() {
+    const r = this.S.round;
+    const q = r.qs[r.qi];
+    const total = this.quizTime() * 1000;
+    const delta = {};
+    const picks = {};
+    const pins = {};
+    for (const [id, a] of Object.entries(r.ans)) {
+      if (q.type === 'map') {
+        const d = distKm(a.lat, a.lng, q.lat, q.lng);
+        const pts = Math.round(1000 * Math.max(0, 1 - d / (q.tr ? QUIZ_TR_KM : QUIZ_WORLD_KM)));
+        pins[id] = { lat: a.lat, lng: a.lng, km: Math.round(d), pts };
+        if (pts) { delta[id] = pts; r.mapPts[id] += pts; }
+      } else {
+        picks[id] = a.i;
+        if (a.i === q.ans) {
+          delta[id] = QUIZ_BASE + Math.round(QUIZ_SPEED * Math.max(0, 1 - a.t / total));
+          r.right[id]++;
+        }
+      }
+    }
+    this.addPoints(r, delta);
+    r.result = { ans: q.ans, lat: q.lat, lng: q.lng, place: q.place, picks, pins, delta, scores: { ...r.scores } };
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  quizNext() {
+    this.S.round.qi++;
+    this.quizBegin();
+  },
+
+  quizSkip() {
+    const r = this.S.round;
+    if (r.step === 'q') this.quizReveal();
+    else this.quizNext();
+  },
+
+  quizFinish() {
+    const r = this.S.round;
+    this.finishCustom({
+      scores: { ...r.scores }, mapPts: { ...r.mapPts }, right: { ...r.right }, qn: r.qs.length,
+      ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a]),
+    });
   },
 
   /* ---------- Taklitçi ---------- */
@@ -3547,6 +3722,7 @@ const Host = {
       else if (S.phase === 'zar' && now >= r.deadline) this.zarSkip();
       else if (S.phase === 'pat' && now >= r.deadline) this.patSkip();
       else if (S.phase === 'tak' && now >= r.deadline) this.takSkip();
+      else if (S.phase === 'quiz' && now >= r.deadline) this.quizSkip();
     }
     if (S.phase === 'ikiz' && r) this.ikizCheck();
     if (S.phase === 'tele' && r) this.teleCheck();
@@ -3557,6 +3733,7 @@ const Host = {
     if (S.phase === 'sir' && r) this.sirCheck();
     if (S.phase === 'vamp' && r) this.vampCheck();
     if (S.phase === 'tak' && r) this.takCheck();
+    if (S.phase === 'quiz' && r) this.quizCheck();
     // The bomb ignores "Süresiz": it is the whole game.
     if (S.phase === 'pat' && r && r.step === 'play' && now >= r.boomAt) this.patBoom();
     if (S.phase === 'kac' && r) {
@@ -3763,6 +3940,19 @@ const Host = {
         step: r.step, ti: r.ti, tn: r.turns.length, asker, amAsker: pid === asker, q: r.q, done,
         rankIds: r.step === 'rank' ? r.rankIds : null, myRank: (r.ranks && r.ranks[pid]) || null,
         result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
+      };
+    } else if (S.phase === 'quiz') {
+      const q = r.qs[r.qi];
+      const nextQ = r.qs[r.qi + 1];
+      const done = {};
+      for (const id of r.roster) done[id] = r.step === 'q' ? !!r.ans[id] : true;
+      pub.stepKey = r.step + r.qi;
+      pub.quiz = {
+        step: r.step, qi: r.qi, qn: r.qs.length, done,
+        q: { type: q.type, cat: q.cat, text: q.text, img: q.img || null, opts: q.opts || null, tr: !!q.tr },
+        myAns: r.ans[pid] || null,
+        result: r.step === 'reveal' ? r.result : null,
+        nextImg: r.step === 'reveal' && nextQ ? nextQ.img || null : null,
       };
     } else if (S.phase === 'tak') {
       // Scores stay hidden until the masks come off: other people's points would give the imitators away.
@@ -4069,6 +4259,10 @@ function computeAwards(r) {
     case 'adam':
       give(top(F.solved), 'ad_hunter');
       give(top(F.hanged), 'ad_hangman');
+      break;
+    case 'quiz':
+      give(F.ranking.slice(0, 1).filter((id) => F.scores[id] > 0), 'qz_brain');
+      give(top(F.mapPts), 'qz_compass');
       break;
     case 'taklit':
       give(top(F.fooled), 'tk_master');
@@ -4878,15 +5072,15 @@ function render() {
   if (!s) return;
   const inRound = !!(s.roster && s.roster.includes(s.you));
   let screen = s.phase;
-  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak'].includes(s.phase) && !inRound) screen = 'spectate';
+  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz'].includes(s.phase) && !inRound) screen = 'spectate';
   if (screen === 'lie') screen = 'lie:' + s.lie.step;
   if (screen === 'kac') screen = 'kac:' + s.kac.step;
-  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak'].includes(screen)) screen += ':' + s[screen].step;
+  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz'].includes(screen)) screen += ':' + s[screen].step;
   let key = screen + ':' + (s.roundId || '');
   if (screen === 'results') key += ':' + s.reveal.index;
   if (screen === 'lie:clues') key += ':' + s.lie.turn;
   if (screen.startsWith('kac:')) key += ':' + s.kac.ti;
-  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp|zar|pat|tak):/.test(screen)) key += ':' + s.stepKey;
+  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp|zar|pat|tak|quiz):/.test(screen)) key += ':' + s.stepKey;
   if (screen === 'writing' && s.writing.stage) key += ':' + s.writing.stage;
 
   const fresh = key !== App.screenKey;
@@ -6173,6 +6367,163 @@ function sirFinalMount(s) {
     '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
       '<p class="muted" style="margin:10px 0 0;font-size:14px">Grubun sıralamasıyla aynı yere koyduğun her kişi +' + SIR_POS_POINTS + ' · Birebir aynıysa +' + SIR_PERFECT_BONUS + ' bonus</p></div>' +
     '<div class="card"><h2>Bütün sorular</h2><div class="recap">' + recap + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
+/* ---------- Bilgi Yarışması ---------- */
+
+const QUIZ_SHAPES = ['▲', '◆', '●', '■'];
+
+// Leaflet (the map library) is only loaded when the first map question shows up.
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  if (!App.leafletP) {
+    App.leafletP = new Promise((ok, fail) => {
+      const css = document.createElement('link');
+      css.rel = 'stylesheet';
+      css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(css);
+      const js = document.createElement('script');
+      js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      js.onload = ok;
+      js.onerror = () => { App.leafletP = null; fail(); };
+      document.head.appendChild(js);
+    });
+  }
+  return App.leafletP;
+}
+
+function quizMakeMap(el, tr) {
+  if (App.qmap && !App.qmap.getContainer().isConnected) { try { App.qmap.remove(); } catch { /* old map */ } }
+  const m = L.map(el, { worldCopyJump: true, minZoom: 1, attributionControl: true }).setView(tr ? [39, 35] : [25, 10], tr ? 5 : 1);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18, attribution: '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>',
+  }).addTo(m);
+  App.qmap = m;
+  return m;
+}
+
+function quizPin(id, cls = '') {
+  return L.divIcon({ className: 'qpin ' + cls, html: avatarHTML(nameOf(id), 'sm'), iconSize: [30, 30], iconAnchor: [15, 15] });
+}
+
+function quizTop(s, timer) {
+  const Q = s.quiz;
+  return header() + timer + stepDots(Q.qi, Q.qn) +
+    '<div class="card qcard quizq"><div class="meta">' + esc(Q.q.cat) + ' · Soru ' + (Q.qi + 1) + ' / ' + Q.qn + '</div><div class="qtext">' + esc(Q.q.text) + '</div>' +
+    (Q.q.img ? '<div class="qimg"><img src="' + esc(Q.q.img) + '" alt="" referrerpolicy="no-referrer"></div><div class="qcredit">📷 Wikimedia Commons</div>' : '') + '</div>';
+}
+
+Views['quiz:q'] = {
+  mount(s) {
+    const Q = s.quiz;
+    App.qPin = null;
+    let body;
+    if (Q.q.type === 'map') {
+      body = '<div class="card"><div class="qmap" id="qmap"><div class="muted center" style="padding-top:40%">Harita yükleniyor…</div></div>' +
+        '<button class="btn yellow big block" id="qmapSend" data-act="qMapSend" style="margin-top:10px" disabled>📍 Haritaya dokun, sonra burayı seç</button></div>';
+    } else {
+      body = '<div class="qopts">' + Q.q.opts.map((o, i) => '<button class="qopt c' + i + '" data-act="qPick" data-i="' + i + '"><span class="sh">' + QUIZ_SHAPES[i] + '</span>' + esc(o) + '</button>').join('') + '</div>';
+    }
+    mount(quizTop(s, timerHTML(Q.q.type === 'map' ? 'İşaretleme süresi' : 'Cevap süresi')) + body +
+      '<p class="muted center" id="qWait" style="margin:10px 0"></p><div class="card"><h2>Kim cevapladı?</h2><div class="chips" id="qChips"></div></div>' + hostSkip('Cevabı aç'));
+    if (Q.q.type === 'map') {
+      const el = $('#qmap');
+      loadLeaflet().then(() => {
+        if (!el.isConnected || el._map || App.state.quiz.qi !== Q.qi || App.state.quiz.step !== 'q') return;
+        el.innerHTML = '';
+        const m = quizMakeMap(el, Q.q.tr);
+        el._map = m;
+        if (window.ResizeObserver) new ResizeObserver(() => m.invalidateSize()).observe(el); else setTimeout(() => m.invalidateSize(), 300);
+        let marker = null;
+        const mine = App.state.quiz.myAns;
+        if (mine) marker = L.marker([mine.lat, mine.lng], { icon: quizPin(s.you, 'me') }).addTo(m);
+        m.on('click', (e) => {
+          if (App.state.quiz.myAns) return;
+          App.qPin = e.latlng.wrap();
+          if (marker) marker.setLatLng(e.latlng); else marker = L.marker(e.latlng, { icon: quizPin(s.you, 'me') }).addTo(m);
+          const b = $('#qmapSend');
+          b.disabled = false;
+          b.textContent = '📍 Burayı seç';
+        });
+      }).catch(() => { const el = $('#qmap'); if (el) el.innerHTML = '<p class="muted center">Harita yüklenemedi 😕 İnternet bağlantını kontrol et.</p>'; });
+    }
+    Sound.beep(740, 0.1, 'triangle', 0.05);
+  },
+  update(s) {
+    const Q = s.quiz;
+    $('#qChips').innerHTML = doneChips(s, Q.done);
+    const a = Q.myAns;
+    if (a && Q.q.type !== 'map') $$('.qopt').forEach((b) => { b.disabled = true; b.classList.toggle('picked', Number(b.dataset.i) === a.i); });
+    if (a && $('#qmapSend')) { $('#qmapSend').disabled = true; $('#qmapSend').textContent = '✅ Seçimin gönderildi'; }
+    $('#qWait').textContent = a ? '✅ Cevabın alındı! Diğerleri bekleniyor…' : '';
+  },
+};
+
+Views['quiz:reveal'] = {
+  mount(s) {
+    const Q = s.quiz;
+    const R = Q.result;
+    const last = Q.qi >= Q.qn - 1;
+    let body;
+    if (Q.q.type === 'map') {
+      const rows = Object.keys(R.pins).sort((a, b) => R.pins[a].km - R.pins[b].km).map((id) => '<div class="srow">' + avatarHTML(nameOf(id), 'sm') +
+        '<span class="nm">' + esc(nameOf(id).name) + '<small>' + R.pins[id].km.toLocaleString('tr-TR') + ' km uzakta</small></span>' + (R.pins[id].pts ? '<span class="dl">+' + R.pins[id].pts + '</span>' : '') + '</div>').join('');
+      body = '<div class="card"><div class="qanswer">📍 ' + esc(R.place) + '</div><div class="qmap" id="qmapR"></div>' +
+        '<div class="board" style="margin-top:10px">' + (rows || '<p class="muted" style="margin:0">Kimse işaretlemedi.</p>') + '</div></div>';
+    } else {
+      body = (Q.q.type === 'photo' ? '<div class="qanswer">📍 ' + esc(R.place) + '</div>' : '') + '<div class="qopts reveal">' + Q.q.opts.map((o, i) => {
+        const who = Object.keys(R.picks).filter((id) => R.picks[id] === i);
+        return '<div class="qopt c' + i + (i === R.ans ? ' right' : ' wrong') + '"><span class="sh">' + (i === R.ans ? '✅' : QUIZ_SHAPES[i]) + '</span><span class="tx">' + esc(o) + '</span>' +
+          '<span class="qwho">' + who.map((id) => avatarHTML(nameOf(id), 'sm')).join('') + '</span></div>';
+      }).join('') + '</div>';
+    }
+    const me = R.delta[s.you];
+    mount(quizTop(s, revealTimer(s)) + body +
+      (s.roster.includes(s.you) ? '<div class="qme ' + (me ? 'ok' : 'no') + '">' + (me ? '🎉 +' + me + ' puan!' : Q.q.type === 'map' ? '😅 Bu sefer çok uzaktın' : '😅 Bu sefer olmadı') + '</div>' : '') +
+      '<div class="card"><h2>Puan durumu</h2>' + scoreBoard(s, R.scores, R.delta) + '</div>' +
+      hostNext(s, last ? '🏆 Sonuçlar' : 'Sonraki soru ▶'));
+    if (Q.nextImg) { const im = new Image(); im.src = Q.nextImg; }
+    if (Q.q.type === 'map') {
+      const el = $('#qmapR');
+      loadLeaflet().then(() => {
+        if (!el.isConnected || el._map) return;
+        const m = quizMakeMap(el, Q.q.tr);
+        el._map = m;
+        const truth = [R.lat, R.lng];
+        L.marker(truth, { icon: L.divIcon({ className: 'qpin truth', html: '⭐', iconSize: [34, 34], iconAnchor: [17, 17] }) }).addTo(m);
+        const pts = [truth];
+        for (const [id, p] of Object.entries(R.pins)) {
+          L.polyline([truth, [p.lat, p.lng]], { color: '#6c3cf0', weight: 2, dashArray: '6 6' }).addTo(m);
+          L.marker([p.lat, p.lng], { icon: quizPin(id, id === s.you ? 'me' : '') }).addTo(m);
+          pts.push([p.lat, p.lng]);
+        }
+        // Let the box settle first, otherwise Leaflet measures a zero-size map and zooms to the wrong spot.
+        const frame = () => {
+          m.invalidateSize();
+          if (pts.length > 1) m.fitBounds(L.latLngBounds(pts), { padding: [30, 30], maxZoom: 7, animate: false }); else m.setView(truth, Q.q.tr ? 6 : 4, { animate: false });
+        };
+        // Fit again whenever the box gets its real size (it can be 0×0 for a moment while the page settles).
+        if (window.ResizeObserver) new ResizeObserver(() => { if (el.clientWidth) frame(); }).observe(el);
+        else { frame(); setTimeout(frame, 300); }
+      }).catch(() => {});
+    }
+    Sound.beep(me ? 988 : 330, 0.2, 'triangle', 0.08);
+  },
+};
+
+function quizFinalMount(s) {
+  const F = s.final;
+  const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.right[id] + ' doğru cevap' + (F.mapPts[id] ? ' · haritadan ' + F.mapPts[id] + ' puan' : '') + '</small></span><b>' + F.scores[id] + '</b></div>').join('');
+  mount(
+    header() +
+    '<div class="phase-title">' + finalHeadline(F, F.scores, 'yarışmanın birincisi 🧠') + '</div>' +
+    podiumHTML(F.ranking, (id) => F.scores[id] + ' puan') +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Doğru cevap +' + QUIZ_BASE + ' ve hızına göre +' + QUIZ_SPEED + "'e kadar · Haritada ne kadar yakınsan o kadar puan (en fazla 1000)</p></div>" +
     finalFooter(),
     true
   );
@@ -7531,6 +7882,7 @@ Views.final = {
     else if (s.game === 'zar') zarFinalMount(s);
     else if (s.game === 'patates') patFinalMount(s);
     else if (s.game === 'taklit') takFinalMount(s);
+    else if (s.game === 'quiz') quizFinalMount(s);
     else hangimizFinalMount(s);
     confetti();
     Sound.fanfare();
@@ -7608,6 +7960,9 @@ function shareLines(s) {
       break;
     case 'sirala':
       for (const r of F.recap) if (r.top) L.push(n(r.asker) + ': ' + r.q + ' → 👑 ' + n(r.top));
+      break;
+    case 'quiz':
+      F.ranking.slice(0, 3).forEach((id, i) => L.push(['🥇', '🥈', '🥉'][i] + ' ' + n(id) + ' · ' + F.scores[id] + ' puan (' + F.right[id] + ' doğru)'));
       break;
     case 'taklit':
       if (F.best) L.push('🏆 En inandırıcı taklit: "' + F.best.text + '" (' + n(F.best.imp) + ', ' + n(F.best.subject) + ' rolünde)');
@@ -8347,6 +8702,17 @@ const actions = {
   },
   sreset() { App.sirOrder = []; sirPaint(); },
   srank() { Sound.click(); send({ t: 'srank', order: App.sirOrder }); },
+  qPick(el) {
+    if (App.state.quiz.myAns) return;
+    Sound.click();
+    $$('.qopt').forEach((b) => b.classList.toggle('picked', b === el));
+    send({ t: 'qans', i: Number(el.dataset.i) });
+  },
+  qMapSend() {
+    if (!App.qPin || App.state.quiz.myAns) return;
+    Sound.click();
+    send({ t: 'qans', lat: App.qPin.lat, lng: App.qPin.lng });
+  },
   takSend() {
     const real = $('#takReal').value.trim();
     const fake = $('#takFake').value.trim();
