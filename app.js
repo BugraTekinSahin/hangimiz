@@ -151,7 +151,7 @@ GAMES.emoji = {
   desc: 'Sırayla biri gizli bir film, dizi ya da çizgi filmi sadece emojiyle anlatır. İlk bilen en çok puanı kapar!',
   minPlayers: 2,
   defs: [
-    { key: 'category', label: 'Kategori', type: 'choice', def: 'mix', options: [['mix', 'Karışık'], ['film', 'Filmler'], ['dizi', 'Diziler'], ['cizgi', 'Çizgi filmler']] },
+    { key: 'category', label: 'Kategori', type: 'choice', def: 'mix', options: [['mix', 'Karışık'], ['film', 'Filmler'], ['dizi', 'Diziler'], ['cizgi', 'Çizgi filmler'], ['anime', 'Animeler']] },
     { key: 'perPlayer', label: 'Kişi başı anlatma', type: 'num', def: 1, min: 1, max: 3, step: 1, unit: 'kez' },
     { key: 'writeTime', label: 'Emoji yazma süresi', type: 'num', def: 45, min: 15, max: 120, step: 5, unit: 'sn' },
     { key: 'guessTime', label: 'Tahmin süresi', type: 'num', def: 60, min: 15, max: 180, step: 5, unit: 'sn' },
@@ -205,34 +205,7 @@ const SIR_POS_POINTS = 50;           // per correctly placed person
 const SIR_PERFECT_BONUS = 100;
 
 // t = answer shown, a = other accepted spellings.
-const EMO_ITEMS = {
-  film: { name: 'Film', items: [
-    { t: 'Titanik', a: ['titanic'] }, { t: 'Aslan Kral', a: ['lion king', 'the lion king'] }, { t: 'Harry Potter' },
-    { t: 'Örümcek Adam', a: ['spiderman', 'spider man'] }, { t: 'Buz Devri', a: ['ice age'] }, { t: 'Shrek' },
-    { t: 'Karayip Korsanları', a: ['pirates of the caribbean'] }, { t: 'Yüzüklerin Efendisi', a: ['lord of the rings'] },
-    { t: 'Avatar' }, { t: 'Jurassic Park', a: ['jurassic world'] }, { t: 'Kayıp Balık Nemo', a: ['nemo', 'finding nemo'] },
-    { t: 'Oyuncak Hikayesi', a: ['toy story'] }, { t: 'Karlar Ülkesi', a: ['frozen'] }, { t: 'Hızlı ve Öfkeli', a: ['fast and furious'] },
-    { t: 'Matrix' }, { t: 'Batman' }, { t: 'Süpermen', a: ['superman'] }, { t: 'Yıldız Savaşları', a: ['star wars'] },
-    { t: 'Recep İvedik' }, { t: 'Hababam Sınıfı' }, { t: 'Arabalar', a: ['cars'] }, { t: 'Minyonlar', a: ['minions'] },
-    { t: 'Kung Fu Panda' }, { t: 'Madagaskar', a: ['madagascar'] }, { t: 'Alaaddin', a: ['aladdin'] }, { t: 'King Kong' },
-    { t: 'Joker' }, { t: 'Barbie' }, { t: 'Ters Yüz', a: ['inside out'] }, { t: 'Terminatör', a: ['terminator'] },
-    { t: 'Demir Adam', a: ['iron man'] }, { t: 'Yenilmezler', a: ['avengers'] }, { t: 'Jaws', a: ['denizkızı', 'jaws köpekbalığı'] },
-  ] },
-  dizi: { name: 'Dizi', items: [
-    { t: 'Kurtlar Vadisi' }, { t: 'Leyla ile Mecnun' }, { t: 'Squid Game', a: ['kalamar oyunu'] }, { t: 'Stranger Things' },
-    { t: 'Prison Break' }, { t: 'Game of Thrones', a: ['taht oyunları'] }, { t: 'Breaking Bad' }, { t: 'Avrupa Yakası' },
-    { t: 'Ezel' }, { t: 'Muhteşem Yüzyıl' }, { t: 'Friends' }, { t: 'Sherlock' }, { t: 'La Casa de Papel', a: ['money heist', 'para soygunu'] },
-    { t: 'Wednesday' }, { t: 'Peaky Blinders' }, { t: 'Diriliş Ertuğrul' }, { t: 'Behzat Ç' }, { t: 'The Walking Dead', a: ['walking dead'] },
-  ] },
-  cizgi: { name: 'Çizgi film', items: [
-    { t: 'Sünger Bob', a: ['spongebob', 'sünger bob kare pantolon'] }, { t: 'Tom ve Jerry', a: ['tom and jerry', 'tom jerry'] },
-    { t: 'Şirinler', a: ['smurfs'] }, { t: 'Pokemon', a: ['pokémon', 'pikachu'] }, { t: 'Ben 10' }, { t: 'Kral Şakir' },
-    { t: 'Rafadan Tayfa' }, { t: 'Pepee' }, { t: 'Scooby Doo' }, { t: 'Simpsonlar', a: ['simpsons', 'the simpsons'] },
-    { t: 'Sürekli Dizi', a: ['regular show'] }, { t: 'Kuzucuk Şon', a: ['shaun the sheep'] }, { t: 'Doraemon' }, { t: 'Naruto' },
-    { t: 'Dragon Ball' }, { t: 'Ninja Kaplumbağalar', a: ['ninja turtles'] }, { t: 'Mickey Mouse', a: ['miki fare'] },
-    { t: 'Pembe Panter', a: ['pink panther'] }, { t: 'Garfield' }, { t: 'Temel Reis', a: ['popeye'] }, { t: 'Red Kit', a: ['lucky luke'] },
-  ] },
-};
+// EMO_ITEMS (Emojiyle Anlat titles) lives in emo-items.js, loaded before this file.
 
 const COG_QUESTIONS = [
   'Ananaslı pizza sever misin?', 'Hiç uçağa bindin mi?', 'Sabah insanı mısın?', 'Korku filmlerini sever misin?',
@@ -2799,6 +2772,17 @@ function chatBlockReason(S, pid, text) {
     const k = normWord(secret);
     return k.length >= 2 && t.includes(k);
   };
+  // Short titles ("It", "Av", "Söz") only count as whole words, or "tavuk" would leak "Av".
+  const words = String(text).split(/[^\p{L}\p{N}]+/u).map(normWord).filter(Boolean);
+  const hasTitle = (secret) => {
+    const k = normWord(secret);
+    if (k.length >= 5) return has(secret);
+    for (let i = 0; i < words.length; i++) {
+      let joined = '';
+      for (let j = i; j < Math.min(words.length, i + 3); j++) { joined += words[j]; if (joined === k) return true; }
+    }
+    return false;
+  };
   const SECRET = SHADOW;
   switch (S.phase) {
     case 'lie':
@@ -2811,7 +2795,7 @@ function chatBlockReason(S, pid, text) {
       return pid === r.turns[r.ti] && r.step !== 'reveal' && has(r.own) ? SHADOW : null;
     case 'emo':
       // Nobody may type the answer into the chat while it's still being guessed.
-      return r.step !== 'reveal' && r.item && [r.item.t, ...(r.item.a || [])].some((x) => has(x)) ? SHADOW : null;
+      return r.step !== 'reveal' && r.item && [r.item.t, ...(r.item.a || [])].some((x) => hasTitle(x)) ? SHADOW : null;
     case 'kac': {
       if (pid !== r.turns[r.ti] || !r.ask || r.step === 'reveal') return null;
       const nums = (String(text).match(/\d+(?:[.,]\d+)*/g) || []).map(parseKacNumber);
@@ -2863,9 +2847,11 @@ function levenshtein(a, b) {
 // How many typos a title of this length forgives.
 const emoSlack = (len) => (len >= 10 ? 2 : len >= 4 ? 1 : 0);
 
+const emoNorm = (t) => normWord(String(t).replace(/^\s*the\s+/i, ''));
+
 function emoDistance(guess, item) {
-  const g = normWord(guess);
-  return Math.min(...[item.t, ...(item.a || [])].map(normWord).map((a) => levenshtein(a, g) - emoSlack(a.length)));
+  const g = emoNorm(guess);
+  return Math.min(...[item.t, ...(item.a || [])].map(emoNorm).map((a) => levenshtein(a, g) - emoSlack(a.length)));
 }
 
 // 'hit' = accepted, 'close' = one or two letters off (told only to the guesser so it doesn't leak), null = miss.
