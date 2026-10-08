@@ -34,9 +34,9 @@ const COMMON_DEFS = [
 // writeTime / qPerPlayer / answerTime drive that flow, so each game defines them.
 const GAMES = {
   hangimiz: {
-    name: 'Hangimiz?',
+    name: 'Kim En?',
     emoji: '🤔',
-    desc: 'Herkes "Hangimiz…?" soruları yazar, herkes oylar. En zekimiz kim, en yakışıklımız kim?',
+    desc: 'Herkes "En … kim?" soruları yazar, herkes oylar. En zekimiz kim, en yakışıklımız kim?',
     minPlayers: 2,
     defs: [
       { key: 'writeTime', label: 'Soru yazma süresi', type: 'num', def: 20, min: 10, max: 180, step: 5, unit: 'sn' },
@@ -662,8 +662,8 @@ const KY_STARTERS = [
 
 // Badges handed out at the end of a round. Each player collects them on their own device.
 const BADGES = {
-  hz_king: { e: '👑', n: 'Hangimiz Kralı', d: "Hangimiz?'de en çok unvanı kaptın" },
-  hz_star: { e: '⭐', n: 'Herkesin Gözdesi', d: "Hangimiz?'de en çok oyu sen aldın" },
+  hz_king: { e: '👑', n: 'Unvan Kralı', d: "Kim En?'de en çok unvanı kaptın" },
+  hz_star: { e: '⭐', n: 'Herkesin Gözdesi', d: "Kim En?'de en çok oyu sen aldın" },
   ky_champ: { e: '🏆', n: 'İtiraf Şampiyonu', d: "Kim Yazdı?'yı kazandın" },
   ky_detective: { e: '🕵️', n: 'Dedektif', d: "Kim Yazdı?'da en çok doğru tahmini yaptın" },
   ky_mystery: { e: '😎', n: 'Gizemli', d: "Kim Yazdı?'da en çok kişiyi kandırdın" },
@@ -4887,7 +4887,7 @@ function settingsHTML(set, editable, game) {
 const GAME_UI = {
   hangimiz: {
     writeTitle: 'Sorularını yaz! ✍️',
-    writeHint: (n) => '"Hangimiz…?" diye sorulacak ' + n + ' soru yaz. Aklına gelmezse 🎲 bas.',
+    writeHint: (n) => 'Herkesin oylayacağı ' + n + ' soru yaz ("En … kim?" gibi). Aklına gelmezse 🎲 bas.',
     writeTimer: 'Soru yazma süresi',
     progressTitle: 'Kim kaç soru yazdı?',
     placeholders: ['Örn: Grubun en zekisi kim?', 'Örn: En yakışıklı kim?', 'Örn: İlk kim evlenir?', 'Örn: En çok kim geç kalır?'],
