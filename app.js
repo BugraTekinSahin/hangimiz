@@ -145,9 +145,115 @@ GAMES.ayna = {
     { key: 'judgeTime', label: 'Kontrol süresi', type: 'num', def: 30, min: 10, max: 90, step: 5, unit: 'sn' },
   ],
 };
-const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna'];
+GAMES.emoji = {
+  name: 'Emojiyle Anlat',
+  emoji: '🎬',
+  desc: 'Sırayla biri gizli bir film, dizi ya da çizgi filmi sadece emojiyle anlatır. İlk bilen en çok puanı kapar!',
+  minPlayers: 2,
+  defs: [
+    { key: 'category', label: 'Kategori', type: 'choice', def: 'mix', options: [['mix', 'Karışık'], ['film', 'Filmler'], ['dizi', 'Diziler'], ['cizgi', 'Çizgi filmler']] },
+    { key: 'perPlayer', label: 'Kişi başı anlatma', type: 'num', def: 1, min: 1, max: 3, step: 1, unit: 'kez' },
+    { key: 'writeTime', label: 'Emoji yazma süresi', type: 'num', def: 45, min: 15, max: 120, step: 5, unit: 'sn' },
+    { key: 'guessTime', label: 'Tahmin süresi', type: 'num', def: 60, min: 15, max: 180, step: 5, unit: 'sn' },
+  ],
+};
+GAMES.cogunluk = {
+  name: 'Çoğunluğu Bil',
+  emoji: '📊',
+  desc: 'Evet/hayır sorularına herkes cevap verir ve kaç kişinin "Evet" diyeceğini tahmin eder. Tam bilen kazanır!',
+  minPlayers: 3,
+  defs: [
+    { key: 'qCount', label: 'Soru sayısı', type: 'num', def: 5, min: 1, max: 10, step: 1, unit: 'soru' },
+    { key: 'answerTime', label: 'Cevap süresi', type: 'num', def: 25, min: 10, max: 90, step: 5, unit: 'sn' },
+    { key: 'showNames', label: 'Kimin ne dediği görünsün', type: 'bool', def: true },
+  ],
+};
+GAMES.ikidogru = {
+  name: 'İki Doğru Bir Yalan',
+  emoji: '🎭',
+  desc: 'Herkes kendisi hakkında 3 cümle yazar, biri yalan! Sırayla herkesin yalanını bulmaya çalışırsınız.',
+  minPlayers: 2,
+  defs: [
+    { key: 'writeTime', label: 'Yazma süresi', type: 'num', def: 90, min: 30, max: 240, step: 10, unit: 'sn' },
+    { key: 'guessTime', label: 'Tahmin süresi', type: 'num', def: 30, min: 10, max: 90, step: 5, unit: 'sn' },
+  ],
+};
+GAMES.sirala = {
+  name: 'Sıralama',
+  emoji: '📏',
+  desc: 'Sırayla biri sorar: "Burada en çok kim uyur?" Herkes grubu sıralar, grubun ortak sıralamasına en yakın olan kazanır!',
+  minPlayers: 3,
+  defs: [
+    { key: 'perPlayer', label: 'Kişi başı soru', type: 'num', def: 1, min: 1, max: 3, step: 1, unit: 'soru' },
+    { key: 'askTime', label: 'Soru yazma süresi', type: 'num', def: 40, min: 15, max: 120, step: 5, unit: 'sn' },
+    { key: 'rankTime', label: 'Sıralama süresi', type: 'num', def: 45, min: 15, max: 120, step: 5, unit: 'sn' },
+  ],
+};
+const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala'];
 // Games with their own flow instead of write → answer → results.
-const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna' };
+const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir' };
+
+const EMO_POINTS = [300, 200];      // 1st and 2nd correct guess; everyone after gets EMO_POINTS_REST
+const EMO_POINTS_REST = 100;
+const EMO_NARRATOR_POINTS = 50;      // narrator, per player who got it
+const EMO_REROLLS = 2;
+const COG_EXACT_POINTS = 200;
+const COG_CLOSE_POINTS = 100;        // off by one
+const IKY_FOUND_POINTS = 100;
+const IKY_FOOL_POINTS = 50;          // author, per player who picked a true statement
+const SIR_POS_POINTS = 50;           // per correctly placed person
+const SIR_PERFECT_BONUS = 100;
+
+// t = answer shown, a = other accepted spellings.
+const EMO_ITEMS = {
+  film: { name: 'Film', items: [
+    { t: 'Titanik', a: ['titanic'] }, { t: 'Aslan Kral', a: ['lion king', 'the lion king'] }, { t: 'Harry Potter' },
+    { t: 'Örümcek Adam', a: ['spiderman', 'spider man'] }, { t: 'Buz Devri', a: ['ice age'] }, { t: 'Shrek' },
+    { t: 'Karayip Korsanları', a: ['pirates of the caribbean'] }, { t: 'Yüzüklerin Efendisi', a: ['lord of the rings'] },
+    { t: 'Avatar' }, { t: 'Jurassic Park', a: ['jurassic world'] }, { t: 'Kayıp Balık Nemo', a: ['nemo', 'finding nemo'] },
+    { t: 'Oyuncak Hikayesi', a: ['toy story'] }, { t: 'Karlar Ülkesi', a: ['frozen'] }, { t: 'Hızlı ve Öfkeli', a: ['fast and furious'] },
+    { t: 'Matrix' }, { t: 'Batman' }, { t: 'Süpermen', a: ['superman'] }, { t: 'Yıldız Savaşları', a: ['star wars'] },
+    { t: 'Recep İvedik' }, { t: 'Hababam Sınıfı' }, { t: 'Arabalar', a: ['cars'] }, { t: 'Minyonlar', a: ['minions'] },
+    { t: 'Kung Fu Panda' }, { t: 'Madagaskar', a: ['madagascar'] }, { t: 'Alaaddin', a: ['aladdin'] }, { t: 'King Kong' },
+    { t: 'Joker' }, { t: 'Barbie' }, { t: 'Ters Yüz', a: ['inside out'] }, { t: 'Terminatör', a: ['terminator'] },
+    { t: 'Demir Adam', a: ['iron man'] }, { t: 'Yenilmezler', a: ['avengers'] }, { t: 'Jaws', a: ['denizkızı', 'jaws köpekbalığı'] },
+  ] },
+  dizi: { name: 'Dizi', items: [
+    { t: 'Kurtlar Vadisi' }, { t: 'Leyla ile Mecnun' }, { t: 'Squid Game', a: ['kalamar oyunu'] }, { t: 'Stranger Things' },
+    { t: 'Prison Break' }, { t: 'Game of Thrones', a: ['taht oyunları'] }, { t: 'Breaking Bad' }, { t: 'Avrupa Yakası' },
+    { t: 'Ezel' }, { t: 'Muhteşem Yüzyıl' }, { t: 'Friends' }, { t: 'Sherlock' }, { t: 'La Casa de Papel', a: ['money heist', 'para soygunu'] },
+    { t: 'Wednesday' }, { t: 'Peaky Blinders' }, { t: 'Diriliş Ertuğrul' }, { t: 'Behzat Ç' }, { t: 'The Walking Dead', a: ['walking dead'] },
+  ] },
+  cizgi: { name: 'Çizgi film', items: [
+    { t: 'Sünger Bob', a: ['spongebob', 'sünger bob kare pantolon'] }, { t: 'Tom ve Jerry', a: ['tom and jerry', 'tom jerry'] },
+    { t: 'Şirinler', a: ['smurfs'] }, { t: 'Pokemon', a: ['pokémon', 'pikachu'] }, { t: 'Ben 10' }, { t: 'Kral Şakir' },
+    { t: 'Rafadan Tayfa' }, { t: 'Pepee' }, { t: 'Scooby Doo' }, { t: 'Simpsonlar', a: ['simpsons', 'the simpsons'] },
+    { t: 'Sürekli Dizi', a: ['regular show'] }, { t: 'Kuzucuk Şon', a: ['shaun the sheep'] }, { t: 'Doraemon' }, { t: 'Naruto' },
+    { t: 'Dragon Ball' }, { t: 'Ninja Kaplumbağalar', a: ['ninja turtles'] }, { t: 'Mickey Mouse', a: ['miki fare'] },
+    { t: 'Pembe Panter', a: ['pink panther'] }, { t: 'Garfield' }, { t: 'Temel Reis', a: ['popeye'] }, { t: 'Red Kit', a: ['lucky luke'] },
+  ] },
+};
+
+const COG_QUESTIONS = [
+  'Ananaslı pizza sever misin?', 'Hiç uçağa bindin mi?', 'Sabah insanı mısın?', 'Korku filmlerini sever misin?',
+  'Kedileri köpeklerden çok mu seversin?', 'Duş alırken şarkı söyler misin?', 'Hiç bir sınavdan kaldın mı?',
+  "Telefonunun şarjı şu an %50'nin üstünde mi?", 'Bugün kahvaltı yaptın mı?', 'Uzaya gitmek ister miydin?',
+  "Hiç öğretmene yanlışlıkla 'anne' dedin mi?", 'Çayı şekerli mi içersin?', 'Denize girmeyi sever misin?',
+  'Hiç ünlü biriyle fotoğraf çektirdin mi?', "Genelde gece 1'den sonra mı yatarsın?", 'Hiç kemiğin kırıldı mı?',
+  'Mayonezi ketçaba tercih eder misin?', 'Türkçeden başka bir dil konuşabiliyor musun?', 'Hiç bir çekiliş ya da yarışma kazandın mı?',
+  'Karanlıktan korkar mısın?', 'Hiç tek başına sinemaya gittin mi?', 'Evcil hayvanın var mı?', 'Düzenli spor yapıyor musun?',
+  'Sınavlara son gece mi çalışırsın?', 'Gözlük ya da lens kullanıyor musun?', 'Patlıcanı sever misin?',
+  'Hiç yemek yaparken bir şey yaktın mı?', 'Bir enstrüman çalabiliyor musun?', 'Hiç telefonunu tuvalete düşürdün mü?',
+  'Aynı diziyi iki kez baştan izledin mi?', 'Hiç kaybolup yolunu bulamadın mı?', 'Doğum gününü kutlamayı sever misin?',
+];
+
+// Ideas for the 🎲 button: "who is the most … here?" questions to rank the group by.
+const SIR_IDEAS = [
+  'Burada en çok kim uyur?', 'En çok kim geç kalır?', 'En komik kim?', 'En çok kim yer?', 'Telefona en çok kim bakar?',
+  'En dağınık kim?', 'En çok kim konuşur?', 'En cimri kim?', 'En romantik kim?', 'En korkak kim?', 'En iyi kim dans eder?',
+  'En çok kim ağlar?', 'En sabırsız kim?', 'Ünlü olma ihtimali en yüksek kim?', 'En çok kim alışveriş yapar?',
+  'En iyi kim yemek yapar?', 'Zombi kıyametinde en uzun kim yaşar?', 'En iyi yalanı kim söyler?', 'En tembel kim?', 'En sporcu kim?',
+];
 
 const IKIZ_MATCH_POINTS = 100;   // you and your secret twin wrote the same thing
 const IKIZ_GUESS_POINTS = 200;   // you guessed who your twin is
@@ -358,6 +464,12 @@ const BADGES = {
   tl_telepath: { e: '🧠', n: 'Telepat', d: "Telepati'yi kazandın" },
   tl_mindreader: { e: '🔮', n: 'Zihin Okuyucu', d: "Telepati'de eşinle aynı cevabı verdin" },
   ay_knower: { e: '🪞', n: 'Seni Tanıyorum', d: "Ayna'da en çok doğru tahmini yaptın" },
+  em_artist: { e: '🎨', n: 'Emoji Sanatçısı', d: "Emojiyle Anlat'ta en çok kişiye anlattın" },
+  em_flash: { e: '⚡', n: 'Şimşek', d: "Emojiyle Anlat'ta en çok ilk bilen sendin" },
+  cg_pollster: { e: '📊', n: 'Anketçi', d: "Çoğunluğu Bil'i kazandın" },
+  iy_poker: { e: '🃏', n: 'Poker Yüzü', d: "İki Doğru Bir Yalan'da en çok kişiyi kandırdın" },
+  iy_detector: { e: '👃', n: 'Yalan Dedektörü', d: "İki Doğru Bir Yalan'da en çok yalanı buldun" },
+  sr_ruler: { e: '📏', n: 'Cetvel', d: "Sıralama'yı kazandın" },
   ay_openbook: { e: '📖', n: 'Açık Kitap', d: "Ayna'da seni en çok kişi bildi" },
 };
 
@@ -893,6 +1005,98 @@ const Host = {
         this.aynaReveal(msg.accepted.map(String));
         return;
 
+      case 'ereroll':
+        if (S.phase !== 'emo' || r.step !== 'write' || pid !== r.turns[r.ti] || r.rerolls >= EMO_REROLLS) return;
+        r.rerolls++;
+        r.item = r.pool[r.pi++ % r.pool.length];
+        this.changed();
+        return;
+
+      case 'eclue': {
+        if (S.phase !== 'emo' || r.step !== 'write' || pid !== r.turns[r.ti]) return;
+        const text = String(msg.text ?? '').trim().slice(0, 60);
+        if (!isEmojiOnly(text)) { this.tell(pid, { t: 'toast', text: 'Sadece emoji kullanabilirsin 🙂 Harf ve rakam yok!' }); return; }
+        r.clue = text;
+        r.step = 'guess';
+        this.setStepDeadline(r.cfg.guessTime);
+        this.changed();
+        return;
+      }
+
+      case 'eguess': {
+        if (S.phase !== 'emo' || r.step !== 'guess' || !r.roster.includes(pid) || pid === r.turns[r.ti] || r.correct.includes(pid)) return;
+        const text = cleanWord(msg.text);
+        if (!text) return;
+        const m = emoMatch(text, r.item);
+        if (m === 'close') { this.tell(pid, { t: 'toast', text: '🔥 Çok yaklaştın! (' + text + ')' }); return; }
+        if (m === 'hit') {
+          r.correct.push(pid);
+          r.feed.push({ id: pid, ok: true });
+          this.tell(pid, { t: 'toast', text: '✅ Bildin! +' + (r.correct.length <= EMO_POINTS.length ? EMO_POINTS[r.correct.length - 1] : EMO_POINTS_REST) });
+        } else {
+          r.feed.push({ id: pid, text });
+        }
+        r.feed = r.feed.slice(-30);
+        this.changed();
+        this.emoCheck();
+        return;
+      }
+
+      case 'cans': {
+        if (S.phase !== 'cog' || r.step !== 'answer' || !r.roster.includes(pid)) return;
+        const pred = Math.round(Number(msg.pred));
+        if (typeof msg.yes !== 'boolean' || !Number.isFinite(pred) || pred < 0 || pred > r.roster.length) return;
+        r.ans[pid] = { yes: msg.yes, pred };
+        this.changed();
+        this.cogCheck();
+        return;
+      }
+
+      case 'iwrite': {
+        if (S.phase !== 'iky' || r.step !== 'write' || !r.roster.includes(pid) || !Array.isArray(msg.list)) return;
+        const list = msg.list.slice(0, 3).map((x) => String(x ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_Q_LEN));
+        const lie = Math.round(Number(msg.lie));
+        if (list.length !== 3 || list.some((x) => !x) || ![0, 1, 2].includes(lie)) return;
+        r.stmts[pid] = { list, lie };
+        this.changed();
+        this.ikyCheck();
+        return;
+      }
+
+      case 'ipick': {
+        if (S.phase !== 'iky' || r.step !== 'guess' || !r.roster.includes(pid) || pid === r.turns[r.ti]) return;
+        const idx = Math.round(Number(msg.idx));
+        if (![0, 1, 2].includes(idx)) return;
+        r.picks[pid] = idx;
+        this.changed();
+        this.ikyCheck();
+        return;
+      }
+
+      case 'sask': {
+        if (S.phase !== 'sir' || r.step !== 'ask' || pid !== r.turns[r.ti]) return;
+        const q = String(msg.q ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_Q_LEN);
+        if (!q) return;
+        r.q = q;
+        r.step = 'rank';
+        r.rankIds = shuffle(r.roster);
+        r.ranks = {};
+        this.setStepDeadline(r.cfg.rankTime);
+        this.changed();
+        return;
+      }
+
+      case 'srank': {
+        if (S.phase !== 'sir' || r.step !== 'rank' || !r.roster.includes(pid) || !Array.isArray(msg.order)) return;
+        const order = msg.order.map(String);
+        const need = r.rankIds;
+        if (order.length !== need.length || new Set(order).size !== order.length || !order.every((x) => need.includes(x))) return;
+        r.ranks[pid] = order;
+        this.changed();
+        this.sirCheck();
+        return;
+      }
+
       case 'kask': {
         if (S.phase !== 'kac' || r.step !== 'ask' || pid !== r.turns[r.ti]) return;
         const q = String(msg.q ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_Q_LEN);
@@ -1027,6 +1231,10 @@ const Host = {
         else if (S.phase === 'ikiz') this.ikizSkip();
         else if (S.phase === 'tele') this.teleSkip();
         else if (S.phase === 'ayna') this.aynaSkip();
+        else if (S.phase === 'emo') this.emoSkip();
+        else if (S.phase === 'cog') this.cogSkip();
+        else if (S.phase === 'iky') this.ikySkip();
+        else if (S.phase === 'sir') this.sirSkip();
         return;
       case 'lieReset':
         S.lieTotals = {};
@@ -1039,6 +1247,10 @@ const Host = {
         else if (S.phase === 'ikiz' && r.step === 'reveal') this.ikizNext();
         else if (S.phase === 'tele' && r.step === 'reveal') this.teleNext();
         else if (S.phase === 'ayna' && r.step === 'reveal') this.aynaNext();
+        else if (S.phase === 'emo' && r.step === 'reveal') this.emoNext();
+        else if (S.phase === 'cog' && r.step === 'reveal') this.cogNext();
+        else if (S.phase === 'iky' && r.step === 'reveal') this.ikyNext();
+        else if (S.phase === 'sir' && r.step === 'reveal') this.sirNext();
         return;
       case 'prev':
         if (S.phase === 'results' && r.revealIndex > 0) {
@@ -1164,6 +1376,10 @@ const Host = {
     if (S.game === 'ikiz') this.setupIkiz(S.round);
     if (S.game === 'tele') this.setupTele(S.round);
     if (S.game === 'ayna') this.setupAyna(S.round);
+    if (S.game === 'emoji') this.setupEmo(S.round);
+    if (S.game === 'cogunluk') this.setupCog(S.round);
+    if (S.game === 'ikidogru') this.setupIky(S.round);
+    if (S.game === 'sirala') this.setupSir(S.round);
     S.phase = GAME_PHASE[S.game] || 'writing';
     this.changed();
   },
@@ -1418,6 +1634,318 @@ const Host = {
     const mirror = r.turns[r.ti];
     const live = this.liveIds();
     if (r.own != null && live.filter((id) => id !== mirror).every((id) => r.guesses[id] != null)) this.aynaToJudge();
+  },
+
+  zeroScores(r) {
+    const scores = {};
+    for (const id of r.roster) scores[id] = 0;
+    return scores;
+  },
+
+  addPoints(r, delta) {
+    for (const id of Object.keys(delta)) r.scores[id] = (r.scores[id] || 0) + delta[id];
+  },
+
+  /* ---------- Emojiyle Anlat ---------- */
+
+  setupEmo(r) {
+    const cats = r.cfg.category === 'mix' ? Object.keys(EMO_ITEMS) : [r.cfg.category];
+    const pool = shuffle(cats.flatMap((c) => EMO_ITEMS[c].items.map((it) => ({ ...it, cat: EMO_ITEMS[c].name }))));
+    const turns = [];
+    for (let k = 0; k < r.cfg.perPlayer; k++) turns.push(...shuffle(r.roster));
+    Object.assign(r, { turns, ti: 0, pool, pi: 0, history: [], scores: this.zeroScores(r) });
+    this.emoBegin(true);
+  },
+
+  emoBegin(silent) {
+    const r = this.S.round;
+    if (r.ti >= r.turns.length) { this.emoFinish(); return; }
+    Object.assign(r, { step: 'write', item: r.pool[r.pi++ % r.pool.length], rerolls: 0, clue: null, correct: [], feed: [] });
+    this.setStepDeadline(r.cfg.writeTime);
+    if (!silent) this.changed();
+  },
+
+  emoAllGuessed() {
+    const r = this.S.round;
+    const narr = r.turns[r.ti];
+    const live = this.liveIds().filter((id) => id !== narr);
+    return live.length > 0 && live.every((id) => r.correct.includes(id));
+  },
+
+  emoReveal() {
+    const r = this.S.round;
+    const narr = r.turns[r.ti];
+    const delta = {};
+    r.correct.forEach((id, i) => { delta[id] = i < EMO_POINTS.length ? EMO_POINTS[i] : EMO_POINTS_REST; });
+    if (r.correct.length) delta[narr] = (delta[narr] || 0) + r.correct.length * EMO_NARRATOR_POINTS;
+    this.addPoints(r, delta);
+    r.history.push({ narr, title: r.item.t, cat: r.item.cat, clue: r.clue, correct: r.correct.slice(), delta, scores: { ...r.scores } });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  emoNext() {
+    this.S.round.ti++;
+    this.emoBegin();
+  },
+
+  emoSkip() {
+    const r = this.S.round;
+    if (r.step === 'write') {
+      // Narrator never sent anything: count it as a pass and move on.
+      r.history.push({ narr: r.turns[r.ti], title: r.item.t, cat: r.item.cat, clue: null, correct: [], delta: {}, scores: { ...r.scores } });
+      this.emoNext();
+    } else if (r.step === 'guess') this.emoReveal();
+    else this.emoNext();
+  },
+
+  emoCheck() {
+    const r = this.S.round;
+    if (r.step === 'guess' && this.emoAllGuessed()) this.emoReveal();
+  },
+
+  emoFinish() {
+    const r = this.S.round;
+    const narrated = {};
+    const firsts = {};
+    const got = {};
+    for (const id of r.roster) { narrated[id] = 0; firsts[id] = 0; got[id] = 0; }
+    for (const h of r.history) {
+      narrated[h.narr] += h.correct.length;
+      if (h.correct[0]) firsts[h.correct[0]]++;
+      for (const id of h.correct) got[id]++;
+    }
+    this.finishCustom({
+      scores: { ...r.scores }, narrated, firsts, got,
+      ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a]),
+      history: r.history.map((h) => ({ narr: h.narr, title: h.title, clue: h.clue, correct: h.correct })),
+    });
+  },
+
+  /* ---------- Çoğunluğu Bil ---------- */
+
+  setupCog(r) {
+    Object.assign(r, { qs: shuffle(COG_QUESTIONS).slice(0, r.cfg.qCount), qi: 0, step: 'answer', ans: {}, history: [], scores: this.zeroScores(r) });
+    this.setStepDeadline(r.cfg.answerTime);
+  },
+
+  cogReveal() {
+    const r = this.S.round;
+    const ids = r.roster.filter((id) => r.ans[id]);
+    const yes = ids.filter((id) => r.ans[id].yes);
+    const no = ids.filter((id) => !r.ans[id].yes);
+    const preds = {};
+    const delta = {};
+    for (const id of ids) {
+      const diff = Math.abs(r.ans[id].pred - yes.length);
+      preds[id] = { pred: r.ans[id].pred, diff };
+      if (diff === 0) delta[id] = COG_EXACT_POINTS; else if (diff === 1) delta[id] = COG_CLOSE_POINTS;
+    }
+    this.addPoints(r, delta);
+    const named = r.cfg.showNames;
+    r.history.push({ q: r.qs[r.qi], yesCount: yes.length, total: ids.length, yes: named ? yes : null, no: named ? no : null, preds, delta, scores: { ...r.scores } });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  cogNext() {
+    const r = this.S.round;
+    r.qi++;
+    if (r.qi >= r.qs.length) {
+      const exact = {};
+      for (const id of r.roster) exact[id] = r.history.filter((h) => h.preds[id] && h.preds[id].diff === 0).length;
+      this.finishCustom({
+        scores: { ...r.scores }, exact, ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a] || exact[b] - exact[a]),
+        recap: r.history.map((h) => ({ q: h.q, yesCount: h.yesCount, total: h.total })),
+      });
+      return;
+    }
+    r.step = 'answer';
+    r.ans = {};
+    this.setStepDeadline(r.cfg.answerTime);
+    this.changed();
+  },
+
+  cogSkip() {
+    if (this.S.round.step === 'answer') this.cogReveal(); else this.cogNext();
+  },
+
+  cogCheck() {
+    const r = this.S.round;
+    const live = this.liveIds();
+    if (r.step === 'answer' && live.length && live.every((id) => r.ans[id])) this.cogReveal();
+  },
+
+  /* ---------- İki Doğru Bir Yalan ---------- */
+
+  setupIky(r) {
+    Object.assign(r, { step: 'write', stmts: {}, history: [], scores: this.zeroScores(r) });
+    this.setStepDeadline(r.cfg.writeTime);
+  },
+
+  ikyStartGuess() {
+    const S = this.S;
+    const r = S.round;
+    r.turns = shuffle(r.roster.filter((id) => r.stmts[id]));
+    if (!r.turns.length) {
+      S.phase = 'lobby';
+      S.round = null;
+      S.notice = 'Kimse cümlelerini yazmadı 😅 Bir daha deneyin!';
+      this.changed();
+      return;
+    }
+    // Each author's three lines are shown in a fixed random order.
+    r.order = {};
+    for (const id of r.turns) r.order[id] = shuffle([0, 1, 2]);
+    r.ti = 0;
+    this.ikyBegin();
+  },
+
+  ikyBegin() {
+    const r = this.S.round;
+    if (r.ti >= r.turns.length) { this.ikyFinish(); return; }
+    r.step = 'guess';
+    r.picks = {};
+    this.setStepDeadline(r.cfg.guessTime);
+    this.changed();
+  },
+
+  ikyReveal() {
+    const r = this.S.round;
+    const author = r.turns[r.ti];
+    const st = r.stmts[author];
+    const list = r.order[author].map((i) => st.list[i]);
+    const lie = r.order[author].indexOf(st.lie);
+    const pickers = Object.keys(r.picks);
+    const correct = pickers.filter((id) => r.picks[id] === lie);
+    const fooled = pickers.length - correct.length;
+    const delta = {};
+    for (const id of correct) delta[id] = IKY_FOUND_POINTS;
+    if (fooled) delta[author] = fooled * IKY_FOOL_POINTS;
+    this.addPoints(r, delta);
+    r.history.push({ author, list, lie, picks: { ...r.picks }, correct, fooled, delta, scores: { ...r.scores } });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  ikyNext() {
+    this.S.round.ti++;
+    this.ikyBegin();
+  },
+
+  ikySkip() {
+    const r = this.S.round;
+    if (r.step === 'write') this.ikyStartGuess();
+    else if (r.step === 'guess') this.ikyReveal();
+    else this.ikyNext();
+  },
+
+  ikyCheck() {
+    const r = this.S.round;
+    const live = this.liveIds();
+    if (!live.length) return;
+    if (r.step === 'write' && live.every((id) => r.stmts[id])) this.ikyStartGuess();
+    else if (r.step === 'guess') {
+      const author = r.turns[r.ti];
+      const others = live.filter((id) => id !== author);
+      if (others.length && others.every((id) => r.picks[id] != null)) this.ikyReveal();
+    }
+  },
+
+  ikyFinish() {
+    const r = this.S.round;
+    const found = {};
+    const fooled = {};
+    for (const id of r.roster) { found[id] = 0; fooled[id] = 0; }
+    for (const h of r.history) {
+      for (const id of h.correct) found[id]++;
+      fooled[h.author] += h.fooled;
+    }
+    this.finishCustom({
+      scores: { ...r.scores }, found, fooled,
+      ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a]),
+      history: r.history.map((h) => ({ author: h.author, lieText: h.list[h.lie], correct: h.correct.length, total: Object.keys(h.picks).length })),
+    });
+  },
+
+  /* ---------- Sıralama ---------- */
+
+  setupSir(r) {
+    const turns = [];
+    for (let k = 0; k < r.cfg.perPlayer; k++) turns.push(...shuffle(r.roster));
+    Object.assign(r, { turns, ti: 0, history: [], scores: this.zeroScores(r) });
+    this.sirBegin(true);
+  },
+
+  // The asker's turn: they write the question. A dropped asker keeps the turn; the leader can skip.
+  sirBegin(silent) {
+    const r = this.S.round;
+    if (r.ti >= r.turns.length) { this.sirFinish(); return; }
+    Object.assign(r, { step: 'ask', q: null, ranks: {}, rankIds: [] });
+    this.setStepDeadline(r.cfg.askTime);
+    if (!silent) this.changed();
+  },
+
+  sirReveal() {
+    const r = this.S.round;
+    const ids = r.rankIds || [];
+    const rankers = Object.keys(r.ranks);
+    // The group's ranking: average place given by everyone (smaller = "more").
+    const avg = {};
+    for (const id of ids) avg[id] = rankers.length ? rankers.reduce((a, p) => a + r.ranks[p].indexOf(id), 0) / rankers.length : 0;
+    const group = ids.slice().sort((a, b) => avg[a] - avg[b]);
+    // People with the same average may swap places.
+    const ok = (id, i) => {
+      const first = group.findIndex((x) => avg[x] === avg[id]);
+      let last = first;
+      while (last + 1 < group.length && avg[group[last + 1]] === avg[id]) last++;
+      return i >= first && i <= last;
+    };
+    const guesses = {};
+    const delta = {};
+    for (const p of rankers) {
+      const order = r.ranks[p];
+      const right = order.filter((x, i) => ok(x, i)).length;
+      guesses[p] = { order, right };
+      const pts = right * SIR_POS_POINTS + (right === group.length && rankers.length > 1 ? SIR_PERFECT_BONUS : 0);
+      if (pts) delta[p] = pts;
+    }
+    this.addPoints(r, delta);
+    r.history.push({ asker: r.turns[r.ti], q: r.q, group: group.map((id) => ({ id, avg: avg[id] })), guesses, delta, scores: { ...r.scores } });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  sirNext() {
+    this.S.round.ti++;
+    this.sirBegin();
+  },
+
+  sirFinish() {
+    const r = this.S.round;
+    const perfect = {};
+    for (const id of r.roster) perfect[id] = r.history.filter((h) => h.guesses[id] && h.guesses[id].right === h.group.length).length;
+    this.finishCustom({
+      scores: { ...r.scores }, perfect, ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a]),
+      recap: r.history.map((h) => ({ asker: h.asker, q: h.q, top: h.group[0] ? h.group[0].id : null })),
+    });
+  },
+
+  sirSkip() {
+    const r = this.S.round;
+    if (r.step === 'ask') this.sirNext();
+    else if (r.step === 'rank') this.sirReveal();
+    else this.sirNext();
+  },
+
+  sirCheck() {
+    const r = this.S.round;
+    const live = this.liveIds();
+    if (r.step === 'rank' && live.length && live.every((id) => r.ranks[id])) this.sirReveal();
   },
 
   /* ---------- Kaç Kaç? ---------- */
@@ -1817,10 +2345,18 @@ const Host = {
       else if (S.phase === 'ikiz' && now >= r.deadline) this.ikizSkip();
       else if (S.phase === 'tele' && now >= r.deadline) this.teleSkip();
       else if (S.phase === 'ayna' && now >= r.deadline) this.aynaSkip();
+      else if (S.phase === 'emo' && now >= r.deadline) this.emoSkip();
+      else if (S.phase === 'cog' && now >= r.deadline) this.cogSkip();
+      else if (S.phase === 'iky' && now >= r.deadline) this.ikySkip();
+      else if (S.phase === 'sir' && now >= r.deadline) this.sirSkip();
     }
     if (S.phase === 'ikiz' && r) this.ikizCheck();
     if (S.phase === 'tele' && r) this.teleCheck();
     if (S.phase === 'ayna' && r) this.aynaCheck();
+    if (S.phase === 'emo' && r) this.emoCheck();
+    if (S.phase === 'cog' && r) this.cogCheck();
+    if (S.phase === 'iky' && r) this.ikyCheck();
+    if (S.phase === 'sir' && r) this.sirCheck();
     if (S.phase === 'kac' && r) {
       if (r.step === 'guess' && this.kacAllGuessed()) this.kacReveal();
     }
@@ -1982,6 +2518,47 @@ const Host = {
         myText: pid === mirror ? r.own : (r.guesses[pid] ?? null),
         done,
         judge: r.step === 'judge' && pid === mirror ? { own: r.own, guesses: r.guesses, pre: r.accepted } : null,
+        result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
+      };
+    } else if (S.phase === 'emo') {
+      const narr = r.turns[r.ti];
+      const showItem = r.step === 'reveal' || (pid === narr);
+      pub.stepKey = r.step + r.ti;
+      pub.emo = {
+        step: r.step, ti: r.ti, tn: r.turns.length, narr, amNarr: pid === narr,
+        cat: r.item ? r.item.cat : '', title: showItem && r.item ? r.item.t : null,
+        rerollsLeft: EMO_REROLLS - (r.rerolls || 0), clue: r.clue,
+        correct: r.correct || [], feed: r.feed || [], iGot: (r.correct || []).includes(pid),
+        result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
+      };
+    } else if (S.phase === 'cog') {
+      const done = {};
+      for (const id of r.roster) done[id] = !!r.ans[id];
+      pub.stepKey = r.step + r.qi;
+      pub.cog = {
+        step: r.step, qi: r.qi, qn: r.qs.length, q: r.qs[r.qi], n: r.roster.length, done, mine: r.ans[pid] || null,
+        result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
+      };
+    } else if (S.phase === 'iky') {
+      const author = r.step === 'write' ? null : r.turns[r.ti];
+      const done = {};
+      for (const id of r.roster) done[id] = r.step === 'write' ? !!r.stmts[id] : id !== author && r.picks && r.picks[id] != null;
+      pub.stepKey = r.step + (r.ti || 0);
+      pub.iky = {
+        step: r.step, done, mine: r.step === 'write' ? r.stmts[pid] || null : null,
+        ti: r.ti || 0, tn: r.turns ? r.turns.length : 0, author, amAuthor: pid === author,
+        list: author ? r.order[author].map((i) => r.stmts[author].list[i]) : null,
+        myPick: r.picks && r.picks[pid] != null ? r.picks[pid] : null,
+        result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
+      };
+    } else if (S.phase === 'sir') {
+      const asker = r.turns[r.ti];
+      const done = {};
+      for (const id of r.roster) done[id] = !!(r.ranks && r.ranks[id]);
+      pub.stepKey = r.step + r.ti;
+      pub.sir = {
+        step: r.step, ti: r.ti, tn: r.turns.length, asker, amAsker: pid === asker, q: r.q, done,
+        rankIds: r.step === 'rank' ? r.rankIds : null, myRank: (r.ranks && r.ranks[pid]) || null,
         result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
       };
     } else if (S.phase === 'kac') {
@@ -2199,6 +2776,20 @@ function computeAwards(r) {
       give(top(F.right), 'ay_knower');
       give(top(F.known), 'ay_openbook');
       break;
+    case 'emoji':
+      give(top(F.narrated), 'em_artist');
+      give(top(F.firsts), 'em_flash');
+      break;
+    case 'cogunluk':
+      give(top(F.scores), 'cg_pollster');
+      break;
+    case 'ikidogru':
+      give(top(F.fooled), 'iy_poker');
+      give(top(F.found), 'iy_detector');
+      break;
+    case 'sirala':
+      give(top(F.scores), 'sr_ruler');
+      break;
   }
   return out;
 }
@@ -2227,6 +2818,9 @@ function chatBlockReason(S, pid, text) {
       return r.step === 'answer' && has(r.answers[pid]) ? SECRET : null;
     case 'ayna':
       return pid === r.turns[r.ti] && r.step !== 'reveal' && has(r.own) ? SHADOW : null;
+    case 'emo':
+      // Nobody may type the answer into the chat while it's still being guessed.
+      return r.step !== 'reveal' && r.item && [r.item.t, ...(r.item.a || [])].some((x) => has(x)) ? SHADOW : null;
     case 'kac': {
       if (pid !== r.turns[r.ti] || !r.ask || r.step === 'reveal') return null;
       const nums = (String(text).match(/\d+(?:[.,]\d+)*/g) || []).map(parseKacNumber);
@@ -2257,6 +2851,37 @@ function ownTexts(r, pid) {
 }
 
 /* ---------- word matching (Ruh İkizi / Telepati / Ayna) ---------- */
+
+function isEmojiOnly(t) {
+  return !!t && !/[\p{L}\p{N}]/u.test(t) && /[\p{Extended_Pictographic}\p{Regional_Indicator}]/u.test(t);
+}
+
+function levenshtein(a, b) {
+  const m = a.length;
+  const n = b.length;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) {
+    const cur = [i];
+    for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[n];
+}
+
+// Emoji guesses: case, spaces and Turkish letters don't matter, and small typos are forgiven.
+// How many typos a title of this length forgives.
+const emoSlack = (len) => (len >= 10 ? 2 : len >= 4 ? 1 : 0);
+
+function emoDistance(guess, item) {
+  const g = normWord(guess);
+  return Math.min(...[item.t, ...(item.a || [])].map(normWord).map((a) => levenshtein(a, g) - emoSlack(a.length)));
+}
+
+// 'hit' = accepted, 'close' = one or two letters off (told only to the guesser so it doesn't leak), null = miss.
+function emoMatch(guess, item) {
+  const d = emoDistance(guess, item);
+  return d <= 0 ? 'hit' : d <= 2 ? 'close' : null;
+}
 
 function cleanWord(t) {
   return String(t ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_WORD);
@@ -2559,6 +3184,7 @@ const Client = {
         break;
       case 'chatBlocked':
       case 'chatShadow':
+      case 'toast':
         onPrivate(msg);
         break;
     }
@@ -2899,15 +3525,15 @@ function render() {
   if (!s) return;
   const inRound = !!(s.roster && s.roster.includes(s.you));
   let screen = s.phase;
-  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna'].includes(s.phase) && !inRound) screen = 'spectate';
+  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir'].includes(s.phase) && !inRound) screen = 'spectate';
   if (screen === 'lie') screen = 'lie:' + s.lie.step;
   if (screen === 'kac') screen = 'kac:' + s.kac.step;
-  if (screen === 'ikiz' || screen === 'tele' || screen === 'ayna') screen += ':' + s[screen].step;
+  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir'].includes(screen)) screen += ':' + s[screen].step;
   let key = screen + ':' + (s.roundId || '');
   if (screen === 'results') key += ':' + s.reveal.index;
   if (screen === 'lie:clues') key += ':' + s.lie.turn;
   if (screen.startsWith('kac:')) key += ':' + s.kac.ti;
-  if (/^(ikiz|tele|ayna):/.test(screen)) key += ':' + s.stepKey;
+  if (/^(ikiz|tele|ayna|emo|cog|iky|sir):/.test(screen)) key += ':' + s.stepKey;
   if (screen === 'writing' && s.writing.stage) key += ':' + s.writing.stage;
 
   const fresh = key !== App.screenKey;
@@ -3008,6 +3634,7 @@ function closeChat() {
 
 // Messages meant only for this player (e.g. "that gives the answer away").
 function onPrivate(msg) {
+  if (msg.t === 'toast') { toast(msg.text, 3000); return; }
   if (msg.t === 'chatShadow') {
     // Show it to the sender like a normal message; it never reached anyone else.
     const s = App.state;
@@ -3783,6 +4410,391 @@ function aynaFinalMount(s) {
   );
 }
 
+/* ---------- Emojiyle Anlat ---------- */
+
+function emoTop(s, timer) {
+  return header() + timer + stepDots(s.emo.ti, s.emo.tn);
+}
+
+Views['emo:write'] = {
+  mount(s) {
+    const E = s.emo;
+    const n = nameOf(E.narr);
+    const body = E.amNarr
+      ? '<div class="card myturn center"><h2>Sıra sende! 🎬</h2><div class="muted">Bunu sadece emojiyle anlat:</div>' +
+        '<div class="emotitle" id="emoTitle"></div><div class="muted" id="emoCat"></div><div id="emoReroll"></div>' +
+        '<div class="row" style="margin-top:10px"><input id="emoClue" class="field grow emoin" maxlength="60" placeholder="🦁👑…" autocomplete="off">' +
+        '<button class="btn green" data-act="eclue">Gönder</button></div>' +
+        '<p class="muted" style="margin:8px 0 0;font-size:14px">Sadece emoji! Harf ve rakam yok 🙅</p></div>'
+      : '<div class="card center turnwait">' + avatarHTML(n, 'lg') + '<h2 style="margin:8px 0 0">' + esc(n.name) + ' emoji hazırlıyor… 🤔</h2>' +
+        '<p class="muted" style="margin:4px 0 0">Kategori: <b>' + esc(E.cat) + '</b></p></div>';
+    mount(emoTop(s, timerHTML('Emoji yazma süresi')) + body + OFFLINE_NOTE + hostSkip('Sırayı geç'));
+    if (E.amNarr) { Sound.join(); focusFine('#emoClue', true); }
+  },
+  update(s) {
+    const E = s.emo;
+    if (E.amNarr) {
+      $('#emoTitle').textContent = E.title || '';
+      $('#emoCat').textContent = '(' + E.cat + ')';
+      $('#emoReroll').innerHTML = E.rerollsLeft > 0
+        ? '<div class="ctrl" style="margin:8px 0 0"><button class="btn small ghost" data-act="ereroll">🎲 Başka ver (' + E.rerollsLeft + ')</button></div>' : '';
+    }
+    updateOffline(s, [E.narr]);
+  },
+};
+
+Views['emo:guess'] = {
+  mount(s) {
+    const E = s.emo;
+    const n = nameOf(E.narr);
+    mount(emoTop(s, timerHTML('Tahmin süresi')) +
+      '<div class="card center"><div class="kasker">' + avatarHTML(n) + '<b>' + esc(n.name) + '</b> anlatıyor · ' + esc(E.cat) + '</div>' +
+      '<div class="emoclue">' + esc(E.clue) + '</div></div>' +
+      '<div id="emoArea"></div>' +
+      '<div class="card"><h2>Tahminler</h2><div class="emofeed" id="emoFeed"></div></div>' +
+      hostSkip('Cevabı aç'));
+  },
+  update(s) {
+    const E = s.emo;
+    const area = $('#emoArea');
+    const state = E.amNarr ? 'narr' : E.iGot ? 'got' : 'guess';
+    if (state === 'narr') {
+      area.innerHTML = '<div class="waiting-pill" style="margin-bottom:16px">👀 Arkadaşların tahmin ediyor… ' + E.correct.length + ' kişi bildi</div>';
+    } else if (area.dataset.state !== state) {
+      area.innerHTML = state === 'got'
+        ? '<div class="waiting-pill" style="margin-bottom:16px">✅ Bildin! Diğerleri bekleniyor…</div>'
+        : '<div class="card">' + wordInput('emoGuess', 'eguess', 'Tahminin…') + '<p class="muted" style="margin:8px 0 0;font-size:14px">İstediğin kadar tahmin yapabilirsin</p></div>';
+      if (state === 'guess') focusFine('#emoGuess');
+    }
+    area.dataset.state = state;
+    const feed = $('#emoFeed');
+    feed.innerHTML = E.feed.length
+      ? E.feed.map((f) => f.ok
+        ? '<div class="fitem ok">✅ <b>' + esc(nameOf(f.id).name) + '</b> bildi!</div>'
+        : '<div class="fitem"><b>' + esc(nameOf(f.id).name) + ':</b> ' + esc(f.text) + '</div>').join('')
+      : '<p class="muted" style="margin:0">Henüz tahmin yok…</p>';
+    feed.scrollTop = feed.scrollHeight;
+  },
+};
+
+Views['emo:reveal'] = {
+  mount(s) {
+    const E = s.emo;
+    const R = E.result;
+    const n = nameOf(R.narr);
+    const last = E.ti >= E.tn - 1;
+    const verdict = !R.clue ? '🤐 Anlatıcı pas geçti' : !R.correct.length ? '😅 Kimse bilemedi!' : '🎉 ' + R.correct.length + ' kişi bildi!';
+    const rows = R.correct.map((id, i) => '<div class="srow"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id), 'sm') +
+      '<span class="nm">' + esc(nameOf(id).name) + '</span><span class="dl">+' + (i < EMO_POINTS.length ? EMO_POINTS[i] : EMO_POINTS_REST) + '</span></div>').join('');
+    mount(emoTop(s, revealTimer(s)) +
+      '<div class="card center"><div class="kasker">' + avatarHTML(n) + '<b>' + esc(n.name) + '</b> anlattı</div>' +
+        '<div class="emoclue">' + (R.clue ? esc(R.clue) : '🤐') + '</div>' +
+        '<div class="muted" style="font-weight:700">Cevap</div><div class="kanswer aword">' + esc(R.title) + '</div>' +
+        '<div style="font-weight:800;font-size:20px">' + esc(verdict) + '</div></div>' +
+      (rows ? '<div class="card"><h2>Bilenler</h2><div class="board">' + rows + '</div>' +
+        '<p class="muted" style="margin:10px 0 0;font-size:14px">' + esc(n.name) + ' bilen her kişi için +' + EMO_NARRATOR_POINTS + ' aldı</p></div>' : '') +
+      '<div class="card"><h2>Puan durumu</h2>' + scoreBoard(s, R.scores, R.delta) + '</div>' +
+      hostNext(s, last ? '🏆 Sonuçlar' : 'Sıradaki ▶'));
+    Sound.beep(R.correct.length ? 988 : 330, 0.2, 'triangle', 0.08);
+  },
+};
+
+function emoFinalMount(s) {
+  const F = s.final;
+  const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.got[id] + ' doğru tahmin · anlattığını ' + F.narrated[id] + ' kişi bildi</small></span><b>' + F.scores[id] + '</b></div>').join('');
+  const recap = F.history.map((h) => '<div><span class="q"><b>' + esc(nameOf(h.narr).name) + ':</b> ' + (h.clue ? esc(h.clue) : '🤐') + '</span><span class="w">' +
+    esc(h.title) + ' <span class="muted">(' + h.correct.length + ' bildi)</span></span></div>').join('');
+  mount(
+    header() +
+    '<div class="phase-title">' + finalHeadline(F, F.scores, 'emoji ustası 🎬') + '</div>' +
+    podiumHTML(F.ranking, (id) => F.scores[id] + ' puan') +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">İlk bilen +' + EMO_POINTS[0] + ', ikinci +' + EMO_POINTS[1] + ', sonrakiler +' + EMO_POINTS_REST + ' · Anlatıcı, bilen her kişi için +' + EMO_NARRATOR_POINTS + '</p></div>' +
+    '<div class="card"><h2>Bütün anlatımlar</h2><div class="recap">' + recap + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
+/* ---------- Çoğunluğu Bil ---------- */
+
+function cogPaint() {
+  const yn = $('.yn');
+  if (yn) yn.classList.toggle('choosing', App.cogYes != null);
+  $$('[data-act=cyes]').forEach((b) => b.classList.toggle('picked', App.cogYes === (b.dataset.v === '1')));
+  const el = $('#cogPred');
+  if (el) el.textContent = App.cogPred;
+}
+
+Views['cog:answer'] = {
+  mount(s) {
+    const C = s.cog;
+    App.cogYes = C.mine ? C.mine.yes : null;
+    App.cogPred = C.mine ? C.mine.pred : Math.ceil(C.n / 2);
+    mount(header() + timerHTML('Cevap süresi') + stepDots(C.qi, C.qn) +
+      '<div class="card qcard"><div class="meta">Soru ' + (C.qi + 1) + ' / ' + C.qn + '</div><div class="qtext">' + esc(C.q) + '</div></div>' +
+      '<div class="card"><div class="lbl">1) Senin cevabın</div>' +
+        '<div class="yn"><button class="ynb no" data-act="cyes" data-v="1"><span>👍</span>Evet</button>' +
+        '<button class="ynb yes" data-act="cyes" data-v="0"><span>👎</span>Hayır</button></div>' +
+        '<div class="lbl" style="margin-top:16px">2) Sence ' + C.n + ' kişiden kaçı "Evet" der? <span class="muted">(sen dahil)</span></div>' +
+        '<div class="cogpred"><button class="btn ghost" data-act="cpred" data-d="-1">−</button><span id="cogPred"></span>' +
+        '<button class="btn ghost" data-act="cpred" data-d="1">+</button></div>' +
+        '<div style="height:14px"></div><button class="btn yellow big block" data-act="csend">Gönder</button>' +
+        '<p class="muted center" id="cogMine" style="margin:8px 0 0"></p></div>' +
+      '<div class="card"><h2>Kim cevapladı?</h2><div class="chips" id="cogChips"></div></div>' +
+      hostSkip('Sonuçları aç'));
+    cogPaint();
+  },
+  update(s) {
+    const C = s.cog;
+    $('#cogChips').innerHTML = doneChips(s, C.done);
+    $('#cogMine').textContent = C.mine ? '✅ Gönderdin: ' + (C.mine.yes ? 'Evet' : 'Hayır') + ', tahminin ' + C.mine.pred + ' (değiştirebilirsin)' : '';
+  },
+};
+
+Views['cog:reveal'] = {
+  mount(s) {
+    const C = s.cog;
+    const R = C.result;
+    const pct = R.total ? Math.round(R.yesCount / R.total * 100) : 0;
+    const people = (ids) => ids.length ? ids.map((id) => '<span class="chip">' + avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) + '</span>').join('') : '<span class="muted">Kimse</span>';
+    const lists = R.yes ? '<div class="ynlists"><div><h3>👍 Evet diyenler</h3><div class="chips">' + people(R.yes) + '</div></div>' +
+      '<div><h3>👎 Hayır diyenler</h3><div class="chips">' + people(R.no) + '</div></div></div>' : '';
+    const rows = Object.keys(R.preds).sort((a, b) => R.preds[a].diff - R.preds[b].diff).map((id) => {
+      const pr = R.preds[id];
+      return '<div class="srow ' + (pr.diff === 0 ? 'win' : '') + '">' + avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) +
+        '<small>tahmin: ' + pr.pred + (pr.diff === 0 ? ' · 🎯 tam isabet' : pr.diff === 1 ? ' · 👌 1 fark' : ' · ' + pr.diff + ' fark') + '</small></span>' +
+        (R.delta[id] ? '<span class="dl">+' + R.delta[id] + '</span>' : '') + '</div>';
+    }).join('');
+    const last = C.qi >= C.qn - 1;
+    mount(header() + revealTimer(s) + stepDots(C.qi, C.qn) +
+      '<div class="card qcard"><div class="meta">Soru ' + (C.qi + 1) + ' / ' + C.qn + '</div><div class="qtext">' + esc(R.q) + '</div></div>' +
+      '<div class="card center"><div class="ynpct cogn">' + R.yesCount + ' / ' + R.total + '</div><div class="muted">kişi "Evet" dedi</div>' +
+        '<div class="ynbar cog"><i class="y" data-w="' + pct + '"></i></div>' + lists + '</div>' +
+      '<div class="card"><h2>Tahminler</h2><div class="board">' + (rows || '<p class="muted" style="margin:0">Kimse cevap vermedi.</p>') + '</div></div>' +
+      '<div class="card"><h2>Puan durumu</h2>' + scoreBoard(s, R.scores, R.delta) + '</div>' +
+      hostNext(s, last ? '🏆 Sonuçlar' : 'Sonraki soru ▶'));
+    setTimeout(() => $$('.ynbar i').forEach((el) => { el.style.width = el.dataset.w + '%'; }), 60);
+    Sound.beep(880, 0.2, 'triangle', 0.08);
+  },
+};
+
+function cogFinalMount(s) {
+  const F = s.final;
+  const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.exact[id] + ' tam isabet</small></span><b>' + F.scores[id] + '</b></div>').join('');
+  const recap = F.recap.map((r) => '<div><span class="q">' + esc(r.q) + '</span><span class="w">' + (r.total ? r.yesCount + '/' + r.total + ' evet' : '—') + '</span></div>').join('');
+  mount(
+    header() +
+    '<div class="phase-title">' + finalHeadline(F, F.scores, 'grubu en iyi okuyan 📊') + '</div>' +
+    podiumHTML(F.ranking, (id) => F.scores[id] + ' puan') +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Tam isabet +' + COG_EXACT_POINTS + ' · 1 fark +' + COG_CLOSE_POINTS + '</p></div>' +
+    '<div class="card"><h2>Bütün sorular</h2><div class="recap">' + recap + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
+/* ---------- İki Doğru Bir Yalan ---------- */
+
+function ikyPaint() {
+  $$('.liebtn').forEach((b) => b.classList.toggle('on', Number(b.dataset.i) === App.ikyLie));
+}
+
+Views['iky:write'] = {
+  mount(s) {
+    const I = s.iky;
+    const mine = I.mine;
+    App.ikyLie = mine ? mine.lie : null;
+    const ph = ['Örn: Hiç uçağa binmedim', 'Örn: 3 kardeşim var', 'Örn: Çocukken bir yarışma kazandım'];
+    const rows = [0, 1, 2].map((i) => '<div class="ikyrow"><span class="num">' + (i + 1) + '</span>' +
+      '<input class="field grow iky-in" data-i="' + i + '" maxlength="' + MAX_Q_LEN + '" placeholder="' + esc(ph[i]) + '" value="' + esc(mine ? mine.list[i] : '') + '" autocomplete="off">' +
+      '<button class="liebtn" data-act="ilie" data-i="' + i + '" title="Bu yalan">🤥</button></div>').join('');
+    mount(header() + timerHTML('Yazma süresi') +
+      '<div class="phase-title"><h1>İki doğru, bir yalan 🎭</h1><p>Kendin hakkında 3 şey yaz. Birini yalan yap ve yanındaki 🤥 ile işaretle!</p></div>' +
+      '<div class="card"><div class="qlist">' + rows + '</div><div style="height:14px"></div>' +
+        '<button class="btn green big block" data-act="iwrite">✅ Gönder</button><p class="muted center" id="ikyMine" style="margin:8px 0 0"></p></div>' +
+      '<div class="card"><h2>Kim bitirdi?</h2><div class="chips" id="ikyChips"></div></div>' +
+      hostSkip('Tahminlere geç'));
+    ikyPaint();
+    const first = $$('.iky-in').find((x) => !x.value);
+    if (first) autoFocus(first);
+  },
+  update(s) {
+    $('#ikyChips').innerHTML = doneChips(s, s.iky.done);
+    $('#ikyMine').textContent = s.iky.mine ? '✅ Gönderildi (istersen değiştirip tekrar gönderebilirsin)' : '';
+  },
+};
+
+Views['iky:guess'] = {
+  mount(s) {
+    const I = s.iky;
+    const a = nameOf(I.author);
+    const opts = I.list.map((t, i) => I.amAuthor
+      ? '<div class="ansb mine">' + esc(t) + '</div>'
+      : '<button class="ansb" data-act="ipick" data-i="' + i + '">' + esc(t) + '</button>').join('');
+    mount(header() + timerHTML('Tahmin süresi') + stepDots(I.ti, I.tn) +
+      '<div class="card qcard"><div class="kasker">' + avatarHTML(a) + '<b>' + esc(a.name) + '</b></div><div class="qtext">Hangisi yalan? 🤥</div></div>' +
+      (I.amAuthor ? '<div class="waiting-pill" style="margin-bottom:12px">😏 Arkadaşların senin yalanını arıyor…</div>' : '') +
+      '<div class="answers">' + opts + '</div>' +
+      '<div class="card" style="margin-top:16px"><h2>Kim seçti?</h2><div class="chips" id="ikyChips"></div></div>' +
+      hostSkip('Cevabı aç'));
+    if (I.amAuthor) Sound.join();
+  },
+  update(s) {
+    const I = s.iky;
+    $('#ikyChips').innerHTML = doneChips(s, I.done, s.roster.filter((id) => id !== I.author));
+    $$('[data-act=ipick]').forEach((b) => b.classList.toggle('picked', Number(b.dataset.i) === I.myPick));
+  },
+};
+
+Views['iky:reveal'] = {
+  mount(s) {
+    const I = s.iky;
+    const R = I.result;
+    const a = nameOf(R.author);
+    const total = Object.keys(R.picks).length;
+    const items = R.list.map((t, i) => {
+      const pickers = Object.keys(R.picks).filter((pp) => R.picks[pp] === i);
+      return '<div class="ikyres ' + (i === R.lie ? 'lie' : '') + '"><div class="t"><span class="mark">' + (i === R.lie ? '🤥' : '✅') + '</span> ' + esc(t) + '</div>' +
+        '<div class="voters">' + (pickers.length ? esc(nameList(pickers)) + ' seçti' : 'kimse seçmedi') + '</div></div>';
+    }).join('');
+    const verdict = !total ? 'Kimse seçim yapmadı 🤷'
+      : !R.correct.length ? '😎 Kimse bulamadı! ' + a.name + ' herkesi kandırdı'
+      : !R.fooled ? '🕵️ Herkes buldu! Çok belli etmişsin'
+      : '🔍 ' + R.correct.length + ' kişi buldu';
+    const last = I.ti >= I.tn - 1;
+    mount(header() + revealTimer(s) + stepDots(I.ti, I.tn) +
+      '<div class="card rescard" id="rescard"><div class="kasker">' + avatarHTML(a) + '<b>' + esc(a.name) + '</b></div>' +
+        '<div class="ikyress">' + items + '</div><div class="winline">' + esc(verdict) + '</div></div>' +
+      '<div class="card late"><h2>Puan durumu</h2>' + scoreBoard(s, R.scores, R.delta) + '</div>' +
+      hostNext(s, last ? '🏆 Sonuçlar' : 'Sıradaki ▶'));
+    setTimeout(() => $$('#rescard, .card.late').forEach((el) => el.classList.add('revealed')), 60);
+    setTimeout(() => Sound.beep(988, 0.15, 'triangle', 0.08), 1100);
+  },
+};
+
+function ikyFinalMount(s) {
+  const F = s.final;
+  const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.found[id] + ' yalan buldu · ' + F.fooled[id] + ' kişiyi kandırdı</small></span><b>' + F.scores[id] + '</b></div>').join('');
+  const recap = F.history.map((h) => '<div><span class="q"><b>' + esc(nameOf(h.author).name) + ':</b> 🤥 ' + esc(h.lieText) + '</span><span class="w">' +
+    h.correct + '/' + h.total + ' buldu</span></div>').join('');
+  mount(
+    header() +
+    '<div class="phase-title">' + finalHeadline(F, F.scores, 'turun şampiyonu 🎭') + '</div>' +
+    podiumHTML(F.ranking, (id) => F.scores[id] + ' puan') +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Yalanı bulan +' + IKY_FOUND_POINTS + ' · Kandırdığın her kişi +' + IKY_FOOL_POINTS + '</p></div>' +
+    '<div class="card"><h2>Bütün yalanlar</h2><div class="recap">' + recap + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
+/* ---------- Sıralama ---------- */
+
+function sirPaint() {
+  const Q = App.state.sir;
+  const list = $('#sirList');
+  if (!list || !Q.rankIds) return;
+  // Picked people move to the top in their chosen order, the rest wait below.
+  const ids = App.sirOrder.concat(Q.rankIds.filter((id) => !App.sirOrder.includes(id)));
+  list.innerHTML = ids.map((id) => {
+    const pos = App.sirOrder.indexOf(id);
+    return '<button class="sirbtn ' + (pos >= 0 ? 'on' : '') + '" data-act="spick" data-id="' + esc(id) + '"><span class="sirpos">' + (pos >= 0 ? pos + 1 : '') + '</span>' +
+      avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) + '</span></button>';
+  }).join('');
+  $('#sirSend').disabled = App.sirOrder.length !== Q.rankIds.length;
+}
+
+function sirAskCard(s, q) {
+  const a = nameOf(s.sir.asker);
+  return '<div class="card qcard"><div class="kasker">' + avatarHTML(a) + '<b>' + esc(a.name) + '</b> soruyor:</div><div class="qtext">' + esc(q) + '</div></div>';
+}
+
+Views['sir:ask'] = {
+  mount(s) {
+    const Q = s.sir;
+    const a = nameOf(Q.asker);
+    const body = Q.amAsker
+      ? '<div class="card myturn"><h2>Sıra sende! 🎤</h2><p class="muted" style="margin:0 0 10px">Grubu sıralatacak bir soru sor. Örn: "Burada en çok kim uyur?"</p>' +
+        '<div class="row"><input id="sirQ" class="field grow" maxlength="' + MAX_Q_LEN + '" placeholder="En çok kim…?" autocomplete="off">' +
+        '<button class="dice" data-act="sidea" title="Fikir ver">🎲</button></div>' +
+        '<div style="height:12px"></div><button class="btn yellow big block" data-act="sask">Soruyu sor 🚀</button></div>'
+      : '<div class="card center turnwait">' + avatarHTML(a, 'lg') + '<h2 style="margin:8px 0 0">' + esc(a.name) + ' soru hazırlıyor…</h2>' +
+        '<p class="muted" style="margin:4px 0 0">Birazdan herkesi sıralayacaksın 📏</p></div>';
+    mount(header() + timerHTML('Soru yazma süresi') + stepDots(Q.ti, Q.tn) + body + OFFLINE_NOTE + hostSkip('Sırayı geç'));
+    if (Q.amAsker) { Sound.join(); focusFine('#sirQ', true); }
+  },
+  update(s) { updateOffline(s, [s.sir.asker]); },
+};
+
+Views['sir:rank'] = {
+  mount(s) {
+    const Q = s.sir;
+    App.sirOrder = Q.myRank ? Q.myRank.slice() : [];
+    mount(header() + timerHTML('Sıralama süresi') + stepDots(Q.ti, Q.tn) + sirAskCard(s, Q.q) +
+      '<div class="card"><h2>Sırala! <small>En çoktan en aza, sırayla dokun</small></h2><div class="sirlist" id="sirList"></div>' +
+        '<div class="ctrl" style="margin-top:12px"><button class="btn small ghost" data-act="sreset">↺ Sıfırla</button></div>' +
+        '<div style="height:10px"></div><button class="btn yellow big block" data-act="srank" id="sirSend">Gönder</button>' +
+        '<p class="muted center" id="sirMine" style="margin:8px 0 0"></p></div>' +
+      '<div class="card"><h2>Kim sıraladı?</h2><div class="chips" id="sirChips"></div></div>' +
+      hostSkip('Sonuçları aç'));
+    sirPaint();
+  },
+  update(s) {
+    $('#sirChips').innerHTML = doneChips(s, s.sir.done);
+    $('#sirMine').textContent = s.sir.myRank ? '✅ Gönderdin (istersen değiştirip tekrar gönderebilirsin)' : '';
+  },
+};
+
+Views['sir:reveal'] = {
+  mount(s) {
+    const Q = s.sir;
+    const R = Q.result;
+    const n = R.group.length;
+    // Bottom of the list first, the "winner" last.
+    const rows = R.group.map((g, i) => '<div class="krow ' + (i === 0 ? 'top' : '') + '" style="--d:' + ((n - 1 - i) * 0.5 + 0.4).toFixed(2) + 's">' +
+      '<span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(g.id)) + '<div class="body"><div class="top2"><span class="nm">' + (i === 0 ? '👑 ' : '') +
+      esc(nameOf(g.id).name) + '</span></div><div class="kdiff">ortalama sıra: ' + (g.avg + 1).toFixed(1).replace('.', ',') + '</div></div></div>').join('');
+    const after = (n - 1) * 0.5 + 0.9;
+    const guesses = Object.keys(R.guesses).sort((a, b) => R.guesses[b].right - R.guesses[a].right).map((id) => {
+      const gg = R.guesses[id];
+      return '<div class="srow ' + (gg.right === n ? 'win' : '') + '">' + avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) +
+        '<small>' + gg.right + ' / ' + n + ' kişi doğru yerde' + (gg.right === n ? ' · 🎯 birebir!' : '') + '</small></span>' +
+        (R.delta[id] ? '<span class="dl">+' + R.delta[id] + '</span>' : '') + '</div>';
+    }).join('');
+    const last = Q.ti >= Q.tn - 1;
+    mount(header() + revealTimer(s) + stepDots(Q.ti, Q.tn) + sirAskCard(s, R.q) +
+      '<div class="card"><h2>Grubun sıralaması</h2><div class="kreveal">' + (rows || '<p class="muted" style="margin:0">Kimse sıralama yapmadı.</p>') + '</div></div>' +
+      '<div class="card kafter" style="--d:' + after.toFixed(2) + 's"><h2>Grubu kim en iyi bildi?</h2><div class="board">' + (guesses || '<p class="muted" style="margin:0">—</p>') + '</div></div>' +
+      '<div class="card kafter" style="--d:' + (after + 0.4).toFixed(2) + 's"><h2>Puan durumu</h2>' + scoreBoard(s, R.scores, R.delta) + '</div>' +
+      hostNext(s, last ? '🏆 Sonuçlar' : 'Sıradaki ▶'));
+    setTimeout(() => Sound.fanfare(), after * 1000 - 400);
+  },
+};
+
+function sirFinalMount(s) {
+  const F = s.final;
+  const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.perfect[id] + ' kez birebir bildi</small></span><b>' + F.scores[id] + '</b></div>').join('');
+  const recap = F.recap.map((r) => '<div><span class="q"><b>' + esc(nameOf(r.asker).name) + ':</b> ' + esc(r.q) + '</span><span class="w">' +
+    (r.top ? '👑 ' + esc(nameOf(r.top).name) : '—') + '</span></div>').join('');
+  mount(
+    header() +
+    '<div class="phase-title">' + finalHeadline(F, F.scores, 'grubu en iyi tanıyan 📏') + '</div>' +
+    podiumHTML(F.ranking, (id) => F.scores[id] + ' puan') +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Grubun sıralamasıyla aynı yere koyduğun her kişi +' + SIR_POS_POINTS + ' · Birebir aynıysa +' + SIR_PERFECT_BONUS + ' bonus</p></div>' +
+    '<div class="card"><h2>Bütün sorular</h2><div class="recap">' + recap + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
 /* ---------- Kaç Kaç? ---------- */
 
 const fmtNum = (n) => Number(n).toLocaleString('tr-TR');
@@ -4326,6 +5338,10 @@ Views.final = {
     else if (s.game === 'ikiz') ikizFinalMount(s);
     else if (s.game === 'tele') teleFinalMount(s);
     else if (s.game === 'ayna') aynaFinalMount(s);
+    else if (s.game === 'emoji') emoFinalMount(s);
+    else if (s.game === 'cogunluk') cogFinalMount(s);
+    else if (s.game === 'ikidogru') ikyFinalMount(s);
+    else if (s.game === 'sirala') sirFinalMount(s);
     else hangimizFinalMount(s);
     confetti();
     Sound.fanfare();
@@ -4391,6 +5407,18 @@ function shareLines(s) {
       break;
     case 'tele':
       for (const h of F.history) L.push((h.match ? '🧠 ' : '💥 ') + names(h.pair) + ': ' + h.pair.map((id) => h.words[id] ?? '—').join(' / '));
+      break;
+    case 'emoji':
+      for (const h of F.history) if (h.clue) L.push('🎬 ' + n(h.narr) + ': ' + h.clue + ' → ' + h.title);
+      break;
+    case 'cogunluk':
+      for (const r of F.recap) if (r.total) L.push(r.q + ' → ' + r.yesCount + '/' + r.total + ' evet');
+      break;
+    case 'ikidogru':
+      for (const h of F.history) L.push('🤥 ' + n(h.author) + ': ' + h.lieText);
+      break;
+    case 'sirala':
+      for (const r of F.recap) if (r.top) L.push(n(r.asker) + ': ' + r.q + ' → 👑 ' + n(r.top));
       break;
     case 'ayna':
       for (const h of F.history) L.push('🪞 ' + n(h.mirror) + ': ' + h.q + ' → ' + (h.own ?? '—'));
@@ -4998,6 +6026,64 @@ const actions = {
     el.querySelector('.mark').textContent = on ? '✅' : '❌';
   },
   ajudge() { Sound.click(); send({ t: 'ajudge', accepted: [...(App.aynaAcc || [])] }); },
+  ereroll() { Sound.click(); send({ t: 'ereroll' }); },
+  eclue() {
+    const el = $('#emoClue');
+    const text = el ? el.value.trim() : '';
+    if (!isEmojiOnly(text)) { toast('Sadece emoji kullanabilirsin 🙂 Harf ve rakam yok!'); if (el) el.focus(); return; }
+    Sound.click();
+    send({ t: 'eclue', text });
+  },
+  eguess() {
+    const el = $('#emoGuess');
+    const text = el ? el.value.trim() : '';
+    if (!text) return;
+    el.value = '';
+    el.focus();
+    send({ t: 'eguess', text });
+  },
+  cyes(el) { App.cogYes = el.dataset.v === '1'; Sound.click(); cogPaint(); },
+  cpred(el) {
+    const n = App.state.cog.n;
+    App.cogPred = Math.max(0, Math.min(n, App.cogPred + Number(el.dataset.d)));
+    cogPaint();
+  },
+  csend() {
+    if (App.cogYes == null) { toast('Önce Evet ya da Hayır seç 🙂'); return; }
+    Sound.click();
+    send({ t: 'cans', yes: App.cogYes, pred: App.cogPred });
+  },
+  ilie(el) { App.ikyLie = Number(el.dataset.i); Sound.click(); ikyPaint(); },
+  iwrite() {
+    const list = $$('.iky-in').map((x) => x.value.trim());
+    if (list.some((x) => !x)) { toast('3 cümlenin hepsini yaz 🙂'); return; }
+    if (App.ikyLie == null) { toast('Hangisi yalan? Yanındaki 🤥 ile işaretle'); return; }
+    Sound.click();
+    send({ t: 'iwrite', list, lie: App.ikyLie });
+  },
+  ipick(el) { Sound.click(); send({ t: 'ipick', idx: Number(el.dataset.i) }); },
+  sidea() {
+    const el = $('#sirQ');
+    const pool = SIR_IDEAS.filter((x) => x !== el.value);
+    el.value = pool[Math.floor(Math.random() * pool.length)];
+    Sound.click();
+  },
+  sask() {
+    const el = $('#sirQ');
+    const q = el ? el.value.trim() : '';
+    if (!q) { toast('Önce sorunu yaz 🙂'); if (el) el.focus(); return; }
+    Sound.click();
+    send({ t: 'sask', q });
+  },
+  spick(el) {
+    const id = el.dataset.id;
+    const i = App.sirOrder.indexOf(id);
+    if (i >= 0) App.sirOrder.splice(i, 1); else App.sirOrder.push(id);
+    Sound.click();
+    sirPaint();
+  },
+  sreset() { App.sirOrder = []; sirPaint(); },
+  srank() { Sound.click(); send({ t: 'srank', order: App.sirOrder }); },
   kask() {
     const q = ($('#kacQ') || {}).value || '';
     const raw = ($('#kacAns') || {}).value || '';
@@ -5062,6 +6148,9 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'kacGuess') { e.preventDefault(); doAction('kguess'); return; }
   if (e.key === 'Enter' && e.target.id === 'ikizWord') { e.preventDefault(); doAction('iword'); return; }
   if (e.key === 'Enter' && e.target.id === 'teleWord') { e.preventDefault(); doAction('tword'); return; }
+  if (e.key === 'Enter' && e.target.id === 'emoClue') { e.preventDefault(); doAction('eclue'); return; }
+  if (e.key === 'Enter' && e.target.id === 'emoGuess') { e.preventDefault(); doAction('eguess'); return; }
+  if (e.key === 'Enter' && e.target.id === 'sirQ') { e.preventDefault(); doAction('sask'); return; }
   if (e.key === 'Enter' && e.target.id === 'aynaText') { e.preventDefault(); doAction('asend'); return; }
   if (e.key === 'Enter' && e.target.classList.contains('q-input')) {
     e.preventDefault();

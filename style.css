@@ -14,11 +14,11 @@
   --shadow: 0 8px 0 rgba(30, 10, 80, .18);
   --radius: 22px;
   --bg-mid: #8a3ae8;
-  --hl-yellow: var(--hl-yellow);
-  --hl-pink: var(--hl-pink);
-  --hl-green: var(--hl-green);
+  --hl-yellow: #fff4cc;
+  --hl-pink: #ffe1e6;
+  --hl-green: #dff8ea;
   --hl-purple: #ece4ff;
-  --green-ink: var(--green-ink);
+  --green-ink: #12844a;
   --toast: #23164a;
   --dis-bg: #d8d0f0;
   --dis-ink: #8d82b0;
@@ -759,3 +759,55 @@ body.chat-open #toast { top: calc(16px + env(safe-area-inset-top)); bottom: auto
 .bcount { position: absolute; top: 6px; right: 8px; background: var(--purple); color: #fff; border-radius: 999px; font-size: 12px; font-weight: 800; padding: 0 7px; }
 .offnote { background: var(--hl-yellow); color: var(--ink); border-radius: 14px; padding: 10px 14px; font-weight: 700; margin: 0 0 16px; box-shadow: var(--shadow); }
 .offnote[hidden] { display: none; }
+
+/* ---------- Emojiyle Anlat ---------- */
+.emotitle { font-size: 30px; font-weight: 800; margin: 10px 0 2px; word-break: break-word; }
+.emoin { font-size: 24px; }
+.emoclue { font-size: 46px; line-height: 1.25; margin: 10px 0 14px; word-break: break-word; letter-spacing: 2px; }
+.emofeed { display: grid; gap: 6px; max-height: 260px; overflow-y: auto; }
+.fitem { background: var(--soft); border-radius: 12px; padding: 7px 12px; font-size: 15px; word-break: break-word; }
+.fitem.ok { background: var(--hl-green); font-weight: 700; }
+
+/* ---------- Çoğunluğu Bil ---------- */
+.lbl { font-weight: 800; margin: 0 0 8px; }
+.cogpred { display: flex; align-items: center; justify-content: center; gap: 18px; }
+.cogpred .btn { width: 56px; font-size: 26px; padding: 6px 0; }
+.cogpred span { font-size: 44px; font-weight: 800; min-width: 60px; text-align: center; }
+.ynbar.cog { background: var(--bg2); }
+.ynbar.cog i { background: var(--green); }
+.ynpct.cogn { color: var(--green); }
+
+/* ---------- İki Doğru Bir Yalan ---------- */
+.ikyrow { display: flex; gap: 8px; align-items: center; }
+.ikyrow .num {
+  flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--accent); color: var(--accent-ink);
+  display: grid; place-items: center; font-weight: 800;
+}
+.ikyrow .field { font-size: 17px; padding: 10px 12px; }
+.liebtn {
+  flex: none; width: 46px; height: 46px; border: 0; border-radius: 14px; background: var(--soft); font-size: 22px;
+  box-shadow: 0 3px 0 var(--line); filter: grayscale(1); opacity: .55; transition: transform .1s;
+}
+.liebtn.on { background: var(--bg2); filter: none; opacity: 1; transform: scale(1.08); }
+.ikyress { display: grid; gap: 10px; margin: 12px 0; text-align: left; }
+.ikyres { background: var(--soft); border-radius: 16px; padding: 12px 14px; transition: background .5s, transform .5s; }
+.ikyres .t { font-weight: 700; font-size: 18px; word-break: break-word; }
+.ikyres .voters { font-size: 13px; color: var(--muted); margin-top: 3px; }
+.ikyres .mark { display: inline-block; opacity: 0; transition: opacity .4s 1s; }
+.revealed .ikyres .mark { opacity: 1; }
+.revealed .ikyres.lie { background: var(--hl-pink); transform: scale(1.03); transition-delay: 1s; }
+.answers .ansb[data-act=ipick] { text-align: left; }
+
+/* ---------- Sıralama ---------- */
+.sirlist { display: grid; gap: 8px; }
+.sirbtn {
+  display: flex; align-items: center; gap: 10px; border: 0; border-radius: 16px; background: var(--soft); color: var(--ink);
+  padding: 10px 12px; font-size: 18px; font-weight: 700; text-align: left; box-shadow: 0 3px 0 var(--line);
+}
+.sirbtn .nm { flex: 1; }
+.sirbtn.on { background: var(--hl-yellow); }
+.sirpos {
+  flex: none; width: 32px; height: 32px; border-radius: 50%; border: 2px dashed var(--line);
+  display: grid; place-items: center; font-weight: 800;
+}
+.sirbtn.on .sirpos { background: var(--accent); color: var(--accent-ink); border: 0; }
