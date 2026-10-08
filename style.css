@@ -843,3 +843,63 @@ body.chat-open #toast { top: calc(16px + env(safe-area-inset-top)); bottom: auto
 .akey.hit { background: var(--green); color: #fff; opacity: 1; }
 .akey.miss { background: var(--red); color: #fff; opacity: .55; }
 .winline.adamwin { opacity: 1; transform: none; }
+
+/* ---------- Vampir Köyü ---------- */
+.vbar {
+  display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;
+  border-radius: 16px; padding: 10px 14px; margin-bottom: 12px; color: #fff; font-size: 15px; box-shadow: var(--shadow);
+}
+.vbar.night { background: linear-gradient(120deg, #1d1446, #3b1d6e); }
+.vbar.day { background: linear-gradient(120deg, #ff9a3c, #ff4f9a); }
+.vbar b { font-size: 18px; }
+.vme { margin-bottom: 12px; }
+.vmebtn {
+  border: 0; border-radius: 14px; background: var(--card); color: var(--ink); padding: 8px 12px; font-size: 15px; font-weight: 700;
+  box-shadow: var(--shadow); display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap;
+}
+.vmebtn small { color: var(--muted); }
+.vrolecard { margin-top: 10px; text-align: center; }
+.vrole { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 14px; font-weight: 800; background: var(--soft); color: var(--ink); white-space: nowrap; }
+.vrole.t-koy { background: var(--hl-green); }
+.vrole.t-vamp { background: var(--hl-pink); color: #b0123f; }
+.vrole.t-neutral { background: var(--hl-purple); }
+.vhearts { letter-spacing: 1px; }
+.vbig { font-size: 64px; line-height: 1.1; }
+.vreveal { border: 4px solid var(--accent); }
+.vreveal.t-vamp { border-color: var(--red); }
+.vreveal p { margin: 10px 0; }
+.vmates { font-size: 15px; }
+.vrolelist { display: flex; flex-wrap: wrap; gap: 6px; }
+.vkinds { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+.vq { font-weight: 700; margin: 4px 0 10px; }
+.vtargets { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; }
+.vt {
+  display: flex; align-items: center; gap: 8px; border: 0; border-radius: 14px; background: var(--soft); color: var(--ink);
+  padding: 10px; font-size: 16px; font-weight: 700; text-align: left; box-shadow: 0 3px 0 var(--line);
+}
+.vt.on { background: var(--accent); color: var(--accent-ink); }
+.vsent { margin: 10px 0 0; text-align: center; font-weight: 700; color: var(--green-ink); }
+.vsent small { color: var(--muted); font-weight: 600; }
+.vnight { border: 3px solid #3b1d6e; }
+.vfang { border: 3px solid var(--red); }
+.vmate { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; font-size: 15px; }
+.vchat { background: var(--soft); border-radius: 12px; padding: 8px 10px; max-height: 140px; overflow-y: auto; font-size: 14px; margin: 8px 0; display: grid; gap: 4px; }
+.vlist { display: flex; flex-wrap: wrap; gap: 6px; }
+.vp { display: inline-flex; align-items: center; gap: 6px; background: var(--soft); border-radius: 999px; padding: 4px 10px 4px 4px; font-weight: 700; font-size: 15px; }
+.vp.dead { opacity: .6; text-decoration: line-through; }
+.vp.dead .vrole { text-decoration: none; }
+.vreport p, .vprivate p { margin: 6px 0; }
+.vprivate { border: 3px dashed var(--purple); }
+.vprivate details { margin-top: 8px; font-size: 14px; }
+.vvotes { display: grid; gap: 8px; }
+.vvote {
+  display: flex; align-items: center; gap: 8px; border: 0; border-radius: 14px; background: var(--soft); color: var(--ink);
+  padding: 8px 10px; font-size: 16px; font-weight: 700; text-align: left; box-shadow: 0 3px 0 var(--line);
+}
+.vvote .nm { flex: 1; }
+.vvote.on { background: var(--hl-yellow); outline: 3px solid var(--accent); }
+.vvote:disabled { opacity: .75; }
+.vvoters { display: inline-flex; gap: 2px; }
+.vvoters .av { width: 24px; height: 24px; font-size: 13px; }
+.vendline { font-size: 22px; font-weight: 800; color: var(--red); margin: 10px 0 0; }
+.vfinal .srow { flex-wrap: wrap; }
