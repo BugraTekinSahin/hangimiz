@@ -4416,7 +4416,7 @@ function showHome(err = '') {
     '<div class="toprow">' + themePill() + '<button class="pill" data-act="settings" title="Ayarlar">⚙️</button></div>' +
     '<div class="hero"><div class="big">Hangimiz<span>?</span></div>' +
     '<p>Arkadaşlarınla telefondan oynanan parti oyunları.<br>Oda kur, linki at, gerisi kendiliğinden!</p>' +
-    '<div class="bubbles"><span>En zekimiz kim? 🧠</span><span>En yakışıklımız? 😎</span><span>İlk kim evlenir? 💍</span></div></div>' +
+    '<div class="bubbles"><span>En iyi yalanı kim söyler? 🤥</span><span>En yakışıklımız? 😎</span><span>Hep kim geç kalır? ⏰</span></div></div>' +
     '<div class="card">' +
       '<label class="lbl" for="nm">Adın ne?</label>' +
       '<input id="nm" class="field" maxlength="' + MAX_NAME + '" autocomplete="nickname" placeholder="Örn: Tekin" value="' + esc(myName) + '">' +
