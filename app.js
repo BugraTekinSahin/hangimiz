@@ -836,6 +836,16 @@ function setNetBar(msg) {
 
 /* ---------------------------------------------------------------- sound */
 
+// Personal settings, kept on this device only. Everything is on unless switched off.
+const Prefs = {
+  get(k) { return (store.get('hz-prefs') || {})[k] !== false; },
+  set(k, v) { const p = store.get('hz-prefs') || {}; p[k] = v; store.set('hz-prefs', p); },
+};
+
+function buzz(pattern) {
+  if (Prefs.get('vibrate') && navigator.vibrate) try { navigator.vibrate(pattern); } catch { /* not supported */ }
+}
+
 const Sound = {
   ctx: null,
   muted: store.get('hz-muted') === true,
@@ -4371,10 +4381,25 @@ function applyTheme(t) {
   if (meta) meta.content = isDark() ? '#1c1145' : '#5b2be0';
 }
 
+function prefsHTML() {
+  const sw = (k, on, icon, title, sub) => '<div class="prefrow"><div><b>' + icon + ' ' + esc(title) + '</b>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '</div>' +
+    '<button class="sw ' + (on ? 'on' : '') + '" data-act="prefToggle" data-k="' + k + '" aria-pressed="' + on + '"></button></div>';
+  const t = document.documentElement.dataset.theme || 'auto';
+  const th = (v, label) => '<button class="btn small ' + (t === v ? 'yellow' : 'ghost') + '" data-act="prefTheme" data-v="' + v + '">' + label + '</button>';
+  return '<div class="chathead"><b>⚙️ Ayarlar</b><button class="pill dark" data-act="closePrefs">✕</button></div>' +
+    '<p class="muted" style="margin:0 0 6px;font-size:14px">Bu ayarlar sadece senin cihazında geçerli.</p>' +
+    sw('sound', !Sound.muted, '🔊', 'Ses efektleri', 'Bütün sesleri açar ya da kapatır') +
+    sw('bombTick', Prefs.get('bombTick'), '💣', 'Bomba tık tık sesi', 'Sıcak Patates\'te bomba sendeyken') +
+    sw('countTick', Prefs.get('countTick'), '⏱️', 'Son saniyeler tık sesi', 'Süre bitmek üzereyken') +
+    sw('vibrate', Prefs.get('vibrate'), '📳', 'Titreşim', 'Bomba sana gelince (destekleyen telefonlarda)') +
+    '<div class="prefrow"><div><b>🎨 Tema</b></div><div class="prefseg">' + th('auto', '📱 Otomatik') + th('light', '☀️ Açık') + th('dark', '🌙 Karanlık') + '</div></div>';
+}
+
 function header(extra = '') {
   const chat = App.state ? '<button class="pill" data-act="chat" title="Sohbet">💬<span class="badge" id="chatBadge" hidden></span></button>' : '';
   return '<div class="top"><div class="logo">Hangimiz<span>?</span></div><div class="row">' + extra + chat +
-    themePill() + '<button class="pill" data-act="mute" title="Ses">' + (Sound.muted ? '🔇' : '🔊') + '</button></div></div>';
+    themePill() + '<button class="pill" data-act="mute" title="Ses">' + (Sound.muted ? '🔇' : '🔊') + '</button>' +
+    '<button class="pill" data-act="settings" title="Ayarlar">⚙️</button></div></div>';
 }
 
 function mount(html, wide = false) {
@@ -4388,7 +4413,7 @@ function mount(html, wide = false) {
 function showHome(err = '') {
   App.screenKey = 'home';
   mount(
-    '<div class="toprow">' + themePill() + '</div>' +
+    '<div class="toprow">' + themePill() + '<button class="pill" data-act="settings" title="Ayarlar">⚙️</button></div>' +
     '<div class="hero"><div class="big">Hangimiz<span>?</span></div>' +
     '<p>Arkadaşlarınla telefondan oynanan parti oyunları.<br>Oda kur, linki at, gerisi kendiliğinden!</p>' +
     '<div class="bubbles"><span>En zekimiz kim? 🧠</span><span>En yakışıklımız? 😎</span><span>İlk kim evlenir? 💍</span></div></div>' +
@@ -4451,7 +4476,7 @@ function showJoin(code, canRestore, err = '') {
   App.screenKey = 'join';
   App.code = code;
   mount(
-    '<div class="toprow">' + themePill() + '</div>' +
+    '<div class="toprow">' + themePill() + '<button class="pill" data-act="settings" title="Ayarlar">⚙️</button></div>' +
     '<div class="hero"><div class="big">Hangimiz<span>?</span></div><p>Seni bir odaya çağırdılar! 🎈</p></div>' +
     '<div class="card">' +
       '<div class="center muted" style="font-weight:700">Oda kodu</div>' +
@@ -6044,7 +6069,7 @@ function patTicker() {
   if (App.patTicker) return;
   App.patTicker = setInterval(() => {
     const s = App.state;
-    if (s && s.phase === 'pat' && s.pat && s.pat.step === 'play' && s.pat.amHolder) Sound.tick();
+    if (s && s.phase === 'pat' && s.pat && s.pat.step === 'play' && s.pat.amHolder && Prefs.get('bombTick')) Sound.tick();
   }, 700);
 }
 
@@ -6071,7 +6096,7 @@ Views['pat:play'] = {
           '<div class="row" style="margin-top:10px"><input id="patIn" class="field grow" maxlength="40" placeholder="' + esc(P.letter ? P.letter + '…' : 'Cevabın…') + '" autocomplete="off">' +
           '<button class="btn green" data-act="pSend">Gönder 🚀</button></div></div>'
         : '<div class="card center patbomb"><div class="bomb other">💣</div><div class="kasker">Bomba şu an: ' + avatarHTML(h) + '<b>' + esc(h.name) + '</b></div></div>';
-      if (P.amHolder) { Sound.join(); focusFine('#patIn', true); }
+      if (P.amHolder) { Sound.join(); buzz(150); focusFine('#patIn', true); }
     }
     const L = P.last;
     $('#patFeed').innerHTML = (L && L.id !== s.you ? '<div class="patveto">Son cevap: <b>' + esc(L.text) + '</b> · ' +
@@ -6093,6 +6118,7 @@ Views['pat:reveal'] = {
       '<div class="card"><h2>Oyuncular</h2>' + patTable(s) + '</div>' +
       hostNext(s, P.pendingEnd ? '🏆 Sonuçlar' : '💣 Sonraki tur'));
     Sound.beep(90, 0.6, 'sawtooth', 0.09);
+    if (R.victim === s.you) buzz([200, 80, 400]);
   },
 };
 
@@ -7569,7 +7595,7 @@ function updateTimers() {
     const end = s.phase === 'answering' ? (App.ans && App.ans.qDeadline) : App.deadline;
     if (end) {
       const sec = Math.ceil(Math.max(0, end - now) / 1000);
-      if (sec !== App.lastSecond && sec <= 5 && sec > 0) Sound.tick();
+      if (sec !== App.lastSecond && sec <= 5 && sec > 0 && Prefs.get('countTick')) Sound.tick();
       App.lastSecond = sec;
     }
   }
@@ -7650,6 +7676,36 @@ const actions = {
         '<small>' + esc(b.d) + '</small>' + (col[k] ? '<span class="bcount">×' + col[k] + '</span>' : '') + '</div>').join('') + '</div></div>';
     m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
     document.body.appendChild(m);
+  },
+  settings() {
+    const old = $('#prefModal');
+    if (old) old.remove();
+    const m = document.createElement('div');
+    m.id = 'prefModal';
+    m.className = 'modal';
+    m.innerHTML = '<div class="modalbox">' + prefsHTML() + '</div>';
+    m.addEventListener('click', (e) => { if (e.target === m) m.remove(); });
+    document.body.appendChild(m);
+  },
+  closePrefs() { const m = $('#prefModal'); if (m) m.remove(); },
+  prefToggle(el) {
+    const k = el.dataset.k;
+    if (k === 'sound') {
+      Sound.toggle();
+      $$('[data-act=mute]').forEach((b) => { b.textContent = Sound.muted ? '🔇' : '🔊'; });
+    } else {
+      Prefs.set(k, !Prefs.get(k));
+      if (k === 'vibrate') buzz(80);
+    }
+    Sound.click();
+    $('#prefModal .modalbox').innerHTML = prefsHTML();
+  },
+  prefTheme(el) {
+    const v = el.dataset.v;
+    if (v === 'auto') { delete document.documentElement.dataset.theme; store.del('hz-theme'); applyTheme(); }
+    else { applyTheme(v); store.set('hz-theme', v); }
+    $$('[data-act=theme]').forEach((b) => { b.textContent = isDark() ? '☀️' : '🌙'; });
+    $('#prefModal .modalbox').innerHTML = prefsHTML();
   },
   closeBadges() { const m = $('#badgeModal'); if (m) m.remove(); },
   chat() {
