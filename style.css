@@ -1044,3 +1044,30 @@ button.qopt:not(:disabled):active { transform: translateY(4px); box-shadow: 0 1p
 .qanswer { font-size: 20px; font-weight: 800; text-align: center; margin-bottom: 10px; }
 .qme { text-align: center; font-size: 22px; font-weight: 800; margin: 6px 0 14px; }
 .qme.ok { color: var(--green); } .qme.no { color: var(--muted); }
+
+/* ---------- Cinayet Gecesi ---------- */
+.cinbar { background: linear-gradient(120deg, #1e293b, #475569); }
+.cinstory { background: linear-gradient(160deg, #1e1b2e, #3b2f4a); color: #f1e9ff; text-align: center; }
+.cinstory p { font-size: 17px; line-height: 1.5; margin: 6px 0 0; }
+.cinbig { font-size: 54px; line-height: 1.1; }
+.cinme { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; align-items: center; border: 3px solid var(--purple); }
+.cinrole { font-size: 46px; line-height: 1; }
+.cinsecret { grid-column: 1 / -1; background: var(--hl-green); border-radius: 14px; padding: 10px 12px; font-size: 15px; }
+.cinsecret.killer { background: var(--hl-pink); }
+.cinrooms { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.vt.hint { outline: 2px dashed var(--green); }
+.cinsus { display: grid; gap: 8px; }
+.cinp { background: var(--soft); border-radius: 14px; padding: 10px 12px; }
+.cinp .top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cinp .role { margin-left: auto; font-size: 14px; font-weight: 700; color: var(--muted); }
+.cinp .tr { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.cinp .tr span { font-size: 13px; background: var(--card); border-radius: 999px; padding: 2px 8px; font-weight: 600; }
+.cinp .where { margin-top: 6px; font-size: 14px; font-weight: 700; }
+.cinclue { background: var(--soft); border-radius: 12px; padding: 8px 12px; margin-bottom: 8px; font-size: 15px; line-height: 1.4; }
+.cinclue .r { display: inline-block; font-size: 11px; font-weight: 800; color: var(--muted); margin-right: 6px; text-transform: uppercase; }
+.cinclue.event { background: var(--hl-yellow); }
+.cinclue.mine { background: var(--hl-purple); }
+.cinpriv { border: 3px dashed var(--purple); }
+.cinkill { border: 3px solid var(--red); }
+.cinsolve { border: 3px solid var(--accent); }
+.srow.killer { background: var(--hl-pink); }

@@ -250,7 +250,16 @@ GAMES.taklit = {
     { key: 'voteTime', label: 'Oylama süresi', type: 'num', def: 60, min: 20, max: 180, step: 10, unit: 'sn' },
   ],
 };
-const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir', 'zar', 'patates', 'taklit', 'quiz'];
+const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir', 'zar', 'patates', 'taklit', 'quiz', 'cinayet'];
+GAMES.cinayet = {
+  name: 'Cinayet Gecesi',
+  emoji: '🔪',
+  desc: 'Köşkte bir cinayet işlendi ve katil aranızda! Herkesin bir karakteri, mazereti ve gizli ipuçları var. 3 turda ipuçlarını birleştirin, katili yakalayın.',
+  minPlayers: 4,
+  defs: [
+    { key: 'discussTime', label: 'Tur başına konuşma süresi', type: 'num', def: 150, min: 45, max: 600, step: 15, unit: 'sn' },
+  ],
+};
 GAMES.quiz = {
   name: 'Bilgi Yarışması',
   emoji: '🧠',
@@ -266,10 +275,10 @@ GAMES.quiz = {
 const GAME_COLORS = {
   hangimiz: '#8b5cf6', kimyazdi: '#6366f1', asla: '#f59e0b', komik: '#eab308', yalanci: '#ef4444', kackac: '#06b6d4',
   ikiz: '#ec4899', tele: '#d946ef', ayna: '#60a5fa', emoji: '#fb923c', cogunluk: '#22c55e', ikidogru: '#f43f5e',
-  sirala: '#84cc16', adam: '#b45309', vampir: '#b91c1c', zar: '#0f9488', patates: '#ea580c', taklit: '#2dd4bf', quiz: '#3b82f6',
+  sirala: '#84cc16', adam: '#b45309', vampir: '#b91c1c', zar: '#0f9488', patates: '#ea580c', taklit: '#2dd4bf', quiz: '#3b82f6', cinayet: '#64748b',
 };
 // Games with their own flow instead of write → answer → results.
-const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp', zar: 'zar', patates: 'pat', taklit: 'tak', quiz: 'quiz' };
+const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp', zar: 'zar', patates: 'pat', taklit: 'tak', quiz: 'quiz', cinayet: 'cin' };
 
 const EMO_POINTS = [300, 200];      // 1st and 2nd correct guess; everyone after gets EMO_POINTS_REST
 const EMO_POINTS_REST = 100;
@@ -288,6 +297,58 @@ const SIR_PERFECT_BONUS = 100;
 
 // t = answer shown, a = other accepted spellings.
 // EMO_ITEMS (Emojiyle Anlat titles) lives in emo-items.js, loaded before this file.
+
+/* ---------- Cinayet Gecesi data ---------- */
+
+// n = name, de = "in the …", ye = "into the …" (Turkish suffixes depend on the word, so they are written out).
+const CIN_ROOMS = [
+  { n: 'Kütüphane', de: 'Kütüphanede', ye: 'Kütüphaneye' }, { n: 'Mutfak', de: 'Mutfakta', ye: 'Mutfağa' },
+  { n: 'Bahçe', de: 'Bahçede', ye: 'Bahçeye' }, { n: 'Şarap Mahzeni', de: 'Şarap Mahzeninde', ye: 'Şarap Mahzenine' },
+  { n: 'Balo Salonu', de: 'Balo Salonunda', ye: 'Balo Salonuna' }, { n: 'Çalışma Odası', de: 'Çalışma Odasında', ye: 'Çalışma Odasına' },
+  { n: 'Kış Bahçesi', de: 'Kış Bahçesinde', ye: 'Kış Bahçesine' }, { n: 'Bilardo Odası', de: 'Bilardo Odasında', ye: 'Bilardo Odasına' },
+];
+const CIN_WEAPONS = [
+  { n: 'Gümüş Şamdan', e: '🕯️', k: 'darbe' }, { n: 'Golf Sopası', e: '🏌️', k: 'darbe' }, { n: 'Kristal Vazo', e: '🏺', k: 'darbe' },
+  { n: 'Mutfak Bıçağı', e: '🔪', k: 'kesici' }, { n: 'Bahçe Makası', e: '✂️', k: 'kesici' },
+  { n: 'İpek Kravat', e: '👔', k: 'bogma' }, { n: 'Perde İpi', e: '🪢', k: 'bogma' },
+  { n: 'Zehirli Çay', e: '🍵', k: 'zehir' }, { n: 'Zehirli Şarap', e: '🍷', k: 'zehir' },
+];
+const CIN_AUTOPSY = {
+  darbe: 'Başına sert bir cisimle vurulmuş.', kesici: 'Keskin bir aletle yaralanmış.', bogma: 'Boğularak öldürülmüş.', zehir: 'Zehirlenmiş, bardağında tuhaf bir koku var.',
+};
+const CIN_CHARS = [
+  { e: '👨‍🍳', n: 'Aşçı', m: 'Ev sahibi seni hırsızlıkla suçlayıp kovmak üzereydi.' },
+  { e: '🧑‍🌾', n: 'Bahçıvan', m: 'Bahçeye gömülü bir sırrını öğrenmişti.' },
+  { e: '🤵', n: 'Uşak', m: 'Yıllardır maaşını eksik ödüyordu.' },
+  { e: '🧑‍⚕️', n: 'Aile Doktoru', m: 'Yanlış verdiğin bir ilacı biliyordu.' },
+  { e: '🧑‍💼', n: 'Avukat', m: 'Vasiyeti senin aleyhine değiştirmek üzereydi.' },
+  { e: '💃', n: 'Eski Eş', m: 'Boşanmada her şeyini almıştı.' },
+  { e: '🧑‍🎨', n: 'Ressam', m: 'Tablolarının sahte olduğunu herkese söyleyecekti.' },
+  { e: '🎻', n: 'Kemancı', m: 'Konserini son anda iptal ettirip seni rezil etmişti.' },
+  { e: '📰', n: 'Gazeteci', m: 'Yazacağın haberi durdurmak için seni tehdit etmişti.' },
+  { e: '🚗', n: 'Şoför', m: 'Kaza yaptığını polise söyleyecekti.' },
+  { e: '👒', n: 'Yeğen', m: 'Mirastan seni çıkardığını yeni öğrenmiştin.' },
+  { e: '🧳', n: 'Uzak Akraba', m: 'Borç para istediğinde herkesin önünde seni kovmuştu.' },
+];
+// t = public evidence text, s = what a witness saw in the corridor.
+const CIN_TRAITS = [
+  { e: '🚬', n: 'Sigara içiyor', t: 'sigara külü bulundu', s: 'elinde sigara olan' },
+  { e: '✋', n: 'Solak', t: 'darbenin soldan geldiği anlaşıldı, katil solak olabilir', s: 'sol eliyle kapıyı açan' },
+  { e: '👓', n: 'Gözlüklü', t: 'kırık bir gözlük camı bulundu', s: 'gözlüklü' },
+  { e: '🌹', n: 'Gül parfümü sürüyor', t: 'gül parfümü kokusu vardı', s: 'gül parfümü kokan' },
+  { e: '🧤', n: 'Deri eldivenli', t: 'deri eldiven izleri vardı', s: 'deri eldiven giymiş' },
+  { e: '👞', n: 'Ayakkabısı çamurlu', t: 'çamurlu ayak izleri vardı', s: 'ayakkabısı çamurlu' },
+  { e: '🎩', n: 'Şapkalı', t: 'yerde bir şapka tüyü vardı', s: 'şapkalı' },
+  { e: '💍', n: 'Yüzük takıyor', t: 'kurbanın yanağında bir yüzük çiziği vardı', s: 'parmağında büyük bir yüzük olan' },
+];
+const CIN_VICTIMS = ['Ragıp Bey', 'Madam Nermin', 'Profesör Cemil', 'Kontes Leyla', 'Hacı Fehmi Bey', 'Sabiha Hanım'];
+const CIN_PLACES = ['Boğaz kıyısındaki eski yalıda', 'Uludağ eteklerindeki dağ köşkünde', 'Bodrum\'daki taş konakta', 'Kapadokya\'daki mağara otelde'];
+const CIN_ROUNDS = 3;
+const CIN_WIN_POINTS = 300;      // every innocent, when the killer is caught
+const CIN_VOTE_POINTS = 200;     // you personally pointed at the killer
+const CIN_WEAPON_POINTS = 100;   // you also got the weapon right
+const CIN_ESCAPE_POINTS = 600;   // killer got away
+const CIN_DODGE_POINTS = 100;    // killer: per vote that went to someone else
 
 /* ---------- Bilgi Yarışması ---------- */
 
@@ -804,6 +865,8 @@ const BADGES = {
   ad_hangman: { e: '🪢', n: 'Cellat', d: "Adam Asmaca'da kelimenle en çok adam astın" },
   zr_king: { e: '🎲', n: 'Zar Kralı', d: "Yalan Zar'da son kalan sen oldun" },
   zr_hunter: { e: '🔍', n: 'Yalan Avcısı', d: "Yalan Zar'da en çok yalanı sen yakaladın" },
+  cn_sherlock: { e: '🕵️', n: 'Sherlock', d: "Cinayet Gecesi'nde katili ve silahı bildin" },
+  cn_perfect: { e: '🔪', n: 'Kusursuz Cinayet', d: "Cinayet Gecesi'nde katil olarak kaçmayı başardın" },
   qz_brain: { e: '🧠', n: 'Ansiklopedi', d: "Bilgi Yarışması'nı kazandın" },
   qz_compass: { e: '🧭', n: 'Pusula', d: "Bilgi Yarışması'nda haritada en isabetli sendin" },
   tk_master: { e: '🥸', n: 'Usta Taklitçi', d: "Taklitçi'de taklidinle en çok kişiyi kandırdın" },
@@ -1441,6 +1504,48 @@ const Host = {
         return;
       }
 
+      case 'calibi': {
+        if (S.phase !== 'cin' || r.step === 'accuse' || !r.roster.includes(pid)) return;
+        const room = Math.round(Number(msg.room));
+        if (!(room >= 0 && room < CIN_ROOMS.length)) return;
+        // The statement can only be made once; after that it is on the record.
+        if (r.declared[pid] != null) return;
+        r.declared[pid] = room;
+        this.changed();
+        this.cinCheck();
+        return;
+      }
+
+      case 'cready': {
+        if (S.phase !== 'cin' || r.step !== 'round' || !r.roster.includes(pid)) return;
+        r.ready[pid] = !r.ready[pid];
+        this.changed();
+        this.cinCheck();
+        return;
+      }
+
+      case 'cframe': {
+        if (S.phase !== 'cin' || r.step !== 'round' || pid !== r.killer || r.frameUsed) return;
+        const target = String(msg.target || '');
+        if (target === pid || !r.roster.includes(target)) return;
+        r.frameUsed = true;
+        const letter = (S.players[target] ? S.players[target].name : '?').trim().charAt(0).toLocaleUpperCase('tr');
+        r.events.push({ round: r.round, text: '🧣 ' + CIN_ROOMS[r.room].n + ' yakınında bir mendil bulundu. Üzerinde "' + letter + '" harfi işlenmiş!' });
+        this.changed();
+        return;
+      }
+
+      case 'cvote': {
+        if (S.phase !== 'cin' || r.step !== 'accuse' || !r.roster.includes(pid)) return;
+        const sus = String(msg.s || '');
+        const w = Math.round(Number(msg.w));
+        if (sus === pid || !r.roster.includes(sus) || !(w >= 0 && w < CIN_WEAPONS.length)) return;
+        r.votes[pid] = { s: sus, w };
+        this.changed();
+        this.cinCheck();
+        return;
+      }
+
       case 'qans': {
         if (S.phase !== 'quiz' || r.step !== 'q' || !r.roster.includes(pid) || r.ans[pid]) return;
         const q = r.qs[r.qi];
@@ -1752,6 +1857,7 @@ const Host = {
         else if (S.phase === 'pat') this.patSkip();
         else if (S.phase === 'tak') this.takSkip();
         else if (S.phase === 'quiz') this.quizSkip();
+        else if (S.phase === 'cin') this.cinSkip();
         return;
       case 'lieReset':
         S.lieTotals = {};
@@ -1910,6 +2016,7 @@ const Host = {
     if (S.game === 'patates') this.setupPat(S.round);
     if (S.game === 'taklit') this.setupTak(S.round);
     if (S.game === 'quiz') this.setupQuiz(S.round);
+    if (S.game === 'cinayet') this.setupCin(S.round);
     S.phase = GAME_PHASE[S.game] || 'writing';
     this.changed();
   },
@@ -2482,6 +2589,170 @@ const Host = {
     const r = this.S.round;
     const live = this.liveIds();
     if (r.step === 'rank' && live.length && live.every((id) => r.ranks[id])) this.sirReveal();
+  },
+
+  /* ---------- Cinayet Gecesi ---------- */
+
+  // A fresh, solvable mystery every time: who, where and with what is decided here, the clues follow from it.
+  setupCin(r) {
+    const ids = shuffle(r.roster);
+    const killer = ids[0];
+    const room = Math.floor(Math.random() * CIN_ROOMS.length);
+    const weapon = Math.floor(Math.random() * CIN_WEAPONS.length);
+    const chars = {};
+    const charIdx = shuffle(CIN_CHARS.map((_, i) => i));
+    r.roster.forEach((id, i) => { chars[id] = charIdx[i % charIdx.length]; });
+    // Where everyone really was at 23:00. Innocents share rooms now and then, so they can vouch for each other.
+    const truth = { [killer]: room };
+    const free = shuffle(CIN_ROOMS.map((_, i) => i).filter((i) => i !== room));
+    const used = [];
+    for (const id of ids.slice(1)) {
+      if (used.length && Math.random() < 0.45) truth[id] = used[Math.floor(Math.random() * used.length)];
+      else { const rr = free.find((x) => !used.includes(x)); truth[id] = rr != null ? rr : used[0]; if (!used.includes(truth[id])) used.push(truth[id]); }
+    }
+    // Two traits each; the killer's traits are made to match a few other people, so no trait alone gives them away.
+    const traits = {};
+    for (const id of r.roster) traits[id] = shuffle(CIN_TRAITS.map((_, i) => i)).slice(0, 2);
+    const innocents = ids.slice(1);
+    for (const t of traits[killer]) {
+      const holders = () => r.roster.filter((id) => traits[id].includes(t));
+      for (const id of shuffle(innocents)) {
+        if (holders().length >= Math.min(3, Math.ceil(r.roster.length / 2))) break;
+        if (!traits[id].includes(t)) traits[id] = [traits[id][0], t];
+      }
+    }
+    Object.assign(r, {
+      killer, room, weapon, chars, truth, traits, victim: CIN_VICTIMS[Math.floor(Math.random() * CIN_VICTIMS.length)],
+      place: CIN_PLACES[Math.floor(Math.random() * CIN_PLACES.length)], pubTrait: traits[killer][0], privTrait: traits[killer][1],
+      declared: {}, round: 0, step: 'intro', ready: {}, votes: {}, events: [], clues: {}, frameUsed: false, result: null,
+    });
+    for (const id of r.roster) r.clues[id] = [];
+    this.setStepDeadline(Math.max(60, r.cfg.discussTime));
+  },
+
+  cinName(id) {
+    const p = this.S.players[id];
+    return p ? p.name : '?';
+  },
+
+  // Public clue revealed at the start of each round.
+  cinPublic(round) {
+    const r = this.S.round;
+    if (round === 1) return '🔪 ' + r.victim + ', saat 23:00 civarında ' + CIN_ROOMS[r.room].de + ' ölü bulundu.';
+    if (round === 2) return '🩺 Otopsi raporu: ' + CIN_AUTOPSY[CIN_WEAPONS[r.weapon].k];
+    return '🔍 Olay yerinde ' + CIN_TRAITS[r.pubTrait].t + '.';
+  },
+
+  // Everyone gets one private clue per round, built from the truth (and from what people claimed).
+  cinDealClues(round) {
+    const r = this.S.round;
+    const innocents = shuffle(r.roster.filter((id) => id !== r.killer));
+    const otherWeapons = shuffle(CIN_WEAPONS.map((_, i) => i).filter((i) => i !== r.weapon));
+    const occupied = new Set(Object.entries(r.truth).filter(([id]) => id !== r.killer).map(([, v]) => v));
+    const emptyRooms = CIN_ROOMS.map((_, i) => i).filter((i) => i !== r.room && !occupied.has(i));
+    const say = (id, text) => r.clues[id].push({ round, text });
+    const cleared = (id) => {
+      const others = innocents.filter((x) => x !== id && r.truth[x] !== r.truth[id]);
+      if (!others.length) return false;
+      const z = others[Math.floor(Math.random() * others.length)];
+      say(id, '👀 Saat 23:00\'te ' + CIN_ROOMS[r.truth[z]].de + ' ' + this.cinName(z) + ' vardı, kendi gözünle gördün.');
+      return true;
+    };
+    const notWeapon = (id) => {
+      const w = otherWeapons.pop();
+      if (w == null) return false;
+      say(id, CIN_WEAPONS[w].e + ' ' + CIN_WEAPONS[w].n + ' yerinde duruyordu. Cinayet onunla işlenmedi.');
+      return true;
+    };
+    innocents.forEach((id, k) => {
+      if (round === 2 && k === 0) {
+        say(id, '🚶 Saat 23\'e doğru koridorda ' + CIN_TRAITS[r.privTrait].s + ' birini gördün ama yüzünü seçemedin.');
+      } else if (round === 2 && k === 1 && emptyRooms.length) {
+        // If the killer claimed an empty room, this is the clue that catches the lie.
+        const claimed = r.declared[r.killer];
+        const lr = emptyRooms.includes(claimed) && Math.random() < 0.6 ? claimed : emptyRooms[Math.floor(Math.random() * emptyRooms.length)];
+        say(id, '🔒 ' + CIN_ROOMS[lr].n + ' saat 22:30\'dan sonra kilitliydi. Anahtarı sendeydi, içeride kimse olamazdı.');
+      } else if (round === 3 && k === 0) {
+        const other = innocents[1] || innocents[0];
+        const pair = shuffle([r.killer, other]).map((x) => this.cinName(x));
+        say(id, '🚪 Saat 22:55\'te biri ' + CIN_ROOMS[r.room].ye + ' girdi. Karanlıktı ama ya ' + pair[0] + ' ya da ' + pair[1] + ' olduğuna eminsin.');
+      } else if (!(Math.random() < 0.5 ? cleared(id) || notWeapon(id) : notWeapon(id) || cleared(id))) {
+        say(id, '🤷 Bu tur dikkatini çeken bir şey olmadı.');
+      }
+    });
+    const k = r.killer;
+    if (round === 1) {
+      // Tell the killer whether their alibi room was really empty, so they know how risky their lie is.
+      const d = r.declared[k];
+      const there = d >= 0 ? r.roster.filter((id) => id !== k && r.truth[id] === d) : [];
+      if (d < 0) say(k, '🤐 İfade vermedin. Bu da şüphe çekebilir…');
+      else if (there.length) say(k, '😬 Kötü haber: Söylediğin odada (' + CIN_ROOMS[d].n + ') aslında ' + there.map((x) => this.cinName(x)).join(' ve ') + ' vardı. Yalanın ortaya çıkabilir!');
+      else say(k, '😌 İyi haber: Söylediğin odada (' + CIN_ROOMS[d].n + ') kimse yoktu. Şimdilik güvendesin.');
+    }
+    if (round === 2) say(k, '😰 Dedikodu: Biri koridorda ' + CIN_TRAITS[r.privTrait].s + ' birini görmüş. Bu sensin!');
+    if (round === 3) say(k, '😱 Biri seni ' + CIN_ROOMS[r.room].ye + ' girerken görmüş olabilir. Soğukkanlı ol!');
+  },
+
+  cinCheck() {
+    const r = this.S.round;
+    const live = this.liveIds();
+    if (!live.length) return;
+    if (r.step === 'intro' && live.every((id) => r.declared[id] != null)) this.cinNextRound();
+    else if (r.step === 'round' && live.every((id) => r.ready[id])) this.cinNextRound();
+    else if (r.step === 'accuse' && live.every((id) => r.votes[id])) this.cinFinish();
+  },
+
+  cinNextRound() {
+    const r = this.S.round;
+    // Anyone who never made a statement is put on the record as "didn't say".
+    if (r.round === 0) for (const id of r.roster) if (r.declared[id] == null) r.declared[id] = -1;
+    if (r.round >= CIN_ROUNDS) {
+      r.step = 'accuse';
+      this.setStepDeadline(90);
+      this.changed();
+      return;
+    }
+    r.round++;
+    r.step = 'round';
+    r.ready = {};
+    r.events.push({ round: r.round, text: this.cinPublic(r.round), pub: true });
+    this.cinDealClues(r.round);
+    this.setStepDeadline(r.cfg.discussTime);
+    this.changed();
+  },
+
+  cinSkip() {
+    const r = this.S.round;
+    if (r.step === 'accuse') this.cinFinish();
+    else this.cinNextRound();
+  },
+
+  cinFinish() {
+    const r = this.S.round;
+    const tally = {};
+    for (const v of Object.values(r.votes)) tally[v.s] = (tally[v.s] || 0) + 1;
+    const top = Math.max(0, ...Object.values(tally));
+    const leaders = Object.keys(tally).filter((id) => tally[id] === top);
+    const caught = top > 0 && leaders.length === 1 && leaders[0] === r.killer;
+    const scores = {};
+    const sherlocks = [];
+    for (const id of r.roster) {
+      scores[id] = 0;
+      if (id === r.killer) continue;
+      const v = r.votes[id];
+      if (caught) scores[id] += CIN_WIN_POINTS;
+      if (v && v.s === r.killer) {
+        scores[id] += CIN_VOTE_POINTS;
+        if (v.w === r.weapon) { scores[id] += CIN_WEAPON_POINTS; sherlocks.push(id); }
+      }
+    }
+    if (!caught) scores[r.killer] += CIN_ESCAPE_POINTS;
+    scores[r.killer] += Object.entries(r.votes).filter(([id, v]) => id !== r.killer && v.s !== r.killer).length * CIN_DODGE_POINTS;
+    this.finishCustom({
+      killer: r.killer, room: r.room, weapon: r.weapon, victim: r.victim, place: r.place, caught, tally, votes: { ...r.votes },
+      chars: { ...r.chars }, truth: { ...r.truth }, declared: { ...r.declared }, traits: { ...r.traits }, events: r.events, sherlocks,
+      scores, ranking: r.roster.slice().sort((a, b) => scores[b] - scores[a]),
+    });
   },
 
   /* ---------- Bilgi Yarışması ---------- */
@@ -3723,6 +3994,7 @@ const Host = {
       else if (S.phase === 'pat' && now >= r.deadline) this.patSkip();
       else if (S.phase === 'tak' && now >= r.deadline) this.takSkip();
       else if (S.phase === 'quiz' && now >= r.deadline) this.quizSkip();
+      else if (S.phase === 'cin' && now >= r.deadline) this.cinSkip();
     }
     if (S.phase === 'ikiz' && r) this.ikizCheck();
     if (S.phase === 'tele' && r) this.teleCheck();
@@ -3734,6 +4006,7 @@ const Host = {
     if (S.phase === 'vamp' && r) this.vampCheck();
     if (S.phase === 'tak' && r) this.takCheck();
     if (S.phase === 'quiz' && r) this.quizCheck();
+    if (S.phase === 'cin' && r) this.cinCheck();
     // The bomb ignores "Süresiz": it is the whole game.
     if (S.phase === 'pat' && r && r.step === 'play' && now >= r.boomAt) this.patBoom();
     if (S.phase === 'kac' && r) {
@@ -3940,6 +4213,21 @@ const Host = {
         step: r.step, ti: r.ti, tn: r.turns.length, asker, amAsker: pid === asker, q: r.q, done,
         rankIds: r.step === 'rank' ? r.rankIds : null, myRank: (r.ranks && r.ranks[pid]) || null,
         result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
+      };
+    } else if (S.phase === 'cin') {
+      // Roles, true whereabouts and the solution never leave the host; each player sees only their own.
+      const mine = r.roster.includes(pid);
+      const done = {};
+      for (const id of r.roster) done[id] = r.step === 'intro' ? r.declared[id] != null : r.step === 'round' ? !!r.ready[id] : !!r.votes[id];
+      const killer = mine && pid === r.killer;
+      pub.stepKey = r.step + r.round;
+      pub.cin = {
+        step: r.step, round: r.round, rounds: CIN_ROUNDS, victim: r.victim, place: r.place, done,
+        chars: r.chars, traits: r.traits, declared: r.step === 'intro' ? Object.fromEntries(Object.entries(r.declared).map(([k, v]) => [k, k === pid ? v : -2])) : r.declared,
+        events: r.events, myClues: mine ? r.clues[pid] : [], ready: r.ready[pid] || false,
+        me: mine ? { killer, truth: killer ? null : r.truth[pid], with: killer ? [] : r.roster.filter((x) => x !== pid && x !== r.killer && r.truth[x] === r.truth[pid]),
+          crime: killer ? { room: r.room, weapon: r.weapon } : null, canFrame: killer && !r.frameUsed } : null,
+        myVote: r.votes[pid] || null,
       };
     } else if (S.phase === 'quiz') {
       const q = r.qs[r.qi];
@@ -4259,6 +4547,10 @@ function computeAwards(r) {
     case 'adam':
       give(top(F.solved), 'ad_hunter');
       give(top(F.hanged), 'ad_hangman');
+      break;
+    case 'cinayet':
+      give(F.sherlocks, 'cn_sherlock');
+      if (!F.caught) give([F.killer], 'cn_perfect');
       break;
     case 'quiz':
       give(F.ranking.slice(0, 1).filter((id) => F.scores[id] > 0), 'qz_brain');
@@ -5072,15 +5364,15 @@ function render() {
   if (!s) return;
   const inRound = !!(s.roster && s.roster.includes(s.you));
   let screen = s.phase;
-  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz'].includes(s.phase) && !inRound) screen = 'spectate';
+  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin'].includes(s.phase) && !inRound) screen = 'spectate';
   if (screen === 'lie') screen = 'lie:' + s.lie.step;
   if (screen === 'kac') screen = 'kac:' + s.kac.step;
-  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz'].includes(screen)) screen += ':' + s[screen].step;
+  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin'].includes(screen)) screen += ':' + s[screen].step;
   let key = screen + ':' + (s.roundId || '');
   if (screen === 'results') key += ':' + s.reveal.index;
   if (screen === 'lie:clues') key += ':' + s.lie.turn;
   if (screen.startsWith('kac:')) key += ':' + s.kac.ti;
-  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp|zar|pat|tak|quiz):/.test(screen)) key += ':' + s.stepKey;
+  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp|zar|pat|tak|quiz|cin):/.test(screen)) key += ':' + s.stepKey;
   if (screen === 'writing' && s.writing.stage) key += ':' + s.writing.stage;
 
   const fresh = key !== App.screenKey;
@@ -6367,6 +6659,168 @@ function sirFinalMount(s) {
     '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
       '<p class="muted" style="margin:10px 0 0;font-size:14px">Grubun sıralamasıyla aynı yere koyduğun her kişi +' + SIR_POS_POINTS + ' · Birebir aynıysa +' + SIR_PERFECT_BONUS + ' bonus</p></div>' +
     '<div class="card"><h2>Bütün sorular</h2><div class="recap">' + recap + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
+/* ---------- Cinayet Gecesi ---------- */
+
+function cinChar(C, id) {
+  return CIN_CHARS[C.chars[id]];
+}
+
+function cinSuspects(s, showDeclared = true) {
+  const C = s.cin;
+  return '<div class="cinsus">' + s.roster.map((id) => {
+    const ch = cinChar(C, id);
+    const d = C.declared[id];
+    const where = !showDeclared ? '' : d == null || d === -2 ? '<span class="muted">ifade bekleniyor…</span>' : d === -1 ? '<span class="muted">ifade vermedi 🤐</span>' : '📍 ' + esc(CIN_ROOMS[d].n);
+    return '<div class="cinp"><div class="top">' + avatarHTML(nameOf(id), 'sm') + '<b>' + esc(nameOf(id).name) + '</b><span class="role">' + ch.e + ' ' + esc(ch.n) + '</span></div>' +
+      '<div class="tr">' + C.traits[id].map((t) => '<span title="' + esc(CIN_TRAITS[t].n) + '">' + CIN_TRAITS[t].e + ' ' + esc(CIN_TRAITS[t].n) + '</span>').join('') + '</div>' +
+      (where ? '<div class="where">' + where + '</div>' : '') + '</div>';
+  }).join('') + '</div>';
+}
+
+function cinMyCard(s) {
+  const C = s.cin;
+  const me = C.me;
+  if (!me) return '';
+  const ch = cinChar(C, s.you);
+  const fact = me.killer
+    ? '<div class="cinsecret killer"><b>🔪 Katil sensin!</b><br>' + CIN_ROOMS[me.crime.room].de + ', ' + CIN_WEAPONS[me.crime.weapon].e + ' ' + esc(CIN_WEAPONS[me.crime.weapon].n) + ' ile.<br><small>Yakalanmamak için yalan söyle, şüpheyi başkasına çek.</small></div>'
+    : '<div class="cinsecret"><b>😇 Masumsun.</b><br>Saat 23:00\'te buradaydın: <b>' + esc(CIN_ROOMS[me.truth].n) + '</b>. ' +
+      (me.with.length ? 'Yanında: <b>' + me.with.map((id) => esc(nameOf(id).name)).join(', ') + '</b>' : 'Yalnızdın.') + '</div>';
+  return '<div class="card cinme"><div class="cinrole">' + ch.e + '</div><div><div class="muted" style="font-size:13px;font-weight:700">Senin karakterin</div><h2 style="margin:0">' + esc(ch.n) + '</h2>' +
+    '<p class="muted" style="margin:4px 0 0;font-size:14px">Gizli sebebin: ' + esc(ch.m) + '</p></div>' + fact + '</div>';
+}
+
+function cinClues(s) {
+  const C = s.cin;
+  const pub = C.events.map((e) => '<div class="cinclue ' + (e.pub ? 'pub' : 'event') + '"><span class="r">Tur ' + e.round + '</span>' + esc(e.text) + '</div>').join('');
+  const mine = C.myClues.map((c) => '<div class="cinclue mine"><span class="r">Tur ' + c.round + '</span>' + esc(c.text) + '</div>').join('');
+  return '<div class="card"><h2>📰 Herkesin bildiği</h2>' + (pub || '<p class="muted" style="margin:0">Henüz yok.</p>') + '</div>' +
+    '<div class="card cinpriv"><h2>🤫 Sadece senin bildiğin</h2>' + (mine || '<p class="muted" style="margin:0">Henüz yok.</p>') +
+    '<p class="muted" style="margin:8px 0 0;font-size:13px">İstersen anlat, istersen sakla. Ama dikkat: katil de yalan söyleyebilir!</p></div>';
+}
+
+Views['cin:intro'] = {
+  mount(s) {
+    const C = s.cin;
+    App.cinRoom = null;
+    const me = C.me;
+    const story = '<div class="card cinstory"><div class="cinbig">🏚️</div><p>Fırtınalı bir gece, ' + esc(C.place) + ' herkes ' + esc(C.victim) + ' tarafından davet edilmişti. ' +
+      'Saat 23:00 sularında bir çığlık duyuldu… <b>' + esc(C.victim) + ' öldürülmüştü.</b> Kapılar kilitli, kimse dışarı çıkamıyor. Katil aranızda!</p></div>';
+    const pick = me ? '<div class="card"><h2>🗣️ İfaden: Saat 23:00\'te neredeydin?</h2>' +
+      '<p class="muted" style="margin:0 0 10px;font-size:14px">' + (me.killer ? 'Yalan söylemen lazım! Ama dolu bir oda seçersen oradakiler yalanını anlar.' : 'Doğruyu söylemen herkesin işine yarar (ama istersen yalan da söyleyebilirsin).') + '</p>' +
+      '<div class="cinrooms">' + CIN_ROOMS.map((rm, i) => '<button class="vt ' + (!me.killer && me.truth === i ? 'hint' : '') + '" data-act="cAlibi" data-r="' + i + '">' + esc(rm.n) + '</button>').join('') + '</div>' +
+      '<button class="btn yellow big block" id="cinSay" data-act="cSay" style="margin-top:12px" disabled>Önce bir oda seç</button>' +
+      '<p class="muted center" style="margin:6px 0 0;font-size:13px">İfaden kayda geçer, sonradan değiştirilemez.</p>' +
+      '<p class="center" id="cinMine" style="margin:10px 0 0;font-weight:800"></p></div>' : '';
+    mount(header() + timerHTML('İfade süresi') + story + cinMyCard(s) + pick +
+      '<div class="card"><h2>Şüpheliler</h2>' + cinSuspects(s, false) + '</div>' +
+      '<div class="card"><h2>Kim ifade verdi?</h2><div class="chips" id="cinChips"></div></div>' + hostSkip('Soruşturmayı başlat'));
+    Sound.beep(196, 0.5, 'sawtooth', 0.04);
+  },
+  update(s) {
+    const C = s.cin;
+    $('#cinChips').innerHTML = doneChips(s, C.done);
+    const d = C.declared[s.you];
+    if ($('#cinMine')) $('#cinMine').textContent = d != null && d >= 0 ? '✅ İfaden kayda geçti: ' + CIN_ROOMS[d].n : '';
+    if (d != null && d >= 0) {
+      $$('[data-act=cAlibi]').forEach((b) => { b.disabled = true; b.classList.toggle('on', Number(b.dataset.r) === d); });
+      if ($('#cinSay')) $('#cinSay').hidden = true;
+    }
+  },
+};
+
+Views['cin:round'] = {
+  mount(s) {
+    const C = s.cin;
+    App.cinEvents = C.events.length;
+    const me = C.me;
+    const frame = me && me.killer ? '<div class="card cinkill"><h2>🧣 İftira at (oyunda 1 kez)</h2>' +
+      (me.canFrame ? '<p class="muted" style="margin:0 0 8px;font-size:14px">Olay yerine birinin baş harfi işli bir mendil bırak. Herkes bunu ipucu sanacak!</p><div class="row"><select id="cinFrame" class="field grow"><option value="">Kimin üzerine?</option>' +
+        s.roster.filter((id) => id !== s.you).map((id) => '<option value="' + esc(id) + '">' + esc(nameOf(id).name) + '</option>').join('') + '</select><button class="btn" data-act="cFrame">Mendili bırak (tek hakkın)</button></div>'
+        : '<p class="muted" style="margin:0">İftira hakkını kullandın 😈</p>') + '</div>' : '';
+    mount(header() + timerHTML('Konuşma süresi') +
+      '<div class="vbar night cinbar"><b>🕵️ Soruşturma · Tur ' + C.round + ' / ' + C.rounds + '</b><span>' + (C.round < C.rounds ? 'Sonra yeni ipuçları gelecek' : 'Son tur! Sonra suçlama') + '</span></div>' +
+      cinMyCard(s) + '<div id="cinClueBox">' + cinClues(s) + '</div>' + frame +
+      '<div class="card"><h2>Şüpheliler ve ifadeleri</h2>' + cinSuspects(s) + '</div>' +
+      '<div class="card center"><p class="muted" style="margin:0 0 10px">Konuşun, sorgulayın, çelişkileri yakalayın. Herkes hazır olunca sonraki tura geçilir.</p>' +
+        '<button class="btn yellow big block" data-act="cReady" id="cinReady"></button><div class="chips" id="cinChips" style="margin-top:10px;justify-content:center"></div></div>' +
+      hostSkip(C.round < C.rounds ? 'Sonraki tura geç' : 'Suçlamaya geç'));
+    Sound.beep(523, 0.15, 'triangle', 0.06);
+  },
+  update(s) {
+    const C = s.cin;
+    $('#cinReady').textContent = C.ready ? '⏳ Hazırsın (geri al)' : C.round < C.rounds ? '✅ Hazırım, sonraki tur' : '✅ Hazırım, suçlamaya geçelim';
+    $('#cinChips').innerHTML = doneChips(s, C.done);
+    // A planted clue (the killer's handkerchief) shows up for everyone right away.
+    const key = C.events.length;
+    if (App.cinEvents != null && key > App.cinEvents) {
+      $('#cinClueBox').innerHTML = cinClues(s);
+      toast('🧣 Yeni bir delil bulundu!', 3000);
+      Sound.beep(330, 0.3, 'sawtooth', 0.05);
+    }
+    App.cinEvents = key;
+  },
+};
+
+function cinVotePaint() {
+  $$('[data-act=cSus]').forEach((b) => b.classList.toggle('on', b.dataset.id === App.cinSus));
+  $$('[data-act=cWeapon]').forEach((b) => b.classList.toggle('on', Number(b.dataset.w) === App.cinW));
+}
+
+Views['cin:accuse'] = {
+  mount(s) {
+    const C = s.cin;
+    App.cinSus = C.myVote ? C.myVote.s : null;
+    App.cinW = C.myVote ? C.myVote.w : null;
+    mount(header() + timerHTML('Suçlama süresi') +
+      '<div class="phase-title"><h1>⚖️ Suçlama zamanı!</h1><p>Katil kim, cinayet hangi silahla işlendi? En çok oyu alan tutuklanır.</p></div>' +
+      cinClues(s) +
+      '<div class="card"><h2>🔎 Katil kim?</h2><div class="vtargets">' + s.roster.filter((id) => id !== s.you).map((id) => '<button class="vt" data-act="cSus" data-id="' + esc(id) + '">' +
+        avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) + ' <small class="muted">' + cinChar(C, id).e + '</small></button>').join('') + '</div>' +
+        '<h2 style="margin-top:16px">🗡️ Hangi silah?</h2><div class="vtargets">' + CIN_WEAPONS.map((w, i) => '<button class="vt" data-act="cWeapon" data-w="' + i + '">' + w.e + ' ' + esc(w.n) + '</button>').join('') + '</div>' +
+        '<button class="btn yellow big block" data-act="cVote" style="margin-top:14px">⚖️ Suçla!</button><p class="center muted" id="cinVoted" style="margin:8px 0 0"></p></div>' +
+      '<div class="card"><h2>Şüpheliler ve ifadeleri</h2>' + cinSuspects(s) + '</div>' +
+      '<div class="card"><h2>Kim oy verdi?</h2><div class="chips" id="cinChips"></div></div>' + hostSkip('Sonucu aç'));
+    cinVotePaint();
+    Sound.join();
+  },
+  update(s) {
+    $('#cinChips').innerHTML = doneChips(s, s.cin.done);
+    $('#cinVoted').textContent = s.cin.myVote ? '✅ Oyun kaydedildi (değiştirebilirsin)' : '';
+  },
+};
+
+function cinFinalMount(s) {
+  const F = s.final;
+  const k = F.killer;
+  const kc = CIN_CHARS[F.chars[k]];
+  const w = CIN_WEAPONS[F.weapon];
+  const rows = s.roster.map((id) => {
+    const lied = F.declared[id] !== F.truth[id];
+    const d = F.declared[id];
+    return '<div class="srow ' + (id === k ? 'killer' : '') + '">' + avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) + ' · ' + CIN_CHARS[F.chars[id]].e + ' ' + esc(CIN_CHARS[F.chars[id]].n) +
+      '<small>Gerçekte: ' + esc(CIN_ROOMS[F.truth[id]].n) + ' · Dediği: ' + (d >= 0 ? esc(CIN_ROOMS[d].n) : 'ifade yok') + (lied && d >= 0 ? ' 🤥' : '') +
+      ' · Oyu: ' + (F.votes[id] ? esc(nameOf(F.votes[id].s).name) + ', ' + CIN_WEAPONS[F.votes[id].w].e : '—') + '</small></span><b>' + F.scores[id] + '</b></div>';
+  }).join('');
+  const story = F.events.map((e) => '<div><span class="q">Tur ' + e.round + '</span><span class="w">' + esc(e.text) + '</span></div>').join('');
+  mount(
+    header() +
+    '<div class="phase-title"><h1>' + (F.caught ? '🕵️ Katil yakalandı!' : '🔪 Katil kaçtı!') + '</h1><p>' +
+      (F.caught ? 'Dedektifler işini yaptı.' : 'Masumlardan biri tutuklandı, gerçek katil gecenin karanlığında kayboldu…') + '</p></div>' +
+    '<div class="card center cinsolve"><div class="muted" style="font-weight:700">Gerçek</div>' +
+      '<div class="cinbig">' + kc.e + '</div><h2 style="margin:0">' + esc(nameOf(k).name) + ' · ' + esc(kc.n) + '</h2>' +
+      '<p style="margin:8px 0 0">' + esc(F.victim) + ', ' + CIN_ROOMS[F.room].de + ', ' + w.e + ' ' + esc(w.n) + ' ile öldürüldü.</p>' +
+      '<p class="muted" style="margin:6px 0 0;font-size:14px">Sebebi: ' + esc(kc.m) + '</p></div>' +
+    podiumHTML(F.ranking, (id) => F.scores[id] + ' puan') +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Herkes nerede, ne dedi?</h2><div class="board">' + rows + '</div>' +
+      '<p class="muted" style="margin:10px 0 0;font-size:14px">Katil yakalanırsa her masum +' + CIN_WIN_POINTS + ' · Katili doğru gösteren +' + CIN_VOTE_POINTS + ' · Silahı da bilen +' + CIN_WEAPON_POINTS +
+      ' · Kaçan katil +' + CIN_ESCAPE_POINTS + ' ve kandırdığı her oy için +' + CIN_DODGE_POINTS + '</p></div>' +
+    '<div class="card"><h2>Bütün deliller</h2><div class="recap">' + story + '</div></div>' +
     finalFooter(),
     true
   );
@@ -7883,6 +8337,7 @@ Views.final = {
     else if (s.game === 'patates') patFinalMount(s);
     else if (s.game === 'taklit') takFinalMount(s);
     else if (s.game === 'quiz') quizFinalMount(s);
+    else if (s.game === 'cinayet') cinFinalMount(s);
     else hangimizFinalMount(s);
     confetti();
     Sound.fanfare();
@@ -7960,6 +8415,10 @@ function shareLines(s) {
       break;
     case 'sirala':
       for (const r of F.recap) if (r.top) L.push(n(r.asker) + ': ' + r.q + ' → 👑 ' + n(r.top));
+      break;
+    case 'cinayet':
+      L.push((F.caught ? '🕵️ Katil yakalandı: ' : '🔪 Katil kaçtı: ') + n(F.killer) + ' (' + CIN_CHARS[F.chars[F.killer]].n + ')');
+      L.push('📍 ' + CIN_ROOMS[F.room].n + ' · ' + CIN_WEAPONS[F.weapon].e + ' ' + CIN_WEAPONS[F.weapon].n);
       break;
     case 'quiz':
       F.ranking.slice(0, 3).forEach((id, i) => L.push(['🥇', '🥈', '🥉'][i] + ' ' + n(id) + ' · ' + F.scores[id] + ' puan (' + F.right[id] + ' doğru)'));
@@ -8702,6 +9161,33 @@ const actions = {
   },
   sreset() { App.sirOrder = []; sirPaint(); },
   srank() { Sound.click(); send({ t: 'srank', order: App.sirOrder }); },
+  cAlibi(el) {
+    if (App.state.cin.declared[App.state.you] >= 0) return;
+    App.cinRoom = Number(el.dataset.r);
+    $$('[data-act=cAlibi]').forEach((b) => b.classList.toggle('on', b === el));
+    const btn = $('#cinSay');
+    btn.disabled = false;
+    btn.textContent = '🗣️ İfadem: ' + CIN_ROOMS[App.cinRoom].n;
+    Sound.click();
+  },
+  cSay() {
+    if (App.cinRoom == null) return;
+    Sound.click();
+    send({ t: 'calibi', room: App.cinRoom });
+  },
+  cReady() { Sound.click(); send({ t: 'cready' }); },
+  cFrame() {
+    const sel = $('#cinFrame');
+    if (!sel || !sel.value) { toast('Önce birini seç'); return; }
+    send({ t: 'cframe', target: sel.value });
+  },
+  cSus(el) { App.cinSus = el.dataset.id; Sound.click(); cinVotePaint(); },
+  cWeapon(el) { App.cinW = Number(el.dataset.w); Sound.click(); cinVotePaint(); },
+  cVote() {
+    if (!App.cinSus || App.cinW == null) { toast('Bir şüpheli ve bir silah seç 🙂'); return; }
+    Sound.click();
+    send({ t: 'cvote', s: App.cinSus, w: App.cinW });
+  },
   qPick(el) {
     if (App.state.quiz.myAns) return;
     Sound.click();
