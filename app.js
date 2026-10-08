@@ -247,18 +247,18 @@ const VAMP_TEAMS = {
 // kinds = what the role may do at night (the first one is its main move).
 const VAMP_ROLES = {
   koylu: { e: '👨‍🌾', n: 'Köylü', team: 'koy', kinds: ['watch'], d: 'Sıradan ama gözü açık. Her gece bir evi pencereden izler ve o eve kaç kişinin geldiğini öğrenir.' },
-  kahin: { e: '🔮', n: 'Kâhin', team: 'koy', kinds: ['seer'], d: 'Her gece birinin hangi tarafta olduğunu görür. Ama Kont ile Uşak ona köylü gibi görünür!' },
+  kahin: { e: '🔮', n: 'Kâhin', team: 'koy', kinds: ['seer'], d: 'Her gece birinin hangi tarafta olduğunu görür. Ama Drakula ile Uşak ona köylü gibi görünür!' },
   doktor: { e: '🩺', n: 'Doktor', team: 'koy', kinds: ['heal'], d: 'Her gece birinin yarasını sarar, 1 can geri verir (ölmek üzere olanı kurtarabilir). Aynı kişiyi üst üste iki gece iyileştiremez, kendini bir kez iyileştirebilir.' },
   sarimsak: { e: '🧄', n: 'Sarımsakçı', team: 'koy', kinds: ['garlic'], d: 'Her gece bir kapıya sarımsak asar. O eve gelen vampir geri döner, sen de bir vampirin geldiğini öğrenirsin.' },
-  avci: { e: '🏹', n: 'Avcı', team: 'koy', kinds: ['stake', 'watch'], d: 'Oyunda bir kez gümüş kazık fırlatır. Vampire denk gelirse vampir ölür, masuma denk gelirse onu yaralar (1 can). Diğer geceler ev izler.' },
+  avci: { e: '🏹', n: 'Avcı', team: 'koy', kinds: ['stake', 'watch'], d: 'Oyunda bir kez gümüş ok atar. Vampire denk gelirse vampir ölür, masuma denk gelirse onu yaralar (1 can). Diğer geceler ev izler.' },
   dedektif: { e: '🕵️', n: 'Dedektif', team: 'koy', kinds: ['track'], d: 'Her gece birini takip eder ve o gece kimin evine gittiğini öğrenir.' },
-  zangoc: { e: '🔔', n: 'Zangoç', team: 'koy', kinds: ['bell', 'watch'], d: 'Oyunda bir kez gece çanı çalar: o gece bütün ısırıklar boşa gider ama herkes çanı duyar. Diğer geceler ev izler.' },
+  zangoc: { e: '🔦', n: 'Bekçi', team: 'koy', kinds: ['bell', 'watch'], d: 'Oyunda bir kez düdüğünü çalar: bütün köy uyanır, o gece bütün ısırıklar boşa gider ama herkes düdüğü duyar. Diğer geceler ev izler.' },
   mezarci: { e: '⚰️', n: 'Mezarcı', team: 'koy', kinds: ['grave', 'watch'], d: 'Ölenlerin rolü gizlidir. Mezarcı her gece bir mezarı açıp oradakinin rolünü öğrenir. Mezar yoksa ev izler.' },
   muhtar: { e: '📯', n: 'Muhtar', team: 'koy', kinds: ['watch'], d: 'Gündüz oylamasında oyu 2 sayılır. Geceleri köylü gibi bir evi izler.' },
   vampir: { e: '🧛', n: 'Vampir', team: 'vamp', kinds: ['bite'], d: 'Her gece birini ısırır, 1 can götürür. Kan Ayı doğana kadar yakalanmazsan ya da köy azalıp size yetişemezse kazanırsınız.' },
-  kont: { e: '🦇', n: 'Kont', team: 'vamp', kinds: ['bite'], d: 'Vampirlerin efendisi. Vampir gibi ısırır ama Kâhin ona bakınca köylü görür.' },
+  kont: { e: '🦇', n: 'Drakula', team: 'vamp', kinds: ['bite'], d: 'Vampirlerin efendisi. Vampir gibi ısırır ama Kâhin ona bakınca köylü görür.' },
   usak: { e: '🧟', n: 'Uşak', team: 'vamp', kinds: ['block'], d: 'Vampirlere hizmet eden bir insan. Her gece birini oyalar: o kişi o gece hiçbir şey yapamaz. Kâhin ona köylü der.' },
-  soytari: { e: '🃏', n: 'Soytarı', team: 'neutral', kinds: ['roam'], d: 'Tek derdi gündüz kazığa bağlanmak! Köy onu kazıklarsa tek başına kazanır. Geceleri kapı çalıp kaçar, izleyenleri şaşırtır.' },
+  soytari: { e: '🃏', n: 'Soytarı', team: 'neutral', kinds: ['roam'], d: 'Tek derdi gündüz köyden sürülmek! Köy onu sürgün ederse tek başına kazanır. Geceleri kapı çalıp kaçar, izleyenleri şaşırtır.' },
   gezgin: { e: '🎒', n: 'Gezgin', team: 'neutral', kinds: ['hide', 'watch'], d: 'Tek derdi hayatta kalmak. 1 fazla canı var ve oyunda iki kez saklanabilir (o gece kimse ona ulaşamaz). Oyun sonunda hayattaysa o da kazanır.' },
 };
 
@@ -267,9 +267,9 @@ const VAMP_KINDS = {
   seer: { b: '🔮 Tarafına bak', q: 'Kimin tarafına bakacaksın?', t: 'others' },
   heal: { b: '🩺 İyileştir', q: 'Kimin yarasını saracaksın?', t: 'heal', visit: true },
   garlic: { b: '🧄 Sarımsak as', q: 'Hangi kapıya sarımsak asacaksın?', t: 'all', visit: true },
-  stake: { b: '🏹 Kazık at', q: 'Kazığı kime fırlatacaksın? Tek hakkın var!', t: 'others', visit: true },
+  stake: { b: '🏹 Ok at', q: 'Gümüş oku kime atacaksın? Tek hakkın var!', t: 'others', visit: true },
   track: { b: '🕵️ Takip et', q: 'Kimi takip edeceksin?', t: 'others' },
-  bell: { b: '🔔 Çanı çal', q: 'Çanı bu gece çalarsan bütün ısırıklar boşa gider. Tek hakkın var!', t: 'use' },
+  bell: { b: '📣 Düdük çal', q: 'Düdüğü bu gece çalarsan bütün köy uyanır, ısırıklar boşa gider. Tek hakkın var!', t: 'use' },
   grave: { b: '⚰️ Mezar aç', q: 'Hangi mezarı açacaksın?', t: 'dead' },
   bite: { b: '🧛 Isır', q: 'Kimi ısıracaksınız?', t: 'prey', visit: true },
   block: { b: '🧟 Oyala', q: 'Kimi oyalayacaksın? O gece hiçbir şey yapamaz.', t: 'notmates', visit: true },
@@ -622,7 +622,7 @@ const BADGES = {
   ad_hangman: { e: '🪢', n: 'Cellat', d: "Adam Asmaca'da kelimenle en çok adam astın" },
   vm_night: { e: '🧛', n: 'Gecenin Efendisi', d: "Vampir Köyü'nü vampirlerle kazandın" },
   vm_hero: { e: '🏡', n: 'Köyün Kahramanı', d: "Vampir Köyü'nde köyü kurtardın" },
-  vm_jester: { e: '🃏', n: 'Son Gülen', d: "Vampir Köyü'nde Soytarı olarak kazıklanıp kazandın" },
+  vm_jester: { e: '🃏', n: 'Son Gülen', d: "Vampir Köyü'nde Soytarı olarak sürgün edilip kazandın" },
   vm_survivor: { e: '🎒', n: 'Hayatta Kalan', d: "Vampir Köyü'nde Gezgin olarak sona kadar dayandın" },
   ay_openbook: { e: '📖', n: 'Açık Kitap', d: "Ayna'da seni en çok kişi bildi" },
 };
@@ -5476,7 +5476,7 @@ const VAMP_END_TEXT = {
   koy: '🏡 Köy kazandı! Bütün vampirler yok edildi.',
   vamp: '🧛 Vampirler kazandı! Köyde onlara karşı koyacak kimse kalmadı.',
   moon: '🌕 Kan Ayı doğdu! Vampirler yakalanmadan sona ulaştı.',
-  soytari: '🃏 Soytarı kazandı! Köy onu kazığa bağladı, tam da istediği gibi.',
+  soytari: '🃏 Soytarı kazandı! Köy onu sürgün etti, tam da istediği gibi.',
 };
 
 function vRoleTag(role) {
@@ -5514,16 +5514,16 @@ function vInfoText(x) {
     case 'pass': return '💤 Bu gece dinlendin.';
     case 'blocked': return '😴 Biri seni oyaladı, bu gece hiçbir şey yapamadın!';
     case 'blockDone': return '🧟 Oyaladığın kişi: ' + vName(x.t);
-    case 'bellRang': return '🔔 Çanı çaldın! Bu gece kimse ısırılamadı.';
+    case 'bellRang': return '📣 Düdüğü çaldın! Köy uyandı, bu gece kimse ısırılamadı.';
     case 'biteOk': return '🩸 Isırdığın kişi: ' + vName(x.t);
-    case 'biteFail': return '🚪 Hedef: ' + vName(x.t) + ' · ' + (x.why === 'bell' ? 'çan çaldı, köy uyandı, ısıramadın!' : x.why === 'hide' ? 'evde kimse yoktu!' : 'kapıda sarımsak vardı, geri döndün!');
+    case 'biteFail': return '🚪 Hedef: ' + vName(x.t) + ' · ' + (x.why === 'bell' ? 'bekçi düdük çaldı, köy uyandı, ısıramadın!' : x.why === 'hide' ? 'evde kimse yoktu!' : 'kapıda sarımsak vardı, geri döndün!');
     case 'bitten': return '🩸 Gece biri seni ısırdı! Boynunda iki diş izi var.';
     case 'garlicHit': return '🧄 Sarımsak işe yaradı! Bir vampir şu kapıdan geri döndü: ' + vName(x.t);
     case 'garlicQuiet': return '🧄 Sarımsak astığın kapı: ' + vName(x.t) + ' · bu gece vampir gelmedi.';
-    case 'stakeVamp': return '🏹 Kazık tam yerine! ' + vName(x.t) + ' bir vampirdi ve artık yok.';
-    case 'stakeMiss': return '🏹 Kazık hedefi: ' + vName(x.t) + ' · vampir değildi, onu yaraladın 😬';
-    case 'stakeLost': return '🏹 Kazık hedefi: ' + vName(x.t) + ' · evde kimse yoktu, kazık boşa gitti.';
-    case 'staked': return '🏹 Biri sana gümüş kazık fırlattı! Yaralandın.';
+    case 'stakeVamp': return '🏹 Gümüş ok tam isabet! ' + vName(x.t) + ' bir vampirdi ve artık yok.';
+    case 'stakeMiss': return '🏹 Okun hedefi: ' + vName(x.t) + ' · vampir değildi, onu yaraladın 😬';
+    case 'stakeLost': return '🏹 Okun hedefi: ' + vName(x.t) + ' · evde kimse yoktu, ok boşa gitti.';
+    case 'staked': return '🏹 Biri sana gümüş ok attı! Yaralandın.';
     case 'healDone': return '🩺 Yarasını sardığın kişi: ' + vName(x.t);
     case 'healLost': return '🩺 Gittiğin ev: ' + vName(x.t) + ' · evde kimse yoktu.';
     case 'healed': return '🩺 Biri gece gelip yaralarını sardı (+1 can).';
@@ -5660,7 +5660,7 @@ function vReportHTML(s) {
   const R = s.vamp.report;
   if (!R) return '';
   const lines = [];
-  if (R.bell) lines.push('🔔 Gece kilise çanı çaldı! Bütün köy uyandı.');
+  if (R.bell) lines.push('📣 Gece bekçinin düdüğü duyuldu! Bütün köy uyandı.');
   for (const id of R.deaths) lines.push('💀 ' + vName(id) + ' sabah ölü bulundu. ' + vShownTag(s.vamp.shown[id]));
   if (R.bites > 0) lines.push('🩸 Biri ısırıldı ama hayatta kaldı. Kim olduğunu sadece kendisi biliyor…');
   if (!R.deaths.length && !R.bites && !R.bell) lines.push('🌤️ Sakin bir gece geçti, kimse ölmedi.');
@@ -5682,8 +5682,8 @@ Views['vamp:day'] = {
     const me = V.me;
     const canVote = me && me.alive;
     mount(vampTop(s, 'Gündüz süresi') + vReportHTML(s) + vMyNightHTML(s) +
-      '<div class="card"><h2>⚰️ Kimi kazığa bağlayalım?</h2>' +
-        '<p class="muted" style="margin:0 0 10px;font-size:14px">Konuşun, tartışın, sonra oy verin. En çok oyu alan kazıklanır; eşitlik olursa kimse kazıklanmaz.' + (V.roleList.includes('muhtar') ? ' Muhtarın oyu 2 sayılır!' : '') + '</p>' +
+      '<div class="card"><h2>🚪 Kimi köyden sürelim?</h2>' +
+        '<p class="muted" style="margin:0 0 10px;font-size:14px">Konuşun, tartışın, sonra oy verin. En çok oyu alan köyden sürülür (oyundan çıkar); eşitlik olursa kimse sürülmez.' + (V.roleList.includes('muhtar') ? ' Muhtarın oyu 2 sayılır!' : '') + '</p>' +
         '<div id="vVote"></div>' + (canVote ? '' : '<p class="muted">👻 Ölüler oy veremez.</p>') + '</div>' +
       '<div class="card"><h2>Köy</h2>' + vPlayers(s) + '</div>' + hostSkip('Oylamayı bitir'));
     Sound.beep(660, 0.2, 'triangle', 0.06);
@@ -5701,7 +5701,7 @@ Views['vamp:day'] = {
         label + '<span class="vvoters">' + vs.map((id) => avatarHTML(nameOf(id), 'sm')).join('') + '</span></button>';
     };
     $('#vVote').innerHTML = '<div class="vvotes">' + living.map((id) => row(id, avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) + (id === s.you ? ' (sen)' : '') + '</span>')).join('') +
-      row('none', '<span class="nm">🤷 Bugün kimseyi kazıklamayalım</span>') + '</div>';
+      row('none', '<span class="nm">🤷 Bugün kimseyi sürmeyelim</span>') + '</div>';
   },
 };
 
@@ -5713,8 +5713,8 @@ Views['vamp:reveal'] = {
       '<small>' + Object.keys(R.votes).filter((v) => R.votes[v] === id).map((v) => esc(nameOf(v).name)).join(', ') + '</small></span><b>' + R.tally[id] + '</b></div>').join('') +
       (R.none ? '<div class="srow"><span class="nm">🤷 Kimse<small>' + Object.keys(R.votes).filter((v) => R.votes[v] === 'none').map((v) => esc(nameOf(v).name)).join(', ') + '</small></span><b>' + R.none + '</b></div>' : '');
     const head = R.staked
-      ? '<div class="vbig">⚰️</div><h2 style="margin:0">Kazıklanan: ' + esc(nameOf(R.staked).name) + '</h2><div style="margin-top:8px">' + vShownTag(V.shown[R.staked]) + '</div>'
-      : '<div class="vbig">🤷</div><h2 style="margin:0">' + (R.tie ? 'Oylar eşit çıktı, kimse kazıklanmadı!' : 'Köy bugün kimseyi kazıklamadı.') + '</h2>';
+      ? '<div class="vbig">🚪</div><h2 style="margin:0">Köyden sürülen: ' + esc(nameOf(R.staked).name) + '</h2><div style="margin-top:8px">' + vShownTag(V.shown[R.staked]) + '</div>'
+      : '<div class="vbig">🤷</div><h2 style="margin:0">' + (R.tie ? 'Oylar eşit çıktı, kimse sürülmedi!' : 'Köy bugün kimseyi sürmedi.') + '</h2>';
     const next = V.pendingEnd ? '🏆 Sonuçlar' : '🌙 Gece ' + (V.night + 1);
     mount(vampTop(s, '') + revealTimer(s) +
       '<div class="card center vverdict">' + head + (V.pendingEnd ? '<p class="vendline">Oyun bitti!</p>' : '') + '</div>' +
@@ -5729,9 +5729,9 @@ function vampFinalMount(s) {
   const sideOf = (id) => VAMP_ROLES[F.roles[id]].team;
   const rows = s.roster.slice().sort((a, b) => (F.winners.includes(b) - F.winners.includes(a)) || sideOf(a).localeCompare(sideOf(b))).map((id) => '<div class="srow ' + (F.winners.includes(id) ? 'win' : '') + '">' + avatarHTML(nameOf(id)) +
     '<span class="nm">' + esc(nameOf(id).name) + '<small>' + (F.alive[id] ? 'hayatta' : '💀 öldü') + '</small></span>' + vRoleTag(F.roles[id]) + (F.winners.includes(id) ? ' 🏆' : '') + '</div>').join('');
-  const story = F.history.map((h) => '<div><span class="q"><b>Gece ' + h.night + ':</b> ' + (h.bell ? '🔔 çan çaldı · ' : '') +
+  const story = F.history.map((h) => '<div><span class="q"><b>Gece ' + h.night + ':</b> ' + (h.bell ? '📣 düdük çalındı · ' : '') +
     (h.deaths.length ? h.deaths.map((id) => '💀 ' + esc(nameOf(id).name) + ' (' + VAMP_ROLES[F.roles[id]].e + ')').join(', ') : 'kimse ölmedi') + '</span><span class="w">' +
-    (h.votes ? (h.staked ? '⚰️ ' + esc(nameOf(h.staked).name) + ' (' + VAMP_ROLES[F.roles[h.staked]].e + ')' : '🤷 kazık yok') : '') + '</span></div>').join('');
+    (h.votes ? (h.staked ? '🚪 ' + esc(nameOf(h.staked).name) + ' (' + VAMP_ROLES[F.roles[h.staked]].e + ')' : '🤷 sürgün yok') : '') + '</span></div>').join('');
   const [winTitle, why] = VAMP_END_TEXT[F.end].split('! ');
   mount(
     header() +
