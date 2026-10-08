@@ -171,10 +171,10 @@ GAMES.cogunluk = {
 GAMES.ikidogru = {
   name: 'İki Doğru Bir Yalan',
   emoji: '🎭',
-  desc: 'Herkes kendisi hakkında 3 cümle yazar, biri yalan! Sırayla herkesin yalanını bulmaya çalışırsınız.',
+  desc: 'Sırayla biri kendisi hakkında 3 cümle yazar, biri yalan! Diğerleri hemen yalanı bulmaya çalışır.',
   minPlayers: 2,
   defs: [
-    { key: 'writeTime', label: 'Yazma süresi', type: 'num', def: 90, min: 30, max: 240, step: 10, unit: 'sn' },
+    { key: 'writeTime', label: 'Yazma süresi', type: 'num', def: 75, min: 30, max: 240, step: 15, unit: 'sn' },
     { key: 'guessTime', label: 'Tahmin süresi', type: 'num', def: 30, min: 10, max: 90, step: 5, unit: 'sn' },
   ],
 };
@@ -1053,13 +1053,12 @@ const Host = {
       }
 
       case 'iwrite': {
-        if (S.phase !== 'iky' || r.step !== 'write' || !r.roster.includes(pid) || !Array.isArray(msg.list)) return;
+        if (S.phase !== 'iky' || r.step !== 'write' || pid !== r.turns[r.ti] || !Array.isArray(msg.list)) return;
         const list = msg.list.slice(0, 3).map((x) => String(x ?? '').replace(/\s+/g, ' ').trim().slice(0, MAX_Q_LEN));
         const lie = Math.round(Number(msg.lie));
         if (list.length !== 3 || list.some((x) => !x) || ![0, 1, 2].includes(lie)) return;
         r.stmts[pid] = { list, lie };
-        this.changed();
-        this.ikyCheck();
+        this.ikyStartGuess();
         return;
       }
 
@@ -1780,32 +1779,26 @@ const Host = {
 
   /* ---------- İki Doğru Bir Yalan ---------- */
 
+  // One author at a time: they write their three lines, then everyone else hunts the lie right away.
   setupIky(r) {
-    Object.assign(r, { step: 'write', stmts: {}, history: [], scores: this.zeroScores(r) });
+    Object.assign(r, { turns: shuffle(r.roster), ti: 0, stmts: {}, order: {}, history: [], scores: this.zeroScores(r) });
+    this.ikyBegin(true);
+  },
+
+  // The author's writing step. A dropped author keeps the turn; the leader can skip it.
+  ikyBegin(silent) {
+    const r = this.S.round;
+    if (r.ti >= r.turns.length) { this.ikyFinish(); return; }
+    r.step = 'write';
+    r.picks = {};
     this.setStepDeadline(r.cfg.writeTime);
+    if (!silent) this.changed();
   },
 
   ikyStartGuess() {
-    const S = this.S;
-    const r = S.round;
-    r.turns = shuffle(r.roster.filter((id) => r.stmts[id]));
-    if (!r.turns.length) {
-      S.phase = 'lobby';
-      S.round = null;
-      S.notice = 'Kimse cümlelerini yazmadı 😅 Bir daha deneyin!';
-      this.changed();
-      return;
-    }
-    // Each author's three lines are shown in a fixed random order.
-    r.order = {};
-    for (const id of r.turns) r.order[id] = shuffle([0, 1, 2]);
-    r.ti = 0;
-    this.ikyBegin();
-  },
-
-  ikyBegin() {
     const r = this.S.round;
-    if (r.ti >= r.turns.length) { this.ikyFinish(); return; }
+    // The three lines are shown in a random order so the lie's position gives nothing away.
+    r.order[r.turns[r.ti]] = shuffle([0, 1, 2]);
     r.step = 'guess';
     r.picks = {};
     this.setStepDeadline(r.cfg.guessTime);
@@ -1838,7 +1831,7 @@ const Host = {
 
   ikySkip() {
     const r = this.S.round;
-    if (r.step === 'write') this.ikyStartGuess();
+    if (r.step === 'write') this.ikyNext();
     else if (r.step === 'guess') this.ikyReveal();
     else this.ikyNext();
   },
@@ -1847,8 +1840,7 @@ const Host = {
     const r = this.S.round;
     const live = this.liveIds();
     if (!live.length) return;
-    if (r.step === 'write' && live.every((id) => r.stmts[id])) this.ikyStartGuess();
-    else if (r.step === 'guess') {
+    if (r.step === 'guess') {
       const author = r.turns[r.ti];
       const others = live.filter((id) => id !== author);
       if (others.length && others.every((id) => r.picks[id] != null)) this.ikyReveal();
@@ -2540,15 +2532,14 @@ const Host = {
         result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
       };
     } else if (S.phase === 'iky') {
-      const author = r.step === 'write' ? null : r.turns[r.ti];
+      const author = r.turns[r.ti];
       const done = {};
-      for (const id of r.roster) done[id] = r.step === 'write' ? !!r.stmts[id] : id !== author && r.picks && r.picks[id] != null;
-      pub.stepKey = r.step + (r.ti || 0);
+      for (const id of r.roster) if (id !== author) done[id] = r.picks[id] != null;
+      pub.stepKey = r.step + r.ti;
       pub.iky = {
-        step: r.step, done, mine: r.step === 'write' ? r.stmts[pid] || null : null,
-        ti: r.ti || 0, tn: r.turns ? r.turns.length : 0, author, amAuthor: pid === author,
-        list: author ? r.order[author].map((i) => r.stmts[author].list[i]) : null,
-        myPick: r.picks && r.picks[pid] != null ? r.picks[pid] : null,
+        step: r.step, done, ti: r.ti, tn: r.turns.length, author, amAuthor: pid === author,
+        list: r.step === 'guess' ? r.order[author].map((i) => r.stmts[author].list[i]) : null,
+        myPick: r.picks[pid] ?? null,
         result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
       };
     } else if (S.phase === 'sir') {
@@ -4606,26 +4597,26 @@ function ikyPaint() {
 Views['iky:write'] = {
   mount(s) {
     const I = s.iky;
-    const mine = I.mine;
-    App.ikyLie = mine ? mine.lie : null;
+    const a = nameOf(I.author);
+    App.ikyLie = null;
     const ph = ['Örn: Hiç uçağa binmedim', 'Örn: 3 kardeşim var', 'Örn: Çocukken bir yarışma kazandım'];
     const rows = [0, 1, 2].map((i) => '<div class="ikyrow"><span class="num">' + (i + 1) + '</span>' +
-      '<input class="field grow iky-in" data-i="' + i + '" maxlength="' + MAX_Q_LEN + '" placeholder="' + esc(ph[i]) + '" value="' + esc(mine ? mine.list[i] : '') + '" autocomplete="off">' +
+      '<input class="field grow iky-in" data-i="' + i + '" maxlength="' + MAX_Q_LEN + '" placeholder="' + esc(ph[i]) + '" autocomplete="off">' +
       '<button class="liebtn" data-act="ilie" data-i="' + i + '" title="Bu yalan">🤥</button></div>').join('');
-    mount(header() + timerHTML('Yazma süresi') +
-      '<div class="phase-title"><h1>İki doğru, bir yalan 🎭</h1><p>Kendin hakkında 3 şey yaz. Birini yalan yap ve yanındaki 🤥 ile işaretle!</p></div>' +
-      '<div class="card"><div class="qlist">' + rows + '</div><div style="height:14px"></div>' +
-        '<button class="btn green big block" data-act="iwrite">✅ Gönder</button><p class="muted center" id="ikyMine" style="margin:8px 0 0"></p></div>' +
-      '<div class="card"><h2>Kim bitirdi?</h2><div class="chips" id="ikyChips"></div></div>' +
-      hostSkip('Tahminlere geç'));
-    ikyPaint();
-    const first = $$('.iky-in').find((x) => !x.value);
-    if (first) autoFocus(first);
+    const body = I.amAuthor
+      ? '<div class="card myturn"><h2>Sıra sende! 🎭</h2><p class="muted" style="margin:0 0 12px">Kendin hakkında 3 şey yaz. Birini yalan yap ve yanındaki 🤥 ile işaretle!</p>' +
+        '<div class="qlist">' + rows + '</div><div style="height:14px"></div>' +
+        '<button class="btn green big block" data-act="iwrite">✅ Gönder</button></div>'
+      : '<div class="card center turnwait">' + avatarHTML(a, 'lg') + '<h2 style="margin:8px 0 0">' + esc(a.name) + ' yalanını hazırlıyor… 🤫</h2>' +
+        '<p class="muted" style="margin:4px 0 0">Birazdan hangisinin yalan olduğunu bulacaksın</p></div>';
+    mount(header() + timerHTML('Yazma süresi') + stepDots(I.ti, I.tn) + body + OFFLINE_NOTE + hostSkip('Sırayı geç'));
+    if (I.amAuthor) {
+      Sound.join();
+      ikyPaint();
+      focusFine('.iky-in', true);
+    }
   },
-  update(s) {
-    $('#ikyChips').innerHTML = doneChips(s, s.iky.done);
-    $('#ikyMine').textContent = s.iky.mine ? '✅ Gönderildi (istersen değiştirip tekrar gönderebilirsin)' : '';
-  },
+  update(s) { updateOffline(s, [s.iky.author]); },
 };
 
 Views['iky:guess'] = {
@@ -4645,7 +4636,7 @@ Views['iky:guess'] = {
   },
   update(s) {
     const I = s.iky;
-    $('#ikyChips').innerHTML = doneChips(s, I.done, s.roster.filter((id) => id !== I.author));
+    $('#ikyChips').innerHTML = doneChips(s, I.done, Object.keys(I.done));
     $$('[data-act=ipick]').forEach((b) => b.classList.toggle('picked', Number(b.dataset.i) === I.myPick));
   },
 };
