@@ -218,9 +218,36 @@ GAMES.vampir = {
     { key: 'dayTime', label: 'Gündüz (konuşma + oylama)', type: 'num', def: 150, min: 30, max: 400, step: 15, unit: 'sn' },
   ],
 };
-const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir'];
+GAMES.zar = {
+  name: 'Yalan Zar',
+  emoji: '🎲',
+  desc: 'Herkesin gizli zarları var. "Masada en az 4 tane 5 var!" diye iddiayı artırın ya da "Yalan!" deyin. Yanılan zar kaybeder, son kalan kazanır.',
+  minPlayers: 2,
+  defs: [
+    { key: 'dice', label: 'Kişi başı zar', type: 'choice', def: '5', options: [['3', '3 zar (kısa)'], ['4', '4 zar'], ['5', '5 zar']] },
+    { key: 'jokers', label: "1'ler joker olsun (her sayı yerine geçer)", type: 'bool', def: true },
+    { key: 'moveTime', label: 'Hamle süresi', type: 'num', def: 30, min: 10, max: 90, step: 5, unit: 'sn' },
+  ],
+};
+GAMES.patates = {
+  name: 'Sıcak Patates',
+  emoji: '💣',
+  desc: 'Bir kategori gelir: "M ile başlayan bir şehir"! Cevabını yaz, bombayı sonrakine at. Bomba ne zaman patlayacağı belli olmadan tıkır tıkır işliyor…',
+  minPlayers: 2,
+  defs: [
+    { key: 'lives', label: 'Can', type: 'choice', def: '2', options: [['1', '1 can'], ['2', '2 can'], ['3', '3 can']] },
+    { key: 'fuse', label: 'Bomba süresi', type: 'choice', def: 'normal', options: [['short', 'Kısa (10-25 sn)'], ['normal', 'Normal (20-45 sn)'], ['long', 'Uzun (35-70 sn)']] },
+  ],
+};
+const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir', 'zar', 'patates'];
+// Each game's theme colour (cards in the game picker).
+const GAME_COLORS = {
+  hangimiz: '#8b5cf6', kimyazdi: '#6366f1', asla: '#f59e0b', komik: '#eab308', yalanci: '#ef4444', kackac: '#06b6d4',
+  ikiz: '#ec4899', tele: '#d946ef', ayna: '#60a5fa', emoji: '#fb923c', cogunluk: '#22c55e', ikidogru: '#f43f5e',
+  sirala: '#84cc16', adam: '#b45309', vampir: '#b91c1c', zar: '#0f9488', patates: '#ea580c',
+};
 // Games with their own flow instead of write → answer → results.
-const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp' };
+const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp', zar: 'zar', patates: 'pat' };
 
 const EMO_POINTS = [300, 200];      // 1st and 2nd correct guess; everyone after gets EMO_POINTS_REST
 const EMO_POINTS_REST = 100;
@@ -239,6 +266,33 @@ const SIR_PERFECT_BONUS = 100;
 
 // t = answer shown, a = other accepted spellings.
 // EMO_ITEMS (Emojiyle Anlat titles) lives in emo-items.js, loaded before this file.
+
+/* ---------- Yalan Zar / Sıcak Patates data ---------- */
+
+const DIE_FACES = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+
+const PAT_LETTERS = 'ABCÇDEFGHIKLMNOPRSŞTUYZ';
+const PAT_LETTER_CATS = ['bir şehir ya da ülke', 'bir hayvan', 'bir yiyecek ya da içecek', 'bir isim (insan adı)', 'bir meslek', 'bir eşya', 'bir ünlü', 'bir film, dizi ya da çizgi film', 'bir marka', 'bir meyve ya da sebze'];
+const PAT_FREE = [
+  'Mutfakta bulunan bir şey', 'Denizde yaşayan bir canlı', 'Kırmızı renkli bir şey', 'Bir futbol takımı', 'Bir süper kahraman', 'Bir şarkıcı',
+  'Bir bilgisayar oyunu', 'Okulda olan bir şey', 'Bir spor dalı', 'Bir müzik aleti', 'Bir uygulama ya da site', 'Yazın yapılan bir şey',
+  'Kışın giyilen bir şey', 'Bir tatlı', 'Bir çizgi film karakteri', 'Uçabilen bir şey', 'Banyoda bulunan bir şey', 'Bir araba markası',
+  'Bir vücut parçası', 'Bir Türk yemeği', 'Bir renk', 'Bir sokak lezzeti', 'Bir hayvan sesi', 'Bir ülkenin başkenti', 'Yeşil renkli bir şey',
+  'Bir kahvaltılık', 'Bir doğum günü hediyesi', 'Bir tatil yeri', 'Bir masal karakteri', 'Bir kuş', 'Bir böcek', 'Bir çiçek', 'Bir oyuncak',
+];
+
+// A random prompt: either "X ile başlayan <category>" or a free one.
+function patPrompt(avoid) {
+  for (let k = 0; k < 30; k++) {
+    const p = Math.random() < 0.6
+      ? { letter: PAT_LETTERS[Math.floor(Math.random() * PAT_LETTERS.length)], cat: PAT_LETTER_CATS[Math.floor(Math.random() * PAT_LETTER_CATS.length)] }
+      : { letter: null, cat: PAT_FREE[Math.floor(Math.random() * PAT_FREE.length)] };
+    p.text = p.letter ? p.letter + ' ile başlayan ' + p.cat : p.cat;
+    if (!avoid.includes(p.text)) return p;
+  }
+}
+
+const PAT_FUSE = { short: [10, 25], normal: [20, 45], long: [35, 70] };
 
 /* ---------- Vampir Köyü rules (shared by host and screens) ---------- */
 
@@ -635,6 +689,9 @@ const BADGES = {
   sr_ruler: { e: '📏', n: 'Cetvel', d: "Sıralama'yı kazandın" },
   ad_hunter: { e: '🧩', n: 'Kelime Avcısı', d: "Adam Asmaca'da en çok kelimeyi sen buldun" },
   ad_hangman: { e: '🪢', n: 'Cellat', d: "Adam Asmaca'da kelimenle en çok adam astın" },
+  zr_king: { e: '🎲', n: 'Zar Kralı', d: "Yalan Zar'da son kalan sen oldun" },
+  zr_hunter: { e: '🔍', n: 'Yalan Avcısı', d: "Yalan Zar'da en çok yalanı sen yakaladın" },
+  pt_cool: { e: '🧊', n: 'Soğukkanlı', d: "Sıcak Patates'te son kalan sen oldun" },
   vm_night: { e: '🧛', n: 'Gecenin Efendisi', d: "Vampir Köyü'nü vampirlerle kazandın" },
   vm_hero: { e: '🏡', n: 'Köyün Kahramanı', d: "Vampir Köyü'nde köyü kurtardın" },
   vm_jester: { e: '🃏', n: 'Son Gülen', d: "Vampir Köyü'nde Soytarı olarak sürgün edilip kazandın" },
@@ -1257,6 +1314,38 @@ const Host = {
         return;
       }
 
+      case 'zbid': {
+        if (S.phase !== 'zar' || r.step !== 'bid' || pid !== this.zarTurn()) return;
+        const q = Math.round(Number(msg.q));
+        const f = Math.round(Number(msg.f));
+        if (!this.zarBidOk(q, f)) return;
+        this.zarBid(pid, q, f);
+        return;
+      }
+
+      case 'zcall': {
+        if (S.phase !== 'zar' || r.step !== 'bid' || pid !== this.zarTurn() || !r.bid) return;
+        this.zarReveal(pid);
+        return;
+      }
+
+      case 'pans': {
+        if (S.phase !== 'pat' || r.step !== 'play' || pid !== r.holder) return;
+        const text = String(msg.text ?? '').replace(/\s+/g, ' ').trim().slice(0, 40);
+        const why = this.patCheckAnswer(text);
+        if (why) { this.tell(pid, { t: 'toast', text: why }); return; }
+        this.patAnswer(pid, text);
+        return;
+      }
+
+      case 'pdown': {
+        if (S.phase !== 'pat' || r.step !== 'play' || !r.last || !r.alive[pid] || pid === r.last.id) return;
+        r.last.downs[pid] = true;
+        this.patVeto();
+        this.changed();
+        return;
+      }
+
       case 'vready': {
         if (S.phase !== 'vamp' || r.step !== 'roles' || !r.roster.includes(pid)) return;
         r.ready[pid] = true;
@@ -1479,6 +1568,8 @@ const Host = {
         else if (S.phase === 'sir') this.sirSkip();
         else if (S.phase === 'adam') this.adamSkip();
         else if (S.phase === 'vamp') this.vampSkip();
+        else if (S.phase === 'zar') this.zarSkip();
+        else if (S.phase === 'pat') this.patSkip();
         return;
       case 'lieReset':
         S.lieTotals = {};
@@ -1497,6 +1588,8 @@ const Host = {
         else if (S.phase === 'sir' && r.step === 'reveal') this.sirNext();
         else if (S.phase === 'adam' && r.step === 'reveal') this.adamNext();
         else if (S.phase === 'vamp' && r.step === 'reveal') this.vampNext();
+        else if (S.phase === 'zar' && r.step === 'reveal') this.zarNext();
+        else if (S.phase === 'pat' && r.step === 'reveal') this.patNext();
         return;
       case 'prev':
         if (S.phase === 'results' && r.revealIndex > 0) {
@@ -1628,6 +1721,8 @@ const Host = {
     if (S.game === 'sirala') this.setupSir(S.round);
     if (S.game === 'adam') this.setupAdam(S.round);
     if (S.game === 'vampir') this.setupVamp(S.round);
+    if (S.game === 'zar') this.setupZar(S.round);
+    if (S.game === 'patates') this.setupPat(S.round);
     S.phase = GAME_PHASE[S.game] || 'writing';
     this.changed();
   },
@@ -2200,6 +2295,219 @@ const Host = {
     const r = this.S.round;
     const live = this.liveIds();
     if (r.step === 'rank' && live.length && live.every((id) => r.ranks[id])) this.sirReveal();
+  },
+
+  /* ---------- Yalan Zar ---------- */
+
+  setupZar(r) {
+    const n = Number(r.cfg.dice) || 5;
+    const counts = {};
+    for (const id of r.roster) counts[id] = n;
+    Object.assign(r, { seats: shuffle(r.roster), counts, out: [], round: 0, caught: {}, dice: {}, history: [] });
+    for (const id of r.roster) r.caught[id] = 0;
+    this.zarRoll(r.seats[0], true);
+  },
+
+  zarAlive() {
+    const r = this.S.round;
+    return r.seats.filter((id) => r.counts[id] > 0);
+  },
+
+  // The next player still in the game after id, going round the table.
+  zarAfter(id) {
+    const r = this.S.round;
+    const i = r.seats.indexOf(id);
+    for (let k = 1; k <= r.seats.length; k++) {
+      const c = r.seats[(i + k) % r.seats.length];
+      if (r.counts[c] > 0) return c;
+    }
+    return id;
+  },
+
+  zarRoll(starter, silent) {
+    const r = this.S.round;
+    r.round++;
+    r.dice = {};
+    for (const id of this.zarAlive()) r.dice[id] = Array.from({ length: r.counts[id] }, () => 1 + Math.floor(Math.random() * 6)).sort();
+    r.turn = r.counts[starter] > 0 ? starter : this.zarAfter(starter);
+    Object.assign(r, { step: 'bid', bid: null, bids: [], result: null, pendingEnd: false });
+    this.setStepDeadline(r.cfg.moveTime);
+    if (!silent) this.changed();
+  },
+
+  zarTurn() {
+    const r = this.S.round;
+    return r && r.step === 'bid' ? r.turn : null;
+  },
+
+  zarTotal() {
+    const r = this.S.round;
+    return this.zarAlive().reduce((a, id) => a + r.counts[id], 0);
+  },
+
+  zarBidOk(q, f) {
+    const r = this.S.round;
+    const minF = r.cfg.jokers ? 2 : 1;
+    if (!(q >= 1 && q <= this.zarTotal() && f >= minF && f <= 6)) return false;
+    return !r.bid || q > r.bid.q || (q === r.bid.q && f > r.bid.f);
+  },
+
+  zarBid(pid, q, f) {
+    const r = this.S.round;
+    r.bid = { id: pid, q, f };
+    r.bids.push(r.bid);
+    r.turn = this.zarAfter(pid);
+    this.setStepDeadline(r.cfg.moveTime);
+    this.changed();
+  },
+
+  // Out of time (or skipped by the leader): the smallest possible raise is made for them.
+  zarSkip() {
+    const r = this.S.round;
+    if (r.step === 'reveal') { this.zarNext(); return; }
+    const minF = r.cfg.jokers ? 2 : 1;
+    let q = r.bid ? r.bid.q : 1;
+    let f = r.bid ? r.bid.f + 1 : minF;
+    if (f > 6) { q++; f = minF; }
+    if (this.zarBidOk(q, f)) this.zarBid(r.turn, q, f);
+    else this.zarReveal(r.turn);
+  },
+
+  zarReveal(caller) {
+    const r = this.S.round;
+    const bid = r.bid;
+    let count = 0;
+    for (const id of Object.keys(r.dice)) for (const d of r.dice[id]) if (d === bid.f || (r.cfg.jokers && d === 1)) count++;
+    const truth = count >= bid.q;
+    const loser = truth ? caller : bid.id;
+    if (!truth) r.caught[caller]++;
+    r.counts[loser]--;
+    if (!r.counts[loser]) r.out.push(loser);
+    r.result = { caller, bid, count, truth, loser, dice: { ...r.dice }, gone: !r.counts[loser] };
+    r.history.push({ round: r.round, caller, bid, count, loser });
+    r.starter = loser;
+    r.pendingEnd = this.zarAlive().length <= 1;
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  zarNext() {
+    const r = this.S.round;
+    if (r.pendingEnd) { this.zarFinish(); return; }
+    this.zarRoll(r.starter);
+  },
+
+  zarFinish() {
+    const r = this.S.round;
+    const ranking = this.zarAlive().concat(r.out.slice().reverse()).concat(r.roster.filter((id) => !r.seats.includes(id)));
+    const scores = {};
+    ranking.forEach((id, i) => { scores[id] = ranking.length - 1 - i; });
+    this.finishCustom({ scores, ranking, caught: { ...r.caught }, rounds: r.round, history: r.history });
+  },
+
+  /* ---------- Sıcak Patates ---------- */
+
+  setupPat(r) {
+    const lives = Number(r.cfg.lives) || 2;
+    const alive = {};
+    const hearts = {};
+    for (const id of r.roster) { alive[id] = true; hearts[id] = lives; }
+    Object.assign(r, { seats: shuffle(r.roster), alive, hearts, maxH: lives, out: [], round: 0, prompts: [], history: [] });
+    this.patStart(r.seats[0], true);
+  },
+
+  patAfter(id) {
+    const r = this.S.round;
+    const i = r.seats.indexOf(id);
+    for (let k = 1; k <= r.seats.length; k++) {
+      const c = r.seats[(i + k) % r.seats.length];
+      if (r.alive[c]) return c;
+    }
+    return id;
+  },
+
+  patStart(holder, silent) {
+    const r = this.S.round;
+    const [lo, hi] = PAT_FUSE[r.cfg.fuse] || PAT_FUSE.normal;
+    r.round++;
+    r.prompt = patPrompt(r.prompts);
+    r.prompts.push(r.prompt.text);
+    r.holder = r.alive[holder] ? holder : this.patAfter(holder);
+    r.boomAt = Date.now() + (lo + Math.random() * (hi - lo)) * 1000;
+    r.used = [];
+    r.feed = [];
+    r.last = null;
+    r.step = 'play';
+    r.deadline = null;
+    r.result = null;
+    if (!silent) this.changed();
+  },
+
+  // Returns why an answer is refused, or null.
+  patCheckAnswer(text) {
+    const r = this.S.round;
+    if (normWord(text).length < 2) return 'Biraz daha uzun bir cevap yaz 🙂';
+    if (r.prompt.letter && text.toLocaleUpperCase('tr')[0] !== r.prompt.letter) return '"' + r.prompt.letter + '" harfiyle başlamalı!';
+    if (r.used.includes(normWord(text))) return 'Bu cevap bu turda zaten yazıldı! 🔁';
+    return null;
+  },
+
+  patAnswer(pid, text) {
+    const r = this.S.round;
+    r.used.push(normWord(text));
+    r.last = { id: pid, text, downs: {} };
+    r.feed.push({ id: pid, text, ok: true });
+    r.holder = this.patAfter(pid);
+    this.changed();
+  },
+
+  // Enough people said "no way": the answer doesn't count and the bomb goes back.
+  patVeto() {
+    const r = this.S.round;
+    const others = r.seats.filter((id) => r.alive[id] && id !== r.last.id).length;
+    const need = Math.max(1, Math.ceil(others / 2));
+    if (Object.keys(r.last.downs).length < need) return;
+    const f = r.feed[r.feed.length - 1];
+    f.ok = false;
+    r.used = r.used.filter((x) => x !== normWord(r.last.text));
+    r.holder = r.last.id;
+    r.last = null;
+  },
+
+  // Leader skip: the bomb moves on without an answer.
+  patSkip() {
+    const r = this.S.round;
+    if (r.step === 'reveal') { this.patNext(); return; }
+    r.feed.push({ id: r.holder, text: null, ok: false });
+    r.last = null;
+    r.holder = this.patAfter(r.holder);
+    this.changed();
+  },
+
+  patBoom() {
+    const r = this.S.round;
+    const victim = r.holder;
+    r.hearts[victim]--;
+    if (r.hearts[victim] <= 0) { r.alive[victim] = false; r.out.push(victim); }
+    r.result = { victim, gone: !r.alive[victim], prompt: r.prompt.text, feed: r.feed };
+    r.history.push({ round: r.round, prompt: r.prompt.text, victim, answers: r.feed.filter((f) => f.ok).length });
+    r.pendingEnd = r.seats.filter((id) => r.alive[id]).length <= 1;
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  patNext() {
+    const r = this.S.round;
+    if (r.pendingEnd) {
+      const ranking = r.seats.filter((id) => r.alive[id]).concat(r.out.slice().reverse());
+      const scores = {};
+      ranking.forEach((id, i) => { scores[id] = ranking.length - 1 - i; });
+      this.finishCustom({ scores, ranking, rounds: r.round, history: r.history });
+      return;
+    }
+    this.patStart(r.result.victim);
   },
 
   /* ---------- Vampir Köyü ---------- */
@@ -3013,6 +3321,8 @@ const Host = {
       else if (S.phase === 'sir' && now >= r.deadline) this.sirSkip();
       else if (S.phase === 'adam' && now >= r.deadline) this.adamSkip();
       else if (S.phase === 'vamp' && now >= r.deadline) this.vampSkip();
+      else if (S.phase === 'zar' && now >= r.deadline) this.zarSkip();
+      else if (S.phase === 'pat' && now >= r.deadline) this.patSkip();
     }
     if (S.phase === 'ikiz' && r) this.ikizCheck();
     if (S.phase === 'tele' && r) this.teleCheck();
@@ -3022,6 +3332,8 @@ const Host = {
     if (S.phase === 'iky' && r) this.ikyCheck();
     if (S.phase === 'sir' && r) this.sirCheck();
     if (S.phase === 'vamp' && r) this.vampCheck();
+    // The bomb ignores "Süresiz": it is the whole game.
+    if (S.phase === 'pat' && r && r.step === 'play' && now >= r.boomAt) this.patBoom();
     if (S.phase === 'kac' && r) {
       if (r.step === 'guess' && this.kacAllGuessed()) this.kacReveal();
     }
@@ -3226,6 +3538,23 @@ const Host = {
         step: r.step, ti: r.ti, tn: r.turns.length, asker, amAsker: pid === asker, q: r.q, done,
         rankIds: r.step === 'rank' ? r.rankIds : null, myRank: (r.ranks && r.ranks[pid]) || null,
         result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
+      };
+    } else if (S.phase === 'zar') {
+      const reveal = r.step === 'reveal';
+      pub.stepKey = r.step + r.round;
+      pub.zar = {
+        step: r.step, round: r.round, seats: r.seats, counts: r.counts, total: this.zarTotal(), jokers: !!r.cfg.jokers,
+        turn: this.zarTurn(), myTurn: this.zarTurn() === pid, myDice: r.dice[pid] || [], bid: r.bid, bids: r.bids,
+        result: reveal ? r.result : null, pendingEnd: reveal && r.pendingEnd,
+      };
+    } else if (S.phase === 'pat') {
+      const others = r.seats.filter((id) => r.alive[id] && (!r.last || id !== r.last.id)).length;
+      pub.stepKey = r.step + r.round;
+      pub.pat = {
+        step: r.step, round: r.round, seats: r.seats, alive: r.alive, hearts: r.hearts, maxH: r.maxH, prompt: r.prompt.text, letter: r.prompt.letter,
+        holder: r.holder, amHolder: r.step === 'play' && r.holder === pid, feed: r.feed,
+        last: r.last ? { id: r.last.id, text: r.last.text, downs: Object.keys(r.last.downs).length, mine: !!r.last.downs[pid] } : null,
+        need: Math.max(1, Math.ceil(others / 2)), result: r.step === 'reveal' ? r.result : null, pendingEnd: r.step === 'reveal' && r.pendingEnd,
       };
     } else if (S.phase === 'vamp') {
       // Everyone only ever gets their own role, hearts and night results; vampires also see each other.
@@ -3492,6 +3821,13 @@ function computeAwards(r) {
     case 'adam':
       give(top(F.solved), 'ad_hunter');
       give(top(F.hanged), 'ad_hangman');
+      break;
+    case 'zar':
+      give(F.ranking.slice(0, 1), 'zr_king');
+      give(top(F.caught), 'zr_hunter');
+      break;
+    case 'patates':
+      give(F.ranking.slice(0, 1), 'pt_cool');
       break;
     case 'vampir': {
       const team = (id) => VAMP_ROLES[F.roles[id]].team;
@@ -4275,15 +4611,15 @@ function render() {
   if (!s) return;
   const inRound = !!(s.roster && s.roster.includes(s.you));
   let screen = s.phase;
-  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp'].includes(s.phase) && !inRound) screen = 'spectate';
+  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat'].includes(s.phase) && !inRound) screen = 'spectate';
   if (screen === 'lie') screen = 'lie:' + s.lie.step;
   if (screen === 'kac') screen = 'kac:' + s.kac.step;
-  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp'].includes(screen)) screen += ':' + s[screen].step;
+  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat'].includes(screen)) screen += ':' + s[screen].step;
   let key = screen + ':' + (s.roundId || '');
   if (screen === 'results') key += ':' + s.reveal.index;
   if (screen === 'lie:clues') key += ':' + s.lie.turn;
   if (screen.startsWith('kac:')) key += ':' + s.kac.ti;
-  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp):/.test(screen)) key += ':' + s.stepKey;
+  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp|zar|pat):/.test(screen)) key += ':' + s.stepKey;
   if (screen === 'writing' && s.writing.stage) key += ':' + s.writing.stage;
 
   const fresh = key !== App.screenKey;
@@ -4487,7 +4823,7 @@ function gamePickerHTML(current, editable, vote) {
     const attrs = vote ? ' data-act="gvote" data-id="' + id + '"' : editable ? ' data-act="game" data-id="' + id + '"' : ' disabled';
     const n = vote ? vote.counts[id] || 0 : 0;
     const mine = vote && vote.mine === id;
-    return '<button class="gcard ' + (on ? 'on' : '') + (mine ? ' myvote' : '') + '"' + attrs + '><span class="ge">' + g.emoji + '</span><span class="gb"><b>' + esc(g.name) + '</b>' +
+    return '<button class="gcard ' + (on ? 'on' : '') + (mine ? ' myvote' : '') + '" style="--gc:' + (GAME_COLORS[id] || '#8b5cf6') + '"' + attrs + '><span class="ge">' + g.emoji + '</span><span class="gb"><b>' + esc(g.name) + '</b>' +
       '<small>' + esc(g.desc) + '</small><small class="gmin">En az ' + g.minPlayers + ' kişi</small></span>' +
       (on ? '<span class="gcheck">✓</span>' : '') + (n ? '<span class="gvotes">🗳️ ' + n + '</span>' : '') + '</button>';
   });
@@ -5575,6 +5911,205 @@ function sirFinalMount(s) {
   );
 }
 
+/* ---------- Yalan Zar ---------- */
+
+const DIE_PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+
+// A real-looking die drawn with pips (the ⚀ characters are tiny in most fonts).
+function dieHTML(f, cls = '', joker = true) {
+  let pips = '';
+  for (let i = 0; i < 9; i++) pips += '<i' + (DIE_PIPS[f].includes(i) ? ' class="p"' : '') + '></i>';
+  return '<span class="die ' + cls + (f === 1 && joker ? ' joker' : '') + '">' + pips + '</span>';
+}
+
+function zarBidText(b) {
+  return '<b>' + b.q + '</b> tane ' + dieHTML(b.f, 'sm');
+}
+
+function zarTable(s, showTurn) {
+  const Z = s.zar;
+  return '<div class="ztable">' + Z.seats.map((id) => '<span class="zp ' + (Z.counts[id] ? '' : 'out') + (showTurn && Z.turn === id ? ' turn' : '') + '">' +
+    avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) + ' <b>' + (Z.counts[id] ? '🎲×' + Z.counts[id] : '💀') + '</b></span>').join('') + '</div>';
+}
+
+function zarPaint() {
+  const Z = App.state.zar;
+  const box = $('#zarBox');
+  if (!box) return;
+  const minF = Z.jokers ? 2 : 1;
+  const ok = (q, f) => !Z.bid || q > Z.bid.q || (q === Z.bid.q && f > Z.bid.f);
+  if (!ok(App.zarQ, App.zarF) && !Z.bid) App.zarQ = 1;
+  const mine = Z.myDice.filter((d) => d === App.zarF || (Z.jokers && d === 1)).length;
+  box.innerHTML = '<div class="lbl">Senin iddian: masada en az…</div>' +
+    '<div class="cogpred"><button class="btn ghost" data-act="zQ" data-d="-1">−</button><span>' + App.zarQ + '</span><button class="btn ghost" data-act="zQ" data-d="1">+</button></div>' +
+    '<div class="zfaces">' + [1, 2, 3, 4, 5, 6].filter((f) => f >= minF).map((f) => '<button class="zface ' + (App.zarF === f ? 'on' : '') + '" data-act="zF" data-f="' + f + '">' + dieHTML(f, 'md', Z.jokers) + '</button>').join('') + '</div>' +
+    '<p class="muted center" style="margin:6px 0 0;font-size:14px">Senin elinde bundan ' + mine + ' tane var' + (Z.jokers ? ' (1\'ler dahil)' : '') + '</p>' +
+    '<button class="btn yellow big block" data-act="zBid" style="margin-top:10px"' + (ok(App.zarQ, App.zarF) ? '' : ' disabled') + '>📢 ' + App.zarQ + ' tane ' + dieHTML(App.zarF, 'sm', false) + ' var!</button>' +
+    (Z.bid ? '<button class="btn big block zcall" data-act="zCall" style="margin-top:10px">🤥 Yalan!</button>' : '') +
+    (!ok(App.zarQ, App.zarF) ? '<p class="muted center" style="margin:6px 0 0;font-size:13px">Önceki iddiadan yüksek olmalı: ya daha çok sayı ya da aynı sayıda daha büyük zar.</p>' : '');
+}
+
+Views['zar:bid'] = {
+  mount(s) {
+    const Z = s.zar;
+    App.zarSeen = '';
+    mount(header() + timerHTML('Hamle süresi') +
+      '<div class="vbar night zbar"><b>🎲 El ' + Z.round + '</b><span>Masada toplam ' + Z.total + ' zar</span></div>' +
+      '<div class="card center"><h2 style="margin:0 0 6px">Senin zarların 🤫</h2><div class="zmine">' +
+        (Z.myDice.length ? Z.myDice.map((d) => dieHTML(d)).join('') : '<span class="muted">Zarın kalmadı, izliyorsun 👀</span>') + '</div>' +
+        (Z.jokers ? '<p class="muted" style="margin:6px 0 0;font-size:13px">' + dieHTML(1, 'xs') + ' joker: her sayı yerine geçer</p>' : '') + '</div>' +
+      '<div class="card"><div class="zbid" id="zarBid"></div><div id="zarBox"></div><div class="zhist" id="zarHist"></div></div>' +
+      '<div class="card"><h2>Masa</h2><div id="zarTable"></div></div>' + OFFLINE_NOTE + hostSkip('Sırayı geç (en küçük artış)'));
+  },
+  update(s) {
+    const Z = s.zar;
+    const key = JSON.stringify([Z.bid, Z.turn]);
+    if (key !== App.zarSeen) {
+      App.zarSeen = key;
+      $('#zarBid').innerHTML = Z.bid ? '<div class="muted">Son iddia · ' + esc(nameOf(Z.bid.id).name) + '</div><div class="zbig">' + zarBidText(Z.bid) + ' var!</div>'
+        : '<div class="muted">Henüz iddia yok</div>';
+      $('#zarHist').innerHTML = Z.bids.length > 1 ? Z.bids.slice(0, -1).reverse().map((b) => '<div>' + esc(nameOf(b.id).name) + ': ' + zarBidText(b) + '</div>').join('') : '';
+      if (Z.myTurn) {
+        App.zarQ = Z.bid ? Z.bid.q : 1;
+        App.zarF = Z.bid ? Math.min(6, Z.bid.f + (Z.bid.f < 6 ? 1 : 0)) : (Z.jokers ? 2 : 1);
+        if (Z.bid && Z.bid.f === 6) { App.zarQ = Z.bid.q + 1; App.zarF = Z.jokers ? 2 : 1; }
+        App.zarQ = Math.min(App.zarQ, Z.total);
+        zarPaint();
+        Sound.join();
+        if (App.chatOpen) toast('🎤 Sıra sende!', 2500);
+      } else {
+        $('#zarBox').innerHTML = '<div class="waiting-pill">⏳ Sıra: ' + esc(nameOf(Z.turn).name) + '</div>';
+      }
+      if (Z.bid) Sound.beep(660, 0.08, 'triangle', 0.05);
+    }
+    $('#zarTable').innerHTML = zarTable(s, true);
+    updateOffline(s, [Z.turn]);
+  },
+};
+
+Views['zar:reveal'] = {
+  mount(s) {
+    const Z = s.zar;
+    const R = Z.result;
+    const hits = (d) => d === R.bid.f || (Z.jokers && d === 1);
+    const rows = Z.seats.filter((id) => R.dice[id]).map((id) => '<div class="zrow"><span class="nm">' + avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) + '</span><span class="zd">' +
+      R.dice[id].map((d) => dieHTML(d, hits(d) ? 'hit' : 'miss')).join('') + '</span></div>').join('');
+    const verdict = R.truth ? '✅ İddia doğru çıktı! "Yalan" diyen yanıldı.' : '🤥 Yalanmış! İddia tutmadı.';
+    mount(header() + revealTimer(s) +
+      '<div class="card center"><div class="muted">' + esc(nameOf(R.caller).name) + ' "Yalan!" dedi</div>' +
+        '<div class="zbig">İddia: ' + zarBidText(R.bid) + '</div><div class="zbig">Masada: <b>' + R.count + '</b> tane</div>' +
+        '<div class="winline adamwin">' + verdict + '</div>' +
+        '<p style="margin:8px 0 0">🎲 Zar kaybeden: <b>' + esc(nameOf(R.loser).name) + '</b>' + (R.gone ? ' · zarı bitti, oyundan çıktı 💀' : '') + '</p></div>' +
+      '<div class="card"><h2>Herkesin zarları</h2>' + rows + '</div>' +
+      '<div class="card"><h2>Masa</h2>' + zarTable(s, false) + '</div>' +
+      hostNext(s, Z.pendingEnd ? '🏆 Sonuçlar' : '🎲 Sonraki el'));
+    Sound.beep(R.truth ? 523 : 196, 0.3, 'sawtooth', 0.05);
+  },
+};
+
+function zarFinalMount(s) {
+  const F = s.final;
+  const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + F.caught[id] + ' yalan yakaladı</small></span></div>').join('');
+  const w = F.ranking[0];
+  mount(
+    header() +
+    '<div class="phase-title"><h1>' + esc(nameOf(w).av) + ' ' + esc(nameOf(w).name) + ' kazandı!</h1><p>Masada son kalan o oldu 🎲 (' + F.rounds + ' el)</p></div>' +
+    podiumHTML(F.ranking, (id) => (F.ranking.indexOf(id) + 1) + '.') +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Sıralama 🏅</h2><div class="board">' + board + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
+/* ---------- Sıcak Patates ---------- */
+
+function patHearts(P, id) {
+  return P.alive[id] ? '❤️'.repeat(P.hearts[id]) + '🖤'.repeat(P.maxH - P.hearts[id]) : '💀';
+}
+
+function patTable(s) {
+  const P = s.pat;
+  return '<div class="ztable">' + P.seats.map((id) => '<span class="zp ' + (P.alive[id] ? '' : 'out') + (P.step === 'play' && P.holder === id ? ' turn' : '') + '">' +
+    avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) + (P.step === 'play' && P.holder === id ? ' 💣' : '') + ' <b>' + patHearts(P, id) + '</b></span>').join('') + '</div>';
+}
+
+function patFeedHTML(feed) {
+  return feed.length ? feed.slice().reverse().map((f) => '<div class="fitem ' + (f.ok ? 'ok' : '') + '">' + (f.text == null ? '⏭ ' + esc(nameOf(f.id).name) + ' pas geçti'
+    : '<b>' + esc(nameOf(f.id).name) + ':</b> ' + (f.ok ? '' : '❌ ') + '<span class="' + (f.ok ? '' : 'strike') + '">' + esc(f.text) + '</span>')).join('') : '<p class="muted" style="margin:0">Henüz cevap yok…</p>';
+}
+
+// The holder's phone ticks; everyone else just sees the bomb move.
+function patTicker() {
+  if (App.patTicker) return;
+  App.patTicker = setInterval(() => {
+    const s = App.state;
+    if (s && s.phase === 'pat' && s.pat && s.pat.step === 'play' && s.pat.amHolder) Sound.tick();
+  }, 700);
+}
+
+Views['pat:play'] = {
+  mount(s) {
+    const P = s.pat;
+    App.patSeen = '';
+    patTicker();
+    mount(header() +
+      '<div class="vbar day patbar"><b>💣 Tur ' + P.round + '</b><span>Ne zaman patlayacağı belli değil…</span></div>' +
+      '<div class="card qcard"><div class="meta">Kategori</div><div class="qtext">' + esc(P.prompt) + '</div></div>' +
+      '<div id="patMain"></div>' +
+      '<div class="card"><h2>Cevaplar</h2><div class="emofeed" id="patFeed"></div></div>' +
+      '<div class="card"><h2>Oyuncular</h2><div id="patTable"></div></div>' + hostSkip('Bombayı sonrakine geçir'));
+  },
+  update(s) {
+    const P = s.pat;
+    const key = JSON.stringify([P.holder, P.amHolder, P.last && P.last.id, P.last && P.last.text]);
+    if (key !== App.patSeen) {
+      App.patSeen = key;
+      const h = nameOf(P.holder);
+      $('#patMain').innerHTML = P.amHolder
+        ? '<div class="card myturn center patbomb"><div class="bomb">💣</div><h2 style="margin:0">Bomba sende! Çabuk!</h2>' +
+          '<div class="row" style="margin-top:10px"><input id="patIn" class="field grow" maxlength="40" placeholder="' + esc(P.letter ? P.letter + '…' : 'Cevabın…') + '" autocomplete="off">' +
+          '<button class="btn green" data-act="pSend">Gönder 🚀</button></div></div>'
+        : '<div class="card center patbomb"><div class="bomb other">💣</div><div class="kasker">Bomba şu an: ' + avatarHTML(h) + '<b>' + esc(h.name) + '</b></div></div>';
+      if (P.amHolder) { Sound.join(); focusFine('#patIn', true); }
+    }
+    const L = P.last;
+    $('#patFeed').innerHTML = (L && L.id !== s.you ? '<div class="patveto">Son cevap: <b>' + esc(L.text) + '</b> · ' +
+      (L.mine ? '👎 itiraz ettin' : '<button class="btn small ghost" data-act="pDown">👎 Olmaz bu!</button>') +
+      ' <span class="muted">(' + L.downs + ' / ' + P.need + ')</span></div>' : '') + patFeedHTML(P.feed);
+    $('#patTable').innerHTML = patTable(s);
+  },
+};
+
+Views['pat:reveal'] = {
+  mount(s) {
+    const P = s.pat;
+    const R = P.result;
+    mount(header() + revealTimer(s) +
+      '<div class="card center patboom"><div class="bomb">💥</div><h1 style="margin:0">BOOM!</h1>' +
+        '<div class="kasker" style="margin-top:8px">Elinde patlayan: ' + avatarHTML(nameOf(R.victim)) + '<b>' + esc(nameOf(R.victim).name) + '</b></div>' +
+        '<p style="margin:8px 0 0">' + (R.gone ? '💀 Canı bitti, oyundan çıktı!' : 'Kalan can: ' + patHearts(P, R.victim)) + '</p></div>' +
+      '<div class="card"><h2>' + esc(R.prompt) + '</h2><div class="emofeed">' + patFeedHTML(R.feed) + '</div></div>' +
+      '<div class="card"><h2>Oyuncular</h2>' + patTable(s) + '</div>' +
+      hostNext(s, P.pendingEnd ? '🏆 Sonuçlar' : '💣 Sonraki tur'));
+    Sound.beep(90, 0.6, 'sawtooth', 0.09);
+  },
+};
+
+function patFinalMount(s) {
+  const F = s.final;
+  const w = F.ranking[0];
+  const recap = F.history.map((h) => '<div><span class="q">' + esc(h.prompt) + '</span><span class="w">💥 ' + esc(nameOf(h.victim).name) + '</span></div>').join('');
+  mount(
+    header() +
+    '<div class="phase-title"><h1>' + esc(nameOf(w).av) + ' ' + esc(nameOf(w).name) + ' kazandı!</h1><p>Bombadan en son kaçan o oldu 🧊 (' + F.rounds + ' tur)</p></div>' +
+    podiumHTML(F.ranking, (id) => (F.ranking.indexOf(id) + 1) + '.') +
+    '<div class="card"><h2>Bütün turlar</h2><div class="recap">' + recap + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
 /* ---------- Vampir Köyü ---------- */
 
 const VAMP_END_TEXT = {
@@ -6576,6 +7111,8 @@ Views.final = {
     else if (s.game === 'sirala') sirFinalMount(s);
     else if (s.game === 'adam') adamFinalMount(s);
     else if (s.game === 'vampir') vampFinalMount(s);
+    else if (s.game === 'zar') zarFinalMount(s);
+    else if (s.game === 'patates') patFinalMount(s);
     else hangimizFinalMount(s);
     confetti();
     Sound.fanfare();
@@ -6653,6 +7190,13 @@ function shareLines(s) {
       break;
     case 'sirala':
       for (const r of F.recap) if (r.top) L.push(n(r.asker) + ': ' + r.q + ' → 👑 ' + n(r.top));
+      break;
+    case 'zar':
+      F.ranking.slice(0, 3).forEach((id, i) => L.push(['🥇', '🥈', '🥉'][i] + ' ' + n(id)));
+      L.push('🎲 ' + F.rounds + ' el oynandı');
+      break;
+    case 'patates':
+      for (const h of F.history) L.push('💥 ' + h.prompt + ' → ' + n(h.victim));
       break;
     case 'vampir':
       L.push(VAMP_END_TEXT[F.end]);
@@ -7351,6 +7895,22 @@ const actions = {
   },
   sreset() { App.sirOrder = []; sirPaint(); },
   srank() { Sound.click(); send({ t: 'srank', order: App.sirOrder }); },
+  zQ(el) {
+    const Z = App.state.zar;
+    App.zarQ = Math.max(1, Math.min(Z.total, App.zarQ + Number(el.dataset.d)));
+    zarPaint();
+  },
+  zF(el) { App.zarF = Number(el.dataset.f); Sound.click(); zarPaint(); },
+  zBid() { Sound.click(); send({ t: 'zbid', q: App.zarQ, f: App.zarF }); },
+  zCall() { Sound.beep(220, 0.2, 'square', 0.05); send({ t: 'zcall' }); },
+  pSend() {
+    const el = $('#patIn');
+    const text = el ? el.value.trim() : '';
+    if (!text) return;
+    el.value = '';
+    send({ t: 'pans', text });
+  },
+  pDown() { Sound.click(); send({ t: 'pdown' }); },
   vReady() { Sound.click(); send({ t: 'vready' }); },
   vKind(el) { App.vSel = { kind: el.dataset.k, target: null }; Sound.click(); vampActPaint(); },
   vPick(el) { App.vSel.target = el.dataset.id; Sound.click(); vampActPaint(); },
@@ -7477,6 +8037,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'emoClue') { e.preventDefault(); doAction('eclue'); return; }
   if (e.key === 'Enter' && e.target.id === 'emoGuess') { e.preventDefault(); doAction('eguess'); return; }
   if (e.key === 'Enter' && (e.target.id === 'adamWord' || e.target.id === 'adamHint')) { e.preventDefault(); doAction('hmWord'); return; }
+  if (e.key === 'Enter' && e.target.id === 'patIn') { e.preventDefault(); doAction('pSend'); return; }
   if (e.key === 'Enter' && e.target.id === 'vchatIn') { e.preventDefault(); doAction('vChat'); return; }
   if (e.key === 'Enter' && e.target.id === 'adamSolve') { e.preventDefault(); doAction('hmSolve'); return; }
   if (adamTypedLetter(e)) return;

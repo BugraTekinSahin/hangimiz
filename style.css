@@ -918,3 +918,59 @@ body.chat-open #toast { top: calc(16px + env(safe-area-inset-top)); bottom: auto
 .emocount.full { color: var(--red); }
 .emohint { margin-top: 4px; }
 .emohint .amask { margin-top: 4px; }
+
+/* ---------- game theme colours ---------- */
+.gcard[style*="--gc"] {
+  background: var(--soft);
+  background: color-mix(in srgb, var(--gc) 13%, var(--soft));
+  border-color: color-mix(in srgb, var(--gc) 35%, var(--line));
+}
+.gcard[style*="--gc"] .ge {
+  background: color-mix(in srgb, var(--gc) 28%, transparent); border-radius: 14px; padding: 6px;
+}
+.gcard[style*="--gc"] .gb b { color: color-mix(in srgb, var(--gc) 55%, var(--ink)); }
+button.gcard[style*="--gc"]:not(:disabled):hover { border-color: var(--gc); }
+.gcard.on[style*="--gc"] { border-color: var(--gc); background: color-mix(in srgb, var(--gc) 26%, var(--soft)); box-shadow: 0 0 0 3px color-mix(in srgb, var(--gc) 30%, transparent); }
+.gcard[style*="--gc"] .gcheck { background: var(--gc); }
+.gcard.myvote[style*="--gc"] { border-color: var(--gc); }
+
+/* ---------- Yalan Zar ---------- */
+.zbar { background: linear-gradient(120deg, #0b4f4a, #0f9488); }
+.die {
+  display: inline-grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr); width: 50px; height: 50px; padding: 7px; gap: 2px;
+  background: #fff; border-radius: 11px; box-shadow: 0 3px 0 #c9c1e6; vertical-align: middle;
+}
+.die i { border-radius: 50%; }
+.die i.p { background: #23164a; }
+.die.joker { background: #0f9488; box-shadow: 0 3px 0 #0b5f58; }
+.die.joker i.p { background: #fff; }
+.die.md { width: 38px; height: 38px; padding: 5px; border-radius: 9px; }
+.die.sm { width: 28px; height: 28px; padding: 4px; gap: 1px; border-radius: 7px; box-shadow: none; }
+.die.xs { width: 20px; height: 20px; padding: 3px; gap: 1px; border-radius: 5px; box-shadow: none; }
+.die.hit { outline: 3px solid var(--green); }
+.die.miss { opacity: .3; }
+.zmine { display: flex; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.zbid { text-align: center; margin-bottom: 10px; }
+.zbig { font-size: 24px; font-weight: 800; }
+.zfaces { display: flex; justify-content: center; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
+.zface { border: 0; background: var(--soft); color: var(--ink); line-height: 0; padding: 6px; border-radius: 12px; box-shadow: 0 3px 0 var(--line); }
+.zface.on { background: var(--accent); color: var(--accent-ink); }
+.zcall { background: var(--red); color: #fff; box-shadow: 0 5px 0 #b3203b; }
+.zhist { margin-top: 10px; font-size: 14px; color: var(--muted); display: grid; gap: 2px; text-align: center; }
+.ztable { display: flex; flex-wrap: wrap; gap: 6px; }
+.zp { display: inline-flex; align-items: center; gap: 6px; background: var(--soft); border-radius: 999px; padding: 4px 10px 4px 4px; font-weight: 700; font-size: 15px; }
+.zp.turn { background: var(--hl-yellow); outline: 3px solid var(--accent); }
+.zp.out { opacity: .5; }
+.zrow { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px dashed var(--line); flex-wrap: wrap; }
+.zrow .nm { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.zrow .zd { display: flex; gap: 4px; flex-wrap: wrap; }
+.zrow .die { width: 34px; height: 34px; padding: 5px; }
+
+/* ---------- Sıcak Patates ---------- */
+.patbar { background: linear-gradient(120deg, #ea580c, #dc2626); }
+.patbomb .bomb { font-size: 64px; line-height: 1.1; display: inline-block; animation: bombshake .5s ease-in-out infinite; }
+.patbomb .bomb.other { font-size: 44px; animation-duration: .9s; }
+@keyframes bombshake { 0%, 100% { transform: rotate(-8deg) scale(1); } 50% { transform: rotate(8deg) scale(1.08); } }
+.patboom .bomb { font-size: 80px; line-height: 1; animation: kpop .5s cubic-bezier(.3,1.6,.5,1); }
+.patveto { background: var(--hl-yellow); border-radius: 12px; padding: 8px 10px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.strike { text-decoration: line-through; opacity: .7; }
