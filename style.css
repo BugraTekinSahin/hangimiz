@@ -757,3 +757,5 @@ body.chat-open #toast { top: calc(16px + env(safe-area-inset-top)); bottom: auto
 .bcell small { color: var(--muted); font-size: 12px; line-height: 1.25; }
 .bcell.locked { opacity: .45; filter: grayscale(1); }
 .bcount { position: absolute; top: 6px; right: 8px; background: var(--purple); color: #fff; border-radius: 999px; font-size: 12px; font-weight: 800; padding: 0 7px; }
+.offnote { background: var(--hl-yellow); color: var(--ink); border-radius: 14px; padding: 10px 14px; font-weight: 700; margin: 0 0 16px; box-shadow: var(--shadow); }
+.offnote[hidden] { display: none; }

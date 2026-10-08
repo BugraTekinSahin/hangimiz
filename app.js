@@ -781,8 +781,13 @@ const Host = {
         const text = String(msg.text ?? '').replace(/\s+/g, ' ').trim().slice(0, CHAT_MAX);
         if (!text) return;
         // Gartic-style: a message that gives the answer away never leaves the host.
-        const why = this.chatLimit(p) || chatBlockReason(S, pid, text);
-        if (why) { this.tell(pid, { t: 'chatBlocked', reason: why, text }); return; }
+        const limit = this.chatLimit(p);
+        if (limit) { this.tell(pid, { t: 'chatBlocked', reason: limit, text }); return; }
+        const block = chatBlockReason(S, pid, text);
+        // A warning would itself reveal the secret ("you can't write that word"), so leaks are
+        // only echoed back to the sender as if sent; nobody else ever sees them.
+        if (block === SHADOW) { this.tell(pid, { t: 'chatShadow', text }); return; }
+        if (block) { this.tell(pid, { t: 'chatBlocked', reason: block, text }); return; }
         this.pushChat(p, { text });
         return;
       }
@@ -1017,7 +1022,7 @@ const Host = {
       case 'skip':
         if (S.phase === 'writing') this.endWriting();
         else if (S.phase === 'answering') this.endAnswering();
-        else if (S.phase === 'lie') this.lieTimeout();
+        else if (S.phase === 'lie') this.lieTimeout('skip');
         else if (S.phase === 'kac') this.kacSkip();
         else if (S.phase === 'ikiz') this.ikizSkip();
         else if (S.phase === 'tele') this.teleSkip();
@@ -1331,10 +1336,10 @@ const Host = {
     if (r.step !== 'play') return;
     const pair = r.pairs[r.ri];
     const live = this.liveIds();
-    const pairLive = pair.filter((id) => live.includes(id));
-    const pairDone = pairLive.every((id) => r.words[id] != null);
+    // Both chosen players must answer; if one dropped, we wait (the leader can skip).
+    const pairDone = pair.every((id) => r.words[id] != null);
     const betDone = live.filter((id) => !pair.includes(id)).every((id) => r.bets[id]);
-    if (!pairLive.length || (pairDone && betDone)) this.teleReveal();
+    if (pairDone && betDone) this.teleReveal();
   },
 
   /* ---------- Ayna ---------- */
@@ -1352,7 +1357,6 @@ const Host = {
 
   aynaBegin() {
     const r = this.S.round;
-    while (r.ti < r.turns.length && !this.liveIds().includes(r.turns[r.ti])) r.ti++;
     if (r.ti >= r.turns.length) { this.aynaFinish(); return; }
     Object.assign(r, { step: 'answer', own: null, guesses: {}, accepted: [] });
     this.setStepDeadline(r.cfg.answerTime);
@@ -1413,7 +1417,6 @@ const Host = {
     if (r.step !== 'answer') return;
     const mirror = r.turns[r.ti];
     const live = this.liveIds();
-    if (!live.includes(mirror)) { this.aynaNext(); return; }
     if (r.own != null && live.filter((id) => id !== mirror).every((id) => r.guesses[id] != null)) this.aynaToJudge();
   },
 
@@ -1432,11 +1435,10 @@ const Host = {
     return !!(this.S.players[id] && this.S.players[id].connected);
   },
 
-  // Start the asking step for the current turn, skipping askers who left.
+  // Start the asking step for the current turn. Someone who dropped keeps their turn; the leader can skip it.
   kacBeginTurn(now = Date.now()) {
     const S = this.S;
     const r = S.round;
-    while (r.ti < r.turns.length && !this.kacLive(r.turns[r.ti])) r.ti++;
     if (r.ti >= r.turns.length) {
       r.final = computeKacFinal(r);
       S.phase = 'final';
@@ -1545,11 +1547,7 @@ const Host = {
 
   lieBeginTurn() {
     const r = this.S.round;
-    // Players who dropped out lose their turn instead of stalling everyone.
-    while (r.turn < r.totalTurns && !this.lieLive(this.lieCurrent())) {
-      r.clues.push({ by: this.lieCurrent(), text: null, why: 'off' });
-      r.turn++;
-    }
+    // A player who dropped keeps their turn until they come back or the leader skips it.
     if (r.turn >= r.totalTurns) { this.lieStartVote(); return; }
     r.deadline = Date.now() + r.cfg.clueTime * 1000;
     r.deadlineTotal = r.cfg.clueTime * 1000;
@@ -1571,11 +1569,11 @@ const Host = {
     return live.length > 0 && live.every((id) => (id === r.liar && r.cfg.liarKnows ? r.guess !== null : !!r.lvotes[id]));
   },
 
-  lieTimeout() {
+  lieTimeout(why = 'time') {
     const r = this.S.round;
     if (r.step === 'roles') this.lieStartClues();
     else if (r.step === 'clues') {
-      r.clues.push({ by: this.lieCurrent(), text: null, why: 'time' });
+      r.clues.push({ by: this.lieCurrent(), text: null, why });
       r.turn++;
       this.lieBeginTurn();
     } else if (r.step === 'vote') this.lieFinish();
@@ -1824,12 +1822,10 @@ const Host = {
     if (S.phase === 'tele' && r) this.teleCheck();
     if (S.phase === 'ayna' && r) this.aynaCheck();
     if (S.phase === 'kac' && r) {
-      if (r.step === 'ask' && !this.kacLive(r.turns[r.ti])) this.kacNext();
-      else if (r.step === 'guess' && this.kacAllGuessed()) this.kacReveal();
+      if (r.step === 'guess' && this.kacAllGuessed()) this.kacReveal();
     }
     if (S.phase === 'lie' && r) {
-      if (r.step === 'clues' && !this.lieLive(this.lieCurrent())) this.lieBeginTurn();
-      else if (r.step === 'vote' && this.lieAllVoted()) this.lieFinish();
+      if (r.step === 'vote' && this.lieAllVoted()) this.lieFinish();
       else if (r.step === 'roles' && r.roster.filter((id) => this.lieLive(id)).every((id) => r.ready[id])) this.lieStartClues();
     }
     // Disconnected players must not hold the round hostage.
@@ -2210,6 +2206,8 @@ function computeAwards(r) {
 /* ---------- chat guard ---------- */
 
 // Why a chat message must not be sent right now, or null if it's fine.
+const SHADOW = 'shadow';
+
 function chatBlockReason(S, pid, text) {
   const r = S.round;
   if (!r || S.phase === 'lobby' || S.phase === 'final') return null;
@@ -2219,20 +2217,20 @@ function chatBlockReason(S, pid, text) {
     const k = normWord(secret);
     return k.length >= 2 && t.includes(k);
   };
-  const SECRET = '🤫 Bu mesaj cevabı ele veriyor, gönderilmedi!';
+  const SECRET = SHADOW;
   switch (S.phase) {
     case 'lie':
-      return has(r.word) || has(r.liarWord) ? '🤫 Gizli kelimeyi sohbete yazamazsın!' : null;
+      return has(r.word) || has(r.liarWord) ? SHADOW : null;
     case 'tele':
       return r.step === 'play' && r.pairs[r.ri].includes(pid) ? '🤐 Telepati sırasında sohbet yok, kendi aklınla bul!' : null;
     case 'ikiz':
       return r.step === 'answer' && has(r.answers[pid]) ? SECRET : null;
     case 'ayna':
-      return pid === r.turns[r.ti] && r.step !== 'reveal' && has(r.own) ? '🤫 Ayna cevabını sohbete yazamaz!' : null;
+      return pid === r.turns[r.ti] && r.step !== 'reveal' && has(r.own) ? SHADOW : null;
     case 'kac': {
       if (pid !== r.turns[r.ti] || !r.ask || r.step === 'reveal') return null;
       const nums = (String(text).match(/\d+(?:[.,]\d+)*/g) || []).map(parseKacNumber);
-      return nums.includes(r.ask.v) ? '🤫 Doğru sayıyı sohbete yazamazsın!' : null;
+      return nums.includes(r.ask.v) ? SHADOW : null;
     }
     case 'writing':
     case 'answering': {
@@ -2560,6 +2558,7 @@ const Client = {
         showError('Odadan çıkarıldın 👋', 'Lider seni odadan çıkardı.');
         break;
       case 'chatBlocked':
+      case 'chatShadow':
         onPrivate(msg);
         break;
     }
@@ -2948,7 +2947,9 @@ function renderChatList(forceBottom = false) {
   const s = App.state;
   const el = $('#chatList');
   if (!s || !el) return;
-  const list = s.chat || [];
+  const server = s.chat || [];
+  const oldest = server.length ? server[0].id : 0;
+  const list = server.concat((App.chatShadows || []).filter((m) => m.id >= oldest)).sort((a, b) => a.id - b.id);
   // Stay where the reader is if they scrolled up; otherwise follow the newest message.
   const atBottom = forceBottom || el.scrollHeight - el.scrollTop - el.clientHeight < 60;
   el.innerHTML = list.length ? list.map((m) => chatMsgHTML(m, s.you)).join('') : '<div class="chatempty">Henüz mesaj yok. İlk sen yaz! 👋</div>';
@@ -3007,6 +3008,18 @@ function closeChat() {
 
 // Messages meant only for this player (e.g. "that gives the answer away").
 function onPrivate(msg) {
+  if (msg.t === 'chatShadow') {
+    // Show it to the sender like a normal message; it never reached anyone else.
+    const s = App.state;
+    const mine = me() || {};
+    const list = (s && s.chat) || [];
+    const last = list.length ? list[list.length - 1].id : 0;
+    App.chatShadows = (App.chatShadows || []).concat({
+      id: last + 0.001 * ((App.chatShadows || []).length + 1), from: s.you, name: mine.name, av: mine.av, col: mine.col, text: msg.text,
+    }).slice(-20);
+    renderChatList(true);
+    return;
+  }
   if (msg.t !== 'chatBlocked') return;
   toast(msg.reason, 3500);
   Sound.beep(220, 0.15, 'square', 0.04);
@@ -3242,7 +3255,7 @@ Views.writing = {
       setWritingDone(true);
     }
     const first = $$('.q-input').find((x) => !x.value);
-    if (first && window.matchMedia('(pointer:fine)').matches) first.focus();
+    if (first) autoFocus(first);
   },
   update(s) {
     const n = s.writing.prompts ? null : (s.game === 'komik' ? s.settings.ownCount : s.settings.qPerPlayer);
@@ -3450,9 +3463,30 @@ function scoreBoard(s, scores, delta = {}) {
     '<b>' + scores[id] + '</b></div>').join('') + '</div>';
 }
 
-function focusFine(sel) {
+// Shown while the player whose turn it is has dropped out. We wait for them; the leader may skip.
+const OFFLINE_NOTE = '<p class="offnote" id="offNote" hidden></p>';
+
+function updateOffline(s, ids) {
+  const el = $('#offNote');
+  if (!el) return;
+  const off = ids.filter((id) => { const p = s.players.find((x) => x.id === id); return !p || !p.connected; });
+  el.hidden = !off.length;
+  if (off.length) el.textContent = '🔌 ' + nameList(off) + ' bağlantıdan düştü, geri gelmesi bekleniyor…' + (isHost() ? ' İstersen ⏭ ile sırayı geçebilirsin.' : '');
+}
+
+function focusFine(sel, myTurn = false) {
   const el = $(sel);
-  if (el && window.matchMedia('(pointer:fine)').matches) el.focus();
+  if (el) autoFocus(el, myTurn);
+}
+
+// Focus a game field, unless the player is busy in the chat: then just tell them it's their turn.
+function autoFocus(el, myTurn = false) {
+  const chatBusy = App.chatOpen || document.activeElement === $('#chatInput');
+  if (chatBusy) {
+    if (myTurn) toast('🎤 Sıra sende! Sohbeti kapatıp yazabilirsin.', 3500);
+    return;
+  }
+  if (myTurn || window.matchMedia('(pointer:fine)').matches) el.focus();
 }
 
 // Group answers that count as the same word, biggest group first.
@@ -3590,9 +3624,9 @@ Views['tele:play'] = {
     mount(header() + timerHTML('Süre') + stepDots(T.ri, T.rn) +
       '<div class="phase-title"><h1>Telepati ' + (T.ri + 1) + ' / ' + T.rn + '</h1></div>' + ban +
       '<div class="card qcard"><div class="qtext">' + esc(T.prompt) + '</div></div>' + body +
-      '<div class="card"><h2>Kim hazır?</h2><div class="chips" id="teleChips"></div></div>' +
+      OFFLINE_NOTE + '<div class="card"><h2>Kim hazır?</h2><div class="chips" id="teleChips"></div></div>' +
       hostSkip('Cevapları aç'));
-    if (T.amPair) { Sound.join(); focusFine('#teleWord'); }
+    if (T.amPair) { Sound.join(); focusFine('#teleWord', true); }
   },
   update(s) {
     const T = s.tele;
@@ -3601,6 +3635,7 @@ Views['tele:play'] = {
       if (!T.amPair && T.myBet) $('#teleArea').innerHTML = '<div class="waiting-pill" id="teleSent">Bahsin: <b>' + (T.myBet === 'yes' ? '✅ Tuttururlar' : '❌ Tutturamazlar') + '</b> ✓</div>';
     }
     $('#teleChips').innerHTML = doneChips(s, T.done);
+    updateOffline(s, T.pair);
   },
 };
 
@@ -3662,16 +3697,17 @@ Views['ayna:answer'] = {
         wordInput('aynaText', 'asend', 'Senin cevabın…') + '<p class="muted" id="aynaMine" style="margin:8px 0 0"></p></div>'
       : '<div class="card"><label class="lbl" for="aynaText">Sence ' + esc(m) + ' ne yazdı?</label>' + wordInput('aynaText', 'asend', m + ' ne yazardı…') +
         '<p class="muted" id="aynaMine" style="margin:8px 0 0"></p><p class="muted" style="margin:6px 0 0">Doğru bilirsen +' + AYNA_RIGHT_POINTS + '</p></div>';
-    mount(aynaHead(s, timerHTML('Cevap süresi')) + body +
+    mount(aynaHead(s, timerHTML('Cevap süresi')) + body + OFFLINE_NOTE +
       '<div class="card"><h2>Kim yazdı?</h2><div class="chips" id="aynaChips"></div></div>' +
       hostSkip('Kontrole geç'));
     if (A.amMirror) Sound.join();
-    focusFine('#aynaText');
+    focusFine('#aynaText', A.amMirror);
   },
   update(s) {
     const A = s.ayna;
     $('#aynaMine').innerHTML = A.myText != null ? '✅ Yazdığın: <b>' + esc(A.myText) + '</b> (değiştirebilirsin)' : '';
     $('#aynaChips').innerHTML = doneChips(s, A.done);
+    updateOffline(s, [A.mirror]);
   },
 };
 
@@ -3777,14 +3813,15 @@ Views['kac:ask'] = {
         '<div style="height:14px"></div><button class="btn yellow big block" data-act="kask">Soruyu sor 🚀</button></div>'
       : '<div class="card center turnwait">' + avatarHTML(a, 'lg') + '<h2 style="margin:8px 0 0">' + esc(a.name) + ' soru hazırlıyor…</h2>' +
         '<p class="muted" style="margin:4px 0 0">Birazdan onun hakkında bir sayı tahmin edeceksin 🤔</p></div>';
-    mount(kacTop(s, 'Soru yazma süresi') + body +
+    mount(kacTop(s, 'Soru yazma süresi') + body + OFFLINE_NOTE +
       (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ Bu kişiyi atla</button></div>' : ''));
     if (mine) {
       Sound.join();
       const el = $('#kacQ');
-      if (el && window.matchMedia('(pointer:fine)').matches) el.focus();
+      if (el) autoFocus(el, true);
     }
   },
+  update(s) { updateOffline(s, [s.kac.asker]); },
 };
 
 Views['kac:guess'] = {
@@ -3802,7 +3839,7 @@ Views['kac:guess'] = {
       '<div class="card"><h2>Kim tahmin etti?</h2><div class="chips" id="kacChips"></div></div>' +
       (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ Cevabı aç</button></div>' : ''));
     const el = $('#kacGuess');
-    if (el && window.matchMedia('(pointer:fine)').matches) el.focus();
+    if (el) autoFocus(el, !!(App.state && App.state.kac && App.state.kac.asker === App.state.you));
   },
   update(s) {
     const K = s.kac;
@@ -3906,7 +3943,7 @@ function clueBoardHTML(s) {
     const mine = L.clues.filter((c) => c.by === id);
     const chips = mine.map((c) => c.text
       ? '<span class="tchip">' + esc(c.text) + '</span>'
-      : '<span class="tchip muted">' + (c.why === 'off' ? '🔌 yok' : '⏰ süre doldu') + '</span>').join('');
+      : '<span class="tchip muted">' + (c.why === 'off' ? '🔌 yok' : c.why === 'skip' ? '⏭ geçildi' : '⏰ süre doldu') + '</span>').join('');
     const now = L.current === id;
     return '<div class="clrow ' + (now ? 'now' : '') + '">' + avatarHTML(p, 'sm') + '<div class="body"><b>' + esc(p.name) + '</b>' +
       (now ? ' <span class="muted">düşünüyor… ✍️</span>' : '') + '<div class="tchips">' + chips + '</div></div></div>';
@@ -3949,16 +3986,17 @@ Views['lie:clues'] = {
       : '<div class="card center turnwait">' + avatarHTML(cur, 'lg') + '<h2 style="margin:8px 0 0">Sıra: ' + esc(cur.name) + '</h2><p class="muted" style="margin:4px 0 0">İpucunu yazıyor…</p></div>';
     mount(header() + timerHTML('İpucu süresi') +
       '<div class="phase-title"><h1>İpucu turu ' + round + ' / ' + rounds + '</h1></div>' +
-      turnBox +
+      turnBox + OFFLINE_NOTE +
       roleCardHTML(L, App.peek) +
       clueBoardHTML(s) +
       (isHost() ? '<div class="ctrl"><button class="btn small ghost" data-act="skip">⏭ Sırayı geç</button></div>' : ''));
     if (me) {
       Sound.join();
       const el = $('#clueInput');
-      if (el) setTimeout(() => el.focus(), 50);
+      if (el) setTimeout(() => autoFocus(el, true), 50);
     }
   },
+  update(s) { updateOffline(s, [s.lie.current]); },
 };
 
 Views['lie:vote'] = {
