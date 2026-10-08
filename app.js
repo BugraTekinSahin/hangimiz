@@ -254,6 +254,7 @@ const VAMP_ROLES = {
   dedektif: { e: '🕵️', n: 'Dedektif', team: 'koy', kinds: ['track'], d: 'Her gece birini takip eder ve o gece kimin evine gittiğini öğrenir.' },
   zangoc: { e: '🔦', n: 'Bekçi', team: 'koy', kinds: ['bell', 'watch'], d: 'Oyunda bir kez düdüğünü çalar: bütün köy uyanır, o gece bütün ısırıklar boşa gider ama herkes düdüğü duyar. Diğer geceler ev izler.' },
   mezarci: { e: '⚰️', n: 'Mezarcı', team: 'koy', kinds: ['grave', 'watch'], d: 'Ölenlerin rolü gizlidir. Mezarcı her gece bir mezarı açıp oradakinin rolünü öğrenir. Mezar yoksa ev izler.' },
+  polis: { e: '👮', n: 'Polis', team: 'koy', kinds: ['jail', 'shoot'], d: 'Her gece birini sorguya alabilir: o kişi geceyi karakolda geçirir (hiçbir şey yapamaz, kimse ona ulaşamaz) ve Polis onun o gece ne yapmaya hazırlandığını öğrenir. Ya da silahını kullanır (2 mermi): vurduğu kişi vampir tarafındaysa ölür, masumsa vurulana bir şey olmaz ama Polis vicdan azabından kendisi ölür!' },
   muhtar: { e: '📯', n: 'Muhtar', team: 'koy', kinds: ['watch'], d: 'Gündüz oylamasında oyu 2 sayılır. Geceleri köylü gibi bir evi izler.' },
   vampir: { e: '🧛', n: 'Vampir', team: 'vamp', kinds: ['bite'], d: 'Her gece birini ısırır, 1 can götürür. Kan Ayı doğana kadar yakalanmazsan ya da köy azalıp size yetişemezse kazanırsınız.' },
   kont: { e: '🦇', n: 'Drakula', team: 'vamp', kinds: ['bite'], d: 'Vampirlerin efendisi. Vampir gibi ısırır ama Kâhin ona bakınca köylü görür.' },
@@ -274,18 +275,28 @@ const VAMP_KINDS = {
   bite: { b: '🧛 Isır', q: 'Kimi ısıracaksınız?', t: 'prey', visit: true },
   block: { b: '🧟 Oyala', q: 'Kimi oyalayacaksın? O gece hiçbir şey yapamaz.', t: 'notmates', visit: true },
   roam: { b: '🃏 Kapı çal', q: 'Kimin kapısını çalıp kaçacaksın?', t: 'others', visit: true },
+  jail: { b: '🔍 Sorgula', q: 'Kimi sorguya alacaksın? Geceyi karakolda geçirir, ne yapmaya hazırlandığını öğrenirsin.', t: 'others', visit: true },
+  shoot: { b: '🔫 Vur', q: 'Kimi vuracaksın? Vampir tarafındaysa ölür. Masumsa sen ölürsün!', t: 'others', visit: true },
   hide: { b: '🎒 Saklan', q: 'Bu gece saklanırsan kimse sana ulaşamaz. 2 hakkın var.', t: 'use' },
 };
 
 const VAMP_ROLE_SECONDS = 40;
-const VAMP_EXTRA_POOL = ['doktor', 'sarimsak', 'avci', 'dedektif', 'zangoc', 'mezarci', 'muhtar'];
+const VAMP_EXTRA_POOL = ['doktor', 'sarimsak', 'avci', 'dedektif', 'zangoc', 'mezarci', 'muhtar', 'polis'];
+const VAMP_BULLETS = 2;
+
+// What the Polis hears in the interrogation room: the plan the suspect had for tonight.
+const VAMP_PLANS = {
+  watch: 'bir evi izlemeye', seer: 'birinin tarafına bakmaya', heal: 'birinin yarasını sarmaya', garlic: 'bir kapıya sarımsak asmaya',
+  stake: 'gümüş ok atmaya', track: 'birini takip etmeye', bell: 'düdük çalmaya', grave: 'mezar açmaya', bite: 'birini ısırmaya 🧛',
+  block: 'birini oyalamaya', roam: 'kapı çalıp kaçmaya', hide: 'saklanmaya', jail: 'birini sorgulamaya', shoot: 'birini vurmaya', pass: 'hiçbir şey yapmamaya',
+};
 
 // Which moves this player may make tonight. ctx: { self, role, alive, roster, mates, used, lastHeal }
 function vampKindsFor(ctx) {
   const R = VAMP_ROLES[ctx.role];
   const u = ctx.used || {};
   const anyDead = ctx.roster.some((id) => !ctx.alive[id]);
-  return R.kinds.filter((k) => !(k === 'stake' && u.stake) && !(k === 'bell' && u.bell) && !(k === 'hide' && (u.hide || 0) >= 2) && !(k === 'grave' && !anyDead));
+  return R.kinds.filter((k) => !(k === 'shoot' && (u.bullets || 0) >= VAMP_BULLETS) && !(k === 'stake' && u.stake) && !(k === 'bell' && u.bell) && !(k === 'hide' && (u.hide || 0) >= 2) && !(k === 'grave' && !anyDead));
 }
 
 function vampTargets(kind, ctx) {
@@ -2266,15 +2277,24 @@ const Host = {
     const info = {};
     for (const id of r.roster) info[id] = [];
     const act = (id) => r.acts[id] || { kind: 'pass', target: null };
-    // 1) The Uşak keeps people busy: their move is lost.
-    const blocked = new Set();
+    // 1) Police custody comes first: the suspect spends the night at the station and their plan is heard.
+    const jailed = new Set();
     for (const id of ids) {
       const a = act(id);
-      if (a.kind === 'block') { blocked.add(a.target); info[id].push({ k: 'blockDone', t: a.target }); }
+      if (a.kind === 'jail') { jailed.add(a.target); info[id].push({ k: 'jailInfo', t: a.target, plan: act(a.target).kind }); }
+    }
+    // 2) The Uşak keeps people busy: their move is lost (an interrogation can't be stopped).
+    const blocked = new Set(jailed);
+    for (const id of ids) {
+      const a = act(id);
+      if (a.kind !== 'block' || jailed.has(id)) continue;
+      if (act(a.target).kind !== 'jail') blocked.add(a.target);
+      info[id].push({ k: 'blockDone', t: a.target });
     }
     const did = (id) => !blocked.has(id) && act(id).kind !== 'pass';
     for (const id of ids) {
-      if (blocked.has(id)) info[id].push({ k: 'blocked' });
+      if (jailed.has(id)) info[id].push({ k: 'jailed' });
+      else if (blocked.has(id)) info[id].push({ k: 'blocked' });
       else if (act(id).kind === 'pass') info[id].push({ k: 'pass' });
     }
     // 2) Hiding and the bell.
@@ -2286,6 +2306,8 @@ const Host = {
       if (a.kind === 'hide') { hidden.add(id); r.used[id].hide = (r.used[id].hide || 0) + 1; }
       if (a.kind === 'bell') { bell = true; r.used[id].bell = true; info[id].push({ k: 'bellRang' }); }
     }
+    // Nobody can reach someone who is at the police station.
+    for (const id of jailed) hidden.add(id);
     // 3) The vampires' choice: most picked target, ties go to the earlier vampire in the list.
     const biters = ids.filter((id) => act(id).kind === 'bite' && did(id));
     const count = {};
@@ -2335,6 +2357,15 @@ const Host = {
       const role = r.roles[a.target];
       if (role === 'vampir' || role === 'kont') { killed.add(a.target); info[id].push({ k: 'stakeVamp', t: a.target }); }
       else { r.hearts[a.target]--; info[id].push({ k: 'stakeMiss', t: a.target }); info[a.target].push({ k: 'staked' }); }
+    }
+    // 6b) The Polis's gun: a vampire-side target dies, an innocent one costs the Polis their own life.
+    for (const id of ids) {
+      const a = act(id);
+      if (!did(id) || a.kind !== 'shoot') continue;
+      r.used[id].bullets = (r.used[id].bullets || 0) + 1;
+      if (hidden.has(a.target)) { knocked.add(a.target); info[id].push({ k: 'shotLost', t: a.target }); continue; }
+      if (VAMP_ROLES[r.roles[a.target]].team === 'vamp') { killed.add(a.target); info[id].push({ k: 'shotHit', t: a.target }); info[a.target].push({ k: 'shot' }); }
+      else { killed.add(id); info[id].push({ k: 'shotMiss', t: a.target }); }
     }
     // 7) Healing comes last, so the Doktor can save someone who was hurt tonight.
     for (const id of ids) {
@@ -5528,6 +5559,12 @@ function vInfoText(x) {
     case 'healLost': return '🩺 Gittiğin ev: ' + vName(x.t) + ' · evde kimse yoktu.';
     case 'healed': return '🩺 Biri gece gelip yaralarını sardı (+1 can).';
     case 'died': return '💀 Bu gece öldün…';
+    case 'jailInfo': return '🔍 Sorguladığın: ' + vName(x.t) + ' · bu gece ' + VAMP_PLANS[x.plan] + ' hazırlanıyormuş.';
+    case 'jailed': return '👮 Polis seni gece sorguya aldı! Geceyi karakolda geçirdin: hiçbir şey yapamadın ama kimse de sana ulaşamadı.';
+    case 'shotHit': return '🔫 Tam isabet! ' + vName(x.t) + ' vampir tarafındaydı.';
+    case 'shotMiss': return '🔫 Vurduğun kişi: ' + vName(x.t) + ' · masumdu! Vicdan azabına dayanamadın…';
+    case 'shotLost': return '🔫 Hedef: ' + vName(x.t) + ' · evde kimse yoktu, mermi boşa gitti.';
+    case 'shot': return '🔫 Polis seni vurdu!';
     case 'seer': return '🔮 ' + vName(x.t) + ' → ' + T(x.team);
     case 'watch': return '👀 İzlediğin ev: ' + vName(x.t) + ' · gelen: ' + (x.n ? x.n + ' kişi' : 'kimse gelmedi');
     case 'track': return '🕵️ Takip ettiğin: ' + vName(x.t) + ' · ' + (x.to ? 'gittiği ev: ' + vName(x.to) : 'evinden hiç çıkmadı');
