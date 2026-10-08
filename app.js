@@ -926,7 +926,7 @@ const BADGES = {
 
 const CHAT_MAX = 200;           // characters per message
 const CHAT_KEEP = 40;           // messages the room remembers
-const CHAT_REACTIONS = ['😂', '😮', '👏', '🔥', '😍', '💀', '🤔', '👍'];
+const CHAT_REACTIONS = ['😂', '🤣', '😮', '😱', '👏', '🔥', '😍', '🥰', '💀', '🤔', '👍', '👎', '😭', '😡', '🤯', '🥳', '😎', '🙄', '🤡', '👀', '💯', '❤️', '🎉', '🫡'];
 
 // The first 16 are handed out automatically; the rest are extra choices in the picker.
 const AVATARS = ['🦊', '🐸', '🐼', '🐙', '🦄', '🐯', '🐵', '🐧', '🐨', '🦁', '🐷', '🐰', '🐻', '🐶', '🐱', '🦉',
@@ -5610,12 +5610,20 @@ function chatDom() {
       '<div class="chathead"><b>💬 Sohbet</b><button class="pill dark" data-act="chat" aria-label="Kapat">✕</button></div>' +
       '<div class="chatlist" id="chatList"></div>' +
       '<div class="reacts">' + CHAT_REACTIONS.map((e) => '<button data-act="react" data-e="' + e + '">' + e + '</button>').join('') + '</div>' +
-      '<div class="row chatrow"><input id="chatInput" class="field grow" maxlength="' + CHAT_MAX + '" placeholder="Mesaj yaz…" autocomplete="off">' +
+      '<div class="chatemo" id="chatEmo" hidden></div>' +
+      '<div class="row chatrow"><button class="chatemobtn" data-act="chatEmo" title="Emoji ekle">😊</button>' +
+      '<input id="chatInput" class="field grow" maxlength="' + CHAT_MAX + '" placeholder="Mesaj yaz…" autocomplete="off">' +
       '<button class="btn small" data-act="chatSend">Gönder</button></div>' +
     '</div>' +
     '<div id="chatPeek" class="chatpeek" data-act="chat" hidden></div>' +
     '<div id="reactLayer" class="reactlayer"></div>';
   document.body.append(...box.children);
+}
+
+function chatEmoPaint(i) {
+  EMOJI_CATS[i].list = EMOJI_CATS[i].list || graphemes(EMOJI_CATS[i].s).filter(isEmojiOnly);
+  $('#chatEmo').innerHTML = '<div class="emotabs">' + EMOJI_CATS.map((c, k) => '<button class="emotab ' + (k === i ? 'on' : '') + '" data-act="chatEmoTab" data-i="' + k + '" title="' + esc(c.n) + '">' + c.e + '</button>').join('') + '</div>' +
+    '<div class="emogrid">' + EMOJI_CATS[i].list.map((e) => '<button class="emob" data-act="chatEmoPick" data-e="' + e + '">' + e + '</button>').join('') + '</div>';
 }
 
 function chatMsgHTML(m, you) {
@@ -9271,6 +9279,18 @@ const actions = {
     if (list) list.scrollTop = list.scrollHeight;
   },
   react(el) { send({ t: 'react', e: el.dataset.e }); },
+  // The full emoji keyboard for chat messages (same palette as Emojiyle Anlat).
+  chatEmo() {
+    const box = $('#chatEmo');
+    box.hidden = !box.hidden;
+    if (!box.hidden && !box.innerHTML) chatEmoPaint(App.chatEmoTab || 0);
+  },
+  chatEmoTab(el) { App.chatEmoTab = Number(el.dataset.i); chatEmoPaint(App.chatEmoTab); },
+  chatEmoPick(el) {
+    const inp = $('#chatInput');
+    if ((inp.value + el.dataset.e).length > CHAT_MAX) return;
+    inp.value += el.dataset.e;
+  },
   toggleLook() {
     App.lookOpen = !App.lookOpen;
     const box = $('#lookBox');

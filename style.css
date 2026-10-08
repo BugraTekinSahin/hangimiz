@@ -686,8 +686,9 @@ button.ansb:active { transform: translateY(4px); box-shadow: 0 2px 0 rgba(30,10,
 .cmsg.me .bub { background: var(--hl-purple); border-radius: 14px 4px 14px 14px; }
 .cmsg.react .bub { background: transparent; font-size: 30px; padding: 0 4px; line-height: 1.1; }
 .cmsg.react .bub b { font-size: 12px; }
-.reacts { display: flex; gap: 6px; padding: 8px 0; }
-.reacts button { flex: 1; border: 0; background: var(--soft); border-radius: 12px; font-size: 22px; padding: 6px 0; }
+/* Quick reactions: one row you can swipe sideways. */
+.reacts { display: flex; gap: 6px; padding: 8px 0; overflow-x: auto; scrollbar-width: thin; flex: none; }
+.reacts button { flex: 0 0 44px; border: 0; background: var(--soft); border-radius: 12px; font-size: 22px; padding: 6px 0; }
 .reacts button:active { transform: scale(.9); }
 .chatrow .field { font-size: 16px; padding: 10px 12px; }
 .chatpeek {
@@ -1099,3 +1100,8 @@ button.qopt:not(:disabled):active { transform: translateY(4px); box-shadow: 0 1p
 .kbar span { position: relative; padding: 0 10px; line-height: 26px; font-size: 13px; font-weight: 700; color: var(--ink); }
 .ksab { font-size: 14px; font-weight: 800; color: var(--red); }
 .ksays { display: grid; gap: 4px; margin: 6px 0; font-size: 14px; }
+
+/* Emoji keyboard inside the chat */
+.chatemo { flex: none; background: var(--soft); border-radius: 14px; margin-bottom: 8px; overflow: hidden; }
+.chatemo .emogrid { max-height: 170px; }
+.chatemobtn { flex: none; width: 44px; border: 0; border-radius: 12px; background: var(--soft); font-size: 22px; }
