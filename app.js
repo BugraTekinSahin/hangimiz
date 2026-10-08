@@ -250,7 +250,17 @@ GAMES.taklit = {
     { key: 'voteTime', label: 'Oylama süresi', type: 'num', def: 60, min: 20, max: 180, step: 10, unit: 'sn' },
   ],
 };
-const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir', 'zar', 'patates', 'taklit', 'quiz', 'cinayet'];
+const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir', 'zar', 'patates', 'taklit', 'quiz', 'cinayet', 'kafe'];
+GAMES.kafe = {
+  name: 'Kafe Savaşları',
+  emoji: '☕',
+  desc: 'Herkes bir kafe işletiyor! Her gün fiyatını belirle, yatırım yap, istersen rakibine fare ihbarı yap. Müşteriler en cazip kafeye gider, en zengin olan kazanır.',
+  minPlayers: 2,
+  defs: [
+    { key: 'days', label: 'Kaç gün sürsün', type: 'num', def: 6, min: 3, max: 10, step: 1, unit: 'gün' },
+    { key: 'planTime', label: 'Günlük karar süresi', type: 'num', def: 60, min: 20, max: 180, step: 10, unit: 'sn' },
+  ],
+};
 GAMES.cinayet = {
   name: 'Cinayet Gecesi',
   emoji: '🔪',
@@ -275,10 +285,10 @@ GAMES.quiz = {
 const GAME_COLORS = {
   hangimiz: '#8b5cf6', kimyazdi: '#6366f1', asla: '#f59e0b', komik: '#eab308', yalanci: '#ef4444', kackac: '#06b6d4',
   ikiz: '#ec4899', tele: '#d946ef', ayna: '#60a5fa', emoji: '#fb923c', cogunluk: '#22c55e', ikidogru: '#f43f5e',
-  sirala: '#84cc16', adam: '#b45309', vampir: '#b91c1c', zar: '#0f9488', patates: '#ea580c', taklit: '#2dd4bf', quiz: '#3b82f6', cinayet: '#64748b',
+  sirala: '#84cc16', adam: '#b45309', vampir: '#b91c1c', zar: '#0f9488', patates: '#ea580c', taklit: '#2dd4bf', quiz: '#3b82f6', cinayet: '#64748b', kafe: '#a16207',
 };
 // Games with their own flow instead of write → answer → results.
-const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp', zar: 'zar', patates: 'pat', taklit: 'tak', quiz: 'quiz', cinayet: 'cin' };
+const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp', zar: 'zar', patates: 'pat', taklit: 'tak', quiz: 'quiz', cinayet: 'cin', kafe: 'kafe' };
 
 const EMO_POINTS = [300, 200];      // 1st and 2nd correct guess; everyone after gets EMO_POINTS_REST
 const EMO_POINTS_REST = 100;
@@ -297,6 +307,39 @@ const SIR_PERFECT_BONUS = 100;
 
 // t = answer shown, a = other accepted spellings.
 // EMO_ITEMS (Emojiyle Anlat titles) lives in emo-items.js, loaded before this file.
+
+/* ---------- Kafe Savaşları data ---------- */
+
+const KAFE_START = 1000;      // money at the start
+const KAFE_RENT = 80;         // every day
+const KAFE_UNIT = 12;         // cost of one cup
+const KAFE_SABOTAGES = 2;     // per game
+const KAFE_EMOJIS = ['☕', '🧁', '🥐', '🍩', '🧋', '🍰', '🥯', '🍪', '🫖', '🥞'];
+const KAFE_INV = {
+  none: { e: '💤', n: 'Bir şey yapma', d: 'Para cebinde kalsın', cost: 0 },
+  bean: { e: '☕', n: 'Kaliteli çekirdek', d: 'Bugün kahven çok daha lezzetli', cost: 150 },
+  ad: { e: '📣', n: 'Reklam', d: 'Bugün çok daha fazla kişi seni görür', cost: 200 },
+  decor: { e: '🪴', n: 'Dekorasyon', d: 'Mekan kalıcı olarak güzelleşir', cost: 300 },
+  barista: { e: '🧑‍🍳', n: 'Barista eğitimi', d: 'Kahven kalıcı olarak iyileşir', cost: 250 },
+};
+const KAFE_SAB = {
+  rat: { e: '🐀', n: 'Fare ihbarı', d: 'Rakibin bugün müşterilerinin yarısını kaybeder' },
+  review: { e: '👎', n: 'Kötü yorum', d: 'Rakibinin itibarı kalıcı olarak düşer' },
+};
+// c = customers ×, el = how much people care about price, ad = advert ×, unit = cup cost, tax, q = quality matters ×
+const KAFE_EVENTS = [
+  { e: '☀️', t: 'Güneşli bir gün! Semtte herkes dışarıda.', c: 1.3 },
+  { e: '☔', t: 'Yağmur yağıyor. Müşteri az ama fiyata pek bakmıyorlar.', c: 0.75, el: 1 },
+  { e: '🎓', t: 'Okullar açıldı, öğrenciler akın etti! Ama bütçeleri kısıtlı.', c: 1.25, el: 2.2 },
+  { e: '📱', t: 'Bir fenomen semtte geziyor: bugün reklam iki kat etkili!', ad: 2 },
+  { e: '📈', t: 'Kahve çekirdeği zamlandı! Bugün her fincanın maliyeti 20₺.', unit: 20 },
+  { e: '🧾', t: 'Vergi günü! Herkes 150₺ vergi ödüyor.', tax: 150 },
+  { e: '🎉', t: 'Semtte festival var! Müşteri iki katı.', c: 2 },
+  { e: '😴', t: 'Sakin bir pazartesi. Herkes evde.', c: 0.7 },
+  { e: '🌟', t: 'Ünlü bir gurme eleştirmen geliyor: bugün kalite her zamankinden önemli!', q: 2 },
+  { e: '❄️', t: 'Kar yağıyor! Sıcak bir kahve için fiyat umursanmıyor.', c: 0.9, el: 0.9 },
+];
+const KAFE_OPENING = { e: '🎀', t: 'Kafeler bugün açılıyor! Bol şans.' };
 
 /* ---------- Cinayet Gecesi data ---------- */
 
@@ -865,6 +908,8 @@ const BADGES = {
   ad_hangman: { e: '🪢', n: 'Cellat', d: "Adam Asmaca'da kelimenle en çok adam astın" },
   zr_king: { e: '🎲', n: 'Zar Kralı', d: "Yalan Zar'da son kalan sen oldun" },
   zr_hunter: { e: '🔍', n: 'Yalan Avcısı', d: "Yalan Zar'da en çok yalanı sen yakaladın" },
+  kf_mogul: { e: '💰', n: 'Kahve Kralı', d: "Kafe Savaşları'nı en zengin bitirdin" },
+  kf_fav: { e: '⭐', n: 'Semtin Gözdesi', d: "Kafe Savaşları'nda en çok müşteri senin kafene geldi" },
   cn_sherlock: { e: '🕵️', n: 'Sherlock', d: "Cinayet Gecesi'nde katili ve silahı bildin" },
   cn_perfect: { e: '🔪', n: 'Kusursuz Cinayet', d: "Cinayet Gecesi'nde katil olarak kaçmayı başardın" },
   qz_brain: { e: '🧠', n: 'Ansiklopedi', d: "Bilgi Yarışması'nı kazandın" },
@@ -1504,6 +1549,20 @@ const Host = {
         return;
       }
 
+      case 'kplan': {
+        if (S.phase !== 'kafe' || r.step !== 'plan' || !r.roster.includes(pid)) return;
+        const price = Math.round(Number(msg.price) / 5) * 5;
+        const inv = String(msg.inv || 'none');
+        if (!(price >= 15 && price <= 150) || !KAFE_INV[inv]) return;
+        let sab = null;
+        if (msg.sab && KAFE_SAB[msg.sab.type] && r.roster.includes(msg.sab.target) && msg.sab.target !== pid && r.cafes[pid].sabLeft > 0) sab = { type: msg.sab.type, target: msg.sab.target };
+        if (KAFE_INV[inv].cost > r.cafes[pid].money) { this.tell(pid, { t: 'toast', text: 'Bu yatırım için paran yetmiyor 😬' }); return; }
+        r.plans[pid] = { price, inv, sab };
+        this.changed();
+        this.kafeCheck();
+        return;
+      }
+
       case 'calibi': {
         if (S.phase !== 'cin' || r.step === 'accuse' || !r.roster.includes(pid)) return;
         const room = Math.round(Number(msg.room));
@@ -1858,6 +1917,7 @@ const Host = {
         else if (S.phase === 'tak') this.takSkip();
         else if (S.phase === 'quiz') this.quizSkip();
         else if (S.phase === 'cin') this.cinSkip();
+        else if (S.phase === 'kafe') this.kafeSkip();
         return;
       case 'lieReset':
         S.lieTotals = {};
@@ -1881,6 +1941,7 @@ const Host = {
         else if (S.phase === 'tak' && r.step === 'reveal') this.takNext();
         else if (S.phase === 'tak' && r.step === 'unmask') this.takFinish();
         else if (S.phase === 'quiz' && r.step === 'reveal') this.quizNext();
+        else if (S.phase === 'kafe' && r.step === 'result') this.kafeNext();
         return;
       case 'prev':
         if (S.phase === 'results' && r.revealIndex > 0) {
@@ -2017,6 +2078,7 @@ const Host = {
     if (S.game === 'taklit') this.setupTak(S.round);
     if (S.game === 'quiz') this.setupQuiz(S.round);
     if (S.game === 'cinayet') this.setupCin(S.round);
+    if (S.game === 'kafe') this.setupKafe(S.round);
     S.phase = GAME_PHASE[S.game] || 'writing';
     this.changed();
   },
@@ -2589,6 +2651,140 @@ const Host = {
     const r = this.S.round;
     const live = this.liveIds();
     if (r.step === 'rank' && live.length && live.every((id) => r.ranks[id])) this.sirReveal();
+  },
+
+  /* ---------- Kafe Savaşları ---------- */
+
+  setupKafe(r) {
+    const emojis = shuffle(KAFE_EMOJIS);
+    const cafes = {};
+    r.roster.forEach((id, i) => {
+      cafes[id] = { name: 'Kafe ' + (this.S.players[id] ? this.S.players[id].name : '?'), e: emojis[i % emojis.length], money: KAFE_START, rep: 1, amb: 0, barista: 0,
+        price: 40, sabLeft: KAFE_SABOTAGES, customers: 0, best: 0 };
+    });
+    const events = [KAFE_OPENING, ...shuffle(KAFE_EVENTS)];
+    Object.assign(r, { cafes, day: 1, days: r.cfg.days, events, plans: {}, result: null, history: [] });
+    this.kafeStartDay(true);
+  },
+
+  kafeEvent() {
+    const r = this.S.round;
+    return r.events[(r.day - 1) % r.events.length];
+  },
+
+  kafeStartDay(silent) {
+    const r = this.S.round;
+    r.step = 'plan';
+    r.plans = {};
+    this.setStepDeadline(r.cfg.planTime);
+    if (!silent) this.changed();
+  },
+
+  kafeCheck() {
+    const r = this.S.round;
+    const live = this.liveIds();
+    if (r.step === 'plan' && live.length && live.every((id) => r.plans[id])) this.kafeResolve();
+  },
+
+  kafeSkip() {
+    const r = this.S.round;
+    if (r.step === 'plan') this.kafeResolve();
+    else this.kafeNext();
+  },
+
+  // One day of business: customers pick cafés by quality, looks, ads, reputation and price.
+  kafeResolve() {
+    const r = this.S.round;
+    const ev = this.kafeEvent();
+    const ids = r.roster;
+    const unit = ev.unit || KAFE_UNIT;
+    const el = ev.el || 1.5;
+    const base = (25 + 12 * ids.length) * (ev.c || 1);
+    const plan = (id) => r.plans[id] || { price: r.cafes[id].price, inv: 'none', sab: null };
+    const rats = new Set();
+    const reviews = {};
+    for (const id of ids) {
+      const p = plan(id);
+      const c = r.cafes[id];
+      c.price = p.price;
+      const inv = KAFE_INV[p.inv];
+      if (inv.cost > c.money) p.inv = 'none';
+      if (p.inv === 'decor') c.amb++;
+      if (p.inv === 'barista') c.barista += 0.5;
+      if (p.sab && c.sabLeft > 0) {
+        c.sabLeft--;
+        if (p.sab.type === 'rat') rats.add(p.sab.target);
+        else reviews[p.sab.target] = (reviews[p.sab.target] || 0) + 1;
+      }
+    }
+    for (const [id, n] of Object.entries(reviews)) r.cafes[id].rep = Math.max(0.4, r.cafes[id].rep - 0.25 * n);
+    const attract = {};
+    const quality = {};
+    for (const id of ids) {
+      const c = r.cafes[id];
+      const p = plan(id);
+      quality[id] = 1 + c.barista + (p.inv === 'bean' ? 0.7 : 0);
+      attract[id] = Math.pow(quality[id], ev.q || 1) * (1 + 0.2 * c.amb) * (1 + (p.inv === 'ad' ? 0.7 * (ev.ad || 1) : 0)) * c.rep / Math.pow(p.price / 40, el);
+    }
+    const sum = Object.values(attract).reduce((a, b) => a + b, 0) || 1;
+    const rows = {};
+    for (const id of ids) {
+      const c = r.cafes[id];
+      const p = plan(id);
+      const cust = Math.round(base * attract[id] / sum * (rats.has(id) ? 0.5 : 1));
+      const revenue = cust * p.price;
+      const cost = cust * unit + KAFE_INV[p.inv].cost + KAFE_RENT + (ev.tax || 0);
+      const profit = revenue - cost;
+      c.money += profit;
+      c.customers += cust;
+      c.best = Math.max(c.best, profit);
+      // Good coffee at a fair price builds a reputation; rip-offs slowly ruin it.
+      if (quality[id] >= 1.5 && p.price <= 60) c.rep = Math.min(1.6, c.rep + 0.08);
+      if (p.price > 90) c.rep = Math.max(0.4, c.rep - 0.05);
+      rows[id] = { cust, price: p.price, inv: p.inv, revenue, cost, profit, money: c.money, rat: rats.has(id), reviews: reviews[id] || 0 };
+    }
+    const avg = ids.reduce((a, id) => a + rows[id].cust, 0) / ids.length;
+    for (const id of ids) rows[id].says = this.kafeComments(rows[id], r.cafes[id], avg);
+    r.result = { day: r.day, ev, rows };
+    r.history.push({ day: r.day, ev: ev.e + ' ' + ev.t, top: ids.slice().sort((a, b) => rows[b].profit - rows[a].profit)[0] });
+    r.step = 'result';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  // What customers said about a café today (two of the most relevant).
+  kafeComments(row, c, avg) {
+    const out = [];
+    if (row.rat) out.push('Mutfakta fare gördüm 🐀🤢 Bir daha gelmem!');
+    if (row.reviews) out.push('İnternette kötü yorumlar okudum, emin olamadım 🤔');
+    if (row.price >= 90) out.push('Bir kahve ' + row.price + '₺ mi?! 😱');
+    if (row.price <= 25) out.push('Bu fiyata bu kahve! Bedava gibi 😍');
+    if (row.inv === 'bean') out.push('Çekirdekler efsane, böyle kahve içmedim ☕✨');
+    if (row.inv === 'ad') out.push('Instagram\'da reklamını gördüm, geldim 📱');
+    if (row.cust >= avg * 1.5 && row.cust > 5) out.push('Kuyruk kapıya kadar uzanıyordu! 🚶🚶🚶');
+    if (row.cust <= avg * 0.4) out.push('Bomboştu, biraz ürktüm 👻');
+    if (c.amb >= 2) out.push('Mekan çok şirin, saatlerce oturdum 🪴');
+    if (c.barista >= 1) out.push('Barista latte art yaptı, kalp çizdi 🥹');
+    if (!out.length) out.push(['Fena değildi, tekrar gelebilirim 🙂', 'Kahvesi idare eder ☕', 'Wi-Fi şifresini sormadan verdiler, güzel 📶'][Math.floor(Math.random() * 3)]);
+    return out.slice(0, 2);
+  },
+
+  kafeNext() {
+    const r = this.S.round;
+    if (r.day >= r.days) { this.kafeFinish(); return; }
+    r.day++;
+    this.kafeStartDay();
+  },
+
+  kafeFinish() {
+    const r = this.S.round;
+    const scores = {};
+    const customers = {};
+    for (const id of r.roster) { scores[id] = r.cafes[id].money; customers[id] = r.cafes[id].customers; }
+    this.finishCustom({
+      scores, customers, cafes: JSON.parse(JSON.stringify(r.cafes)), history: r.history, days: r.days,
+      ranking: r.roster.slice().sort((a, b) => scores[b] - scores[a]),
+    });
   },
 
   /* ---------- Cinayet Gecesi ---------- */
@@ -3995,6 +4191,7 @@ const Host = {
       else if (S.phase === 'tak' && now >= r.deadline) this.takSkip();
       else if (S.phase === 'quiz' && now >= r.deadline) this.quizSkip();
       else if (S.phase === 'cin' && now >= r.deadline) this.cinSkip();
+      else if (S.phase === 'kafe' && now >= r.deadline) this.kafeSkip();
     }
     if (S.phase === 'ikiz' && r) this.ikizCheck();
     if (S.phase === 'tele' && r) this.teleCheck();
@@ -4007,6 +4204,7 @@ const Host = {
     if (S.phase === 'tak' && r) this.takCheck();
     if (S.phase === 'quiz' && r) this.quizCheck();
     if (S.phase === 'cin' && r) this.cinCheck();
+    if (S.phase === 'kafe' && r) this.kafeCheck();
     // The bomb ignores "Süresiz": it is the whole game.
     if (S.phase === 'pat' && r && r.step === 'play' && now >= r.boomAt) this.patBoom();
     if (S.phase === 'kac' && r) {
@@ -4213,6 +4411,21 @@ const Host = {
         step: r.step, ti: r.ti, tn: r.turns.length, asker, amAsker: pid === asker, q: r.q, done,
         rankIds: r.step === 'rank' ? r.rankIds : null, myRank: (r.ranks && r.ranks[pid]) || null,
         result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
+      };
+    } else if (S.phase === 'kafe') {
+      // Plans stay secret until the day is over; everyone sees the cafés' money and stats.
+      const done = {};
+      for (const id of r.roster) done[id] = r.step === 'plan' ? !!r.plans[id] : true;
+      const pubCafes = {};
+      for (const id of r.roster) {
+        const c = r.cafes[id];
+        pubCafes[id] = { name: c.name, e: c.e, money: c.money, stars: Math.max(1, Math.min(5, Math.round(c.rep * 3.2))), amb: c.amb, barista: c.barista, price: c.price };
+      }
+      pub.stepKey = r.step + r.day;
+      pub.kafe = {
+        step: r.step, day: r.day, days: r.days, ev: this.kafeEvent(), done, cafes: pubCafes,
+        myPlan: r.plans[pid] || null, sabLeft: r.cafes[pid] ? r.cafes[pid].sabLeft : 0,
+        result: r.step === 'result' ? r.result : null,
       };
     } else if (S.phase === 'cin') {
       // Roles, true whereabouts and the solution never leave the host; each player sees only their own.
@@ -4547,6 +4760,10 @@ function computeAwards(r) {
     case 'adam':
       give(top(F.solved), 'ad_hunter');
       give(top(F.hanged), 'ad_hangman');
+      break;
+    case 'kafe':
+      give(F.ranking.slice(0, 1), 'kf_mogul');
+      give(top(F.customers), 'kf_fav');
       break;
     case 'cinayet':
       give(F.sherlocks, 'cn_sherlock');
@@ -5364,15 +5581,15 @@ function render() {
   if (!s) return;
   const inRound = !!(s.roster && s.roster.includes(s.you));
   let screen = s.phase;
-  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin'].includes(s.phase) && !inRound) screen = 'spectate';
+  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin', 'kafe'].includes(s.phase) && !inRound) screen = 'spectate';
   if (screen === 'lie') screen = 'lie:' + s.lie.step;
   if (screen === 'kac') screen = 'kac:' + s.kac.step;
-  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin'].includes(screen)) screen += ':' + s[screen].step;
+  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin', 'kafe'].includes(screen)) screen += ':' + s[screen].step;
   let key = screen + ':' + (s.roundId || '');
   if (screen === 'results') key += ':' + s.reveal.index;
   if (screen === 'lie:clues') key += ':' + s.lie.turn;
   if (screen.startsWith('kac:')) key += ':' + s.kac.ti;
-  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp|zar|pat|tak|quiz|cin):/.test(screen)) key += ':' + s.stepKey;
+  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp|zar|pat|tak|quiz|cin|kafe):/.test(screen)) key += ':' + s.stepKey;
   if (screen === 'writing' && s.writing.stage) key += ':' + s.writing.stage;
 
   const fresh = key !== App.screenKey;
@@ -6659,6 +6876,113 @@ function sirFinalMount(s) {
     '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Puan tablosu 🏅</h2><div class="board">' + board + '</div>' +
       '<p class="muted" style="margin:10px 0 0;font-size:14px">Grubun sıralamasıyla aynı yere koyduğun her kişi +' + SIR_POS_POINTS + ' · Birebir aynıysa +' + SIR_PERFECT_BONUS + ' bonus</p></div>' +
     '<div class="card"><h2>Bütün sorular</h2><div class="recap">' + recap + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
+/* ---------- Kafe Savaşları ---------- */
+
+const tl = (n) => Math.round(n).toLocaleString('tr-TR') + '₺';
+
+function kafeStars(n) {
+  return '⭐'.repeat(n) + '<span class="dim">' + '⭐'.repeat(5 - n) + '</span>';
+}
+
+function kafeBoard(s) {
+  const K = s.kafe;
+  return '<div class="board">' + s.roster.slice().sort((a, b) => K.cafes[b].money - K.cafes[a].money).map((id, i) => {
+    const c = K.cafes[id];
+    return '<div class="srow"><span class="rk">' + (i + 1) + '</span><span class="kfe">' + c.e + '</span><span class="nm">' + esc(c.name) +
+      '<small>' + kafeStars(c.stars) + (c.amb ? ' · 🪴×' + c.amb : '') + (c.barista ? ' · 🧑‍🍳×' + (c.barista * 2) : '') + '</small></span><b>' + tl(c.money) + '</b></div>';
+  }).join('') + '</div>';
+}
+
+function kafePaint() {
+  const K = App.state.kafe;
+  const box = $('#kafePlan');
+  if (!box) return;
+  const me = K.cafes[App.state.you];
+  const others = App.state.roster.filter((id) => id !== App.state.you);
+  box.innerHTML =
+    '<div class="lbl">💲 Bugünkü kahve fiyatın</div><div class="cogpred"><button class="btn ghost" data-act="kPrice" data-d="-5">−</button><span>' + App.kPrice + '₺</span>' +
+      '<button class="btn ghost" data-act="kPrice" data-d="5">+</button></div>' +
+    '<p class="muted center" style="margin:4px 0 12px;font-size:13px">Bir fincanın maliyeti ' + (K.ev.unit || KAFE_UNIT) + '₺ · Günlük kira ' + KAFE_RENT + '₺</p>' +
+    '<div class="lbl">🏗️ Bugünkü yatırımın</div><div class="kinv">' + Object.entries(KAFE_INV).map(([k, v]) => '<button class="kopt ' + (App.kInv === k ? 'on' : '') + '" data-act="kInv" data-k="' + k + '"' +
+      (v.cost > me.money ? ' disabled' : '') + '><span class="e">' + v.e + '</span><b>' + esc(v.n) + '</b><small>' + esc(v.d) + '</small><span class="c">' + (v.cost ? tl(v.cost) : 'Bedava') + '</span></button>').join('') + '</div>' +
+    '<div class="lbl" style="margin-top:12px">😈 Sabotaj <span class="muted">(oyunda ' + K.sabLeft + ' hakkın kaldı)</span></div>' +
+    (K.sabLeft > 0 ? '<div class="kinv two">' + Object.entries(KAFE_SAB).map(([k, v]) => '<button class="kopt ' + (App.kSab === k ? 'on bad' : '') + '" data-act="kSabType" data-k="' + k + '"><span class="e">' + v.e + '</span><b>' + esc(v.n) + '</b><small>' + esc(v.d) + '</small></button>').join('') + '</div>' +
+      (App.kSab ? '<select id="kSabTarget" class="field" style="margin-top:8px"><option value="">Hangi kafeye?</option>' + others.map((id) => '<option value="' + esc(id) + '"' + (App.kSabT === id ? ' selected' : '') + '>' + esc(K.cafes[id].e + ' ' + K.cafes[id].name) + '</option>').join('') + '</select>' : '')
+      : '<p class="muted" style="margin:0">Sabotaj hakların bitti 😇</p>') +
+    '<button class="btn yellow big block" data-act="kSend" style="margin-top:14px">✅ Kararlarımı gönder</button>' +
+    '<p class="muted center" id="kSent" style="margin:8px 0 0"></p>';
+  const sel = $('#kSabTarget');
+  if (sel) sel.addEventListener('change', () => { App.kSabT = sel.value; });
+}
+
+Views['kafe:plan'] = {
+  mount(s) {
+    const K = s.kafe;
+    const me = K.cafes[s.you];
+    const mine = K.myPlan;
+    App.kPrice = mine ? mine.price : me ? me.price : 40;
+    App.kInv = mine ? mine.inv : 'none';
+    App.kSab = mine && mine.sab ? mine.sab.type : null;
+    App.kSabT = mine && mine.sab ? mine.sab.target : '';
+    mount(header() + timerHTML('Karar süresi') +
+      '<div class="vbar day kafebar"><b>☕ Gün ' + K.day + ' / ' + K.days + '</b><span>' + (me ? me.e + ' ' + esc(me.name) + ' · ' + tl(me.money) : '') + '</span></div>' +
+      '<div class="card center kev"><div class="cinbig">' + K.ev.e + '</div><b>' + esc(K.ev.t) + '</b></div>' +
+      (me ? '<div class="card"><div id="kafePlan"></div></div>' : '') +
+      '<div class="card"><h2>Kafeler</h2>' + kafeBoard(s) + '</div>' +
+      '<div class="card"><h2>Kim karar verdi?</h2><div class="chips" id="kChips"></div></div>' + hostSkip('Günü bitir'));
+    kafePaint();
+  },
+  update(s) {
+    $('#kChips').innerHTML = doneChips(s, s.kafe.done);
+    if ($('#kSent')) $('#kSent').textContent = s.kafe.myPlan ? '✅ Gönderildi (gün bitene kadar değiştirebilirsin)' : '';
+  },
+};
+
+Views['kafe:result'] = {
+  mount(s) {
+    const K = s.kafe;
+    const R = K.result;
+    const ids = s.roster.slice().sort((a, b) => R.rows[b].profit - R.rows[a].profit);
+    const maxC = Math.max(1, ...ids.map((id) => R.rows[id].cust));
+    const rows = ids.map((id) => {
+      const x = R.rows[id];
+      const c = K.cafes[id];
+      return '<div class="kres ' + (id === s.you ? 'me' : '') + '"><div class="top"><span class="kfe">' + c.e + '</span><b>' + esc(c.name) + '</b>' +
+        '<span class="kprofit ' + (x.profit >= 0 ? 'up' : 'down') + '">' + (x.profit >= 0 ? '+' : '') + tl(x.profit) + '</span></div>' +
+        '<div class="kbar"><i style="width:' + Math.round(x.cust / maxC * 100) + '%"></i><span>👥 ' + x.cust + ' müşteri · ' + x.price + '₺ · ' + KAFE_INV[x.inv].e + ' ' + esc(KAFE_INV[x.inv].n) + '</span></div>' +
+        (x.rat ? '<div class="ksab">🐀 Biri fare ihbarı yaptı!</div>' : '') + (x.reviews ? '<div class="ksab">👎 Biri kötü yorum yazdı!</div>' : '') +
+        '<div class="ksays">' + x.says.map((t) => '<span>💬 ' + esc(t) + '</span>').join('') + '</div>' +
+        '<div class="muted" style="font-size:13px">Ciro ' + tl(x.revenue) + ' · Gider ' + tl(x.cost) + ' · Kasa ' + tl(x.money) + '</div></div>';
+    }).join('');
+    const last = K.day >= K.days;
+    mount(header() + revealTimer(s) +
+      '<div class="vbar day kafebar"><b>📊 Gün ' + K.day + ' sonu</b><span>' + R.ev.e + ' ' + esc(R.ev.t) + '</span></div>' +
+      '<div class="card"><h2>Günün sonuçları</h2>' + rows + '</div>' +
+      '<div class="card"><h2>Kasada ne var?</h2>' + kafeBoard(s) + '</div>' +
+      hostNext(s, last ? '🏆 Sonuçlar' : '☀️ Gün ' + (K.day + 1)));
+    Sound.beep(R.rows[s.you] && R.rows[s.you].profit >= 0 ? 880 : 300, 0.2, 'triangle', 0.07);
+  },
+};
+
+function kafeFinalMount(s) {
+  const F = s.final;
+  const board = F.ranking.map((id, i) => {
+    const c = F.cafes[id];
+    return '<div class="srow big"><span class="rk">' + (i + 1) + '</span><span class="kfe big">' + c.e + '</span><span class="nm">' + esc(c.name) +
+      '<small>' + F.customers[id] + ' müşteri · en iyi gün ' + tl(c.best) + ' · ' + kafeStars(Math.max(1, Math.min(5, Math.round(c.rep * 3.2)))) + '</small></span><b>' + tl(F.scores[id]) + '</b></div>';
+  }).join('');
+  const w = F.ranking[0];
+  mount(
+    header() +
+    '<div class="phase-title"><h1>' + F.cafes[w].e + ' ' + esc(F.cafes[w].name) + ' kazandı!</h1><p>Kasada ' + tl(F.scores[w]) + ' ile semtin kahve kralı 💰</p></div>' +
+    podiumHTML(F.ranking, (id) => tl(F.scores[id])) +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Son durum 🏅</h2><div class="board">' + board + '</div></div>' +
+    '<div class="card"><h2>Günler</h2><div class="recap">' + F.history.map((h) => '<div><span class="q">Gün ' + h.day + ': ' + esc(h.ev) + '</span><span class="w">🏆 ' + esc(F.cafes[h.top].name) + '</span></div>').join('') + '</div></div>' +
     finalFooter(),
     true
   );
@@ -8338,6 +8662,7 @@ Views.final = {
     else if (s.game === 'taklit') takFinalMount(s);
     else if (s.game === 'quiz') quizFinalMount(s);
     else if (s.game === 'cinayet') cinFinalMount(s);
+    else if (s.game === 'kafe') kafeFinalMount(s);
     else hangimizFinalMount(s);
     confetti();
     Sound.fanfare();
@@ -8415,6 +8740,9 @@ function shareLines(s) {
       break;
     case 'sirala':
       for (const r of F.recap) if (r.top) L.push(n(r.asker) + ': ' + r.q + ' → 👑 ' + n(r.top));
+      break;
+    case 'kafe':
+      F.ranking.slice(0, 3).forEach((id, i) => L.push(['🥇', '🥈', '🥉'][i] + ' ' + F.cafes[id].e + ' ' + F.cafes[id].name + ' · ' + F.scores[id].toLocaleString('tr-TR') + '₺'));
       break;
     case 'cinayet':
       L.push((F.caught ? '🕵️ Katil yakalandı: ' : '🔪 Katil kaçtı: ') + n(F.killer) + ' (' + CIN_CHARS[F.chars[F.killer]].n + ')');
@@ -9161,6 +9489,22 @@ const actions = {
   },
   sreset() { App.sirOrder = []; sirPaint(); },
   srank() { Sound.click(); send({ t: 'srank', order: App.sirOrder }); },
+  kPrice(el) {
+    App.kPrice = Math.max(15, Math.min(150, App.kPrice + Number(el.dataset.d)));
+    kafePaint();
+  },
+  kInv(el) { App.kInv = el.dataset.k; Sound.click(); kafePaint(); },
+  kSabType(el) { App.kSab = App.kSab === el.dataset.k ? null : el.dataset.k; Sound.click(); kafePaint(); },
+  kSend() {
+    let sab = null;
+    if (App.kSab) {
+      const t = $('#kSabTarget').value;
+      if (!t) { toast('Sabotaj için bir rakip seç'); return; }
+      sab = { type: App.kSab, target: t };
+    }
+    Sound.click();
+    send({ t: 'kplan', price: App.kPrice, inv: App.kInv, sab });
+  },
   cAlibi(el) {
     if (App.state.cin.declared[App.state.you] >= 0) return;
     App.cinRoom = Number(el.dataset.r);
