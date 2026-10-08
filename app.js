@@ -225,6 +225,7 @@ const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', 
 const EMO_POINTS = [300, 200];      // 1st and 2nd correct guess; everyone after gets EMO_POINTS_REST
 const EMO_POINTS_REST = 100;
 const EMO_NARRATOR_POINTS = 50;      // narrator, per player who got it
+const EMO_MAX_CLUE = 30;        // emoji per clue (counted as people see them, so 👨‍🍳 is one)
 const EMO_REROLLS = 2;
 const COG_EXACT_POINTS = 200;
 const COG_CLOSE_POINTS = 100;        // off by one
@@ -1179,7 +1180,8 @@ const Host = {
 
       case 'eclue': {
         if (S.phase !== 'emo' || r.step !== 'write' || pid !== r.turns[r.ti]) return;
-        const text = String(msg.text ?? '').trim().slice(0, 60);
+        const text = String(msg.text ?? '').trim();
+        if (emojiCount(text) > EMO_MAX_CLUE) { this.tell(pid, { t: 'toast', text: 'En fazla ' + EMO_MAX_CLUE + ' emoji kullanabilirsin 🙂' }); return; }
         if (!isEmojiOnly(text)) { this.tell(pid, { t: 'toast', text: 'Sadece emoji kullanabilirsin 🙂 Harf ve rakam yok!' }); return; }
         r.clue = text;
         r.step = 'guess';
@@ -3573,6 +3575,10 @@ function emojiFilter(t) {
   return String(t).replace(EMO_NOT_EMOJI, '').replace(EMO_DISGUISED, '').replace(/ {2,}/g, ' ');
 }
 
+function emojiCount(t) {
+  return graphemes(String(t)).filter((g) => g.trim()).length;
+}
+
 function graphemes(t) {
   if (typeof Intl !== 'undefined' && Intl.Segmenter) return [...new Intl.Segmenter('tr', { granularity: 'grapheme' }).segment(t)].map((x) => x.segment);
   return Array.from(t);
@@ -5140,6 +5146,15 @@ function emoTop(s, timer) {
   return header() + timer + stepDots(s.emo.ti, s.emo.tn);
 }
 
+function emoCountPaint() {
+  const inp = $('#emoClue');
+  const el = $('#emoCount');
+  if (!inp || !el) return;
+  const n = emojiCount(inp.value);
+  el.textContent = n + ' / ' + EMO_MAX_CLUE;
+  el.classList.toggle('full', n >= EMO_MAX_CLUE);
+}
+
 function emoPickerHTML() {
   const i = App.emoTab || 0;
   return '<div class="emopick"><div class="emotabs">' + EMOJI_CATS.map((c, k) => '<button class="emotab ' + (k === i ? 'on' : '') + '" data-act="emoTab" data-i="' + k + '" title="' + esc(c.n) + '">' + c.e + '</button>').join('') +
@@ -5158,15 +5173,16 @@ Views['emo:write'] = {
     const body = E.amNarr
       ? '<div class="card myturn center"><h2>Sıra sende! 🎬</h2><div class="muted">Bunu sadece emojiyle anlat:</div>' +
         '<div class="emotitle" id="emoTitle"></div><div class="muted" id="emoCat"></div><div id="emoReroll"></div>' +
-        '<div class="row" style="margin-top:10px"><input id="emoClue" class="field grow emoin" maxlength="120" placeholder="Aşağıdan emoji seç 👇" autocomplete="off" inputmode="none">' +
+        '<div class="row" style="margin-top:10px"><input id="emoClue" class="field grow emoin" maxlength="400" placeholder="Aşağıdan emoji seç 👇" autocomplete="off" inputmode="none">' +
         '<button class="btn small ghost" data-act="emoBack" title="Sil">⌫</button></div>' +
+        '<div class="emocount" id="emoCount">0 / ' + EMO_MAX_CLUE + '</div>' +
         emoPickerHTML() +
         '<button class="btn green big block" data-act="eclue" style="margin-top:10px">Gönder 🚀</button>' +
         '<p class="muted" style="margin:8px 0 0;font-size:14px">Sadece emoji! Harf, rakam ve bayrak yok 🙅 <button class="linkbtn" data-act="emoKbd">⌨️ Telefon klavyesiyle yaz</button></p></div>'
       : '<div class="card center turnwait">' + avatarHTML(n, 'lg') + '<h2 style="margin:8px 0 0">' + esc(n.name) + ' emoji hazırlıyor… 🤔</h2>' +
         '<p class="muted" style="margin:4px 0 0">Kategori: <b>' + esc(E.cat) + '</b></p></div>';
     mount(emoTop(s, timerHTML('Emoji yazma süresi')) + body + OFFLINE_NOTE + hostSkip('Sırayı geç'));
-    if (E.amNarr) Sound.join();
+    if (E.amNarr) { Sound.join(); emoCountPaint(); }
   },
   update(s) {
     const E = s.emo;
@@ -7233,13 +7249,16 @@ const actions = {
   },
   emoPick(el) {
     const inp = $('#emoClue');
-    if (!inp || (inp.value + el.dataset.e).length > 120) return;
+    if (!inp) return;
+    if (emojiCount(inp.value) >= EMO_MAX_CLUE) { toast('En fazla ' + EMO_MAX_CLUE + ' emoji 🙂'); return; }
     inp.value += el.dataset.e;
+    emoCountPaint();
     Sound.beep(880, 0.03, 'triangle', 0.04);
   },
   emoBack() {
     const inp = $('#emoClue');
     if (inp) inp.value = graphemes(inp.value).slice(0, -1).join('');
+    emoCountPaint();
   },
   // Phones: let people open their own emoji keyboard if they prefer.
   emoKbd() {
@@ -7410,6 +7429,13 @@ document.addEventListener('input', (e) => {
   if (e.target.id === 'emoClue' && !e.isComposing) {
     const v = emojiFilter(e.target.value);
     if (v !== e.target.value) { e.target.value = v; toast('Sadece emoji yazabilirsin 🙂 Aşağıdan seçebilirsin', 2200); }
+    if (emojiCount(e.target.value) > EMO_MAX_CLUE) {
+      const keep = [];
+      for (const g of graphemes(e.target.value)) { if (g.trim() && keep.filter((x) => x.trim()).length >= EMO_MAX_CLUE) break; keep.push(g); }
+      e.target.value = keep.join('');
+      toast('En fazla ' + EMO_MAX_CLUE + ' emoji 🙂');
+    }
+    emoCountPaint();
   }
 });
 

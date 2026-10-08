@@ -914,3 +914,5 @@ body.chat-open #toast { top: calc(16px + env(safe-area-inset-top)); bottom: auto
 .emob:hover { background: var(--card); }
 .emob:active { transform: scale(.85); }
 .linkbtn { border: 0; background: none; color: var(--purple); font: inherit; font-weight: 700; text-decoration: underline; padding: 0; cursor: pointer; }
+.emocount { text-align: right; font-size: 13px; font-weight: 700; color: var(--muted); margin-top: 4px; }
+.emocount.full { color: var(--red); }
