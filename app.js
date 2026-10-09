@@ -5505,7 +5505,7 @@ function showJoin(code, canRestore, err = '') {
       '<div class="center" style="font-size:44px;font-weight:800;letter-spacing:8px;color:var(--purple);line-height:1.1">' + esc(code) + '</div>' +
       '<div style="height:12px"></div>' +
       '<label class="lbl" for="nm">Adın ne?</label>' +
-      '<input id="nm" class="field" maxlength="' + MAX_NAME + '" autocomplete="nickname" placeholder="Örn: Naz" value="' + esc(myName) + '">' +
+      '<input id="nm" class="field" maxlength="' + MAX_NAME + '" autocomplete="nickname" placeholder="Örn: Tekinsv" value="' + esc(myName) + '">' +
       '<div id="gBox">' + googleBoxHTML() + '</div>' +
       '<div id="lookBox">' + lookBoxHTML() + '</div>' +
       '<div style="height:12px"></div>' +
