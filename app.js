@@ -1125,6 +1125,10 @@ const App = {
 // Google sign-in. The Client ID is public (not a secret); empty = the button is hidden.
 const GOOGLE_CLIENT_ID = '965124560848-hb29u0mta3dm5on7u09ji0k2cr243aii.apps.googleusercontent.com';
 
+// Optional sign-in list: a Google Apps Script web app that writes to the owner's Google Sheet.
+// It checks every sign-in with Google itself, so fake entries can't be added. Empty = nothing is sent.
+const SIGNIN_LOG_URL = '';
+
 // Only Google profile photos are accepted as pictures, so nobody can slip other links into the room.
 function validPic(u) {
   return typeof u === 'string' && u.length < 400 && /^https:\/\/lh\d\.googleusercontent\.com\/[A-Za-z0-9_\-/=.]+$/.test(u);
@@ -5445,6 +5449,10 @@ function googleCredential(resp) {
     if (nm && name) { nm.value = name; nm.dispatchEvent(new Event('input', { bubbles: true })); }
     if (validPic(info.picture)) setLook({ pic: info.picture });
     toast('✅ Google ile giriş yapıldı: ' + (info.name || name), 2600);
+    // Fire-and-forget: if the list can't be reached, signing in still works.
+    if (SIGNIN_LOG_URL) {
+      try { fetch(SIGNIN_LOG_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ credential: resp.credential }) }).catch(() => {}); } catch { /* offline */ }
+    }
     googleMount();
   } catch {
     toast('Google girişi okunamadı 😕');
@@ -5458,7 +5466,8 @@ function googleBoxHTML() {
     return '<div class="gbox in">' + avatarHTML({ pic: g.pic, av: App.look.av, col: App.look.col }, 'sm') +
       '<span class="grow">Google ile girildi: <b>' + esc(g.full || g.name) + '</b></span><button class="linkbtn" data-act="gOut">Çıkış</button></div>';
   }
-  return '<div class="gbox"><div class="or" style="margin:4px 0 8px">ya da</div><div id="gBtn" class="gbtn"></div></div>';
+  return '<div class="gbox"><div class="or" style="margin:4px 0 8px">ya da</div><div id="gBtn" class="gbtn"></div>' +
+    (SIGNIN_LOG_URL ? '<p class="gnote">ℹ️ Google ile girersen adın ve fotoğrafın site sahibinin giriş listesine kaydedilir. E-postan kaydedilmez.</p>' : '') + '</div>';
 }
 
 function googleMount() {
