@@ -1112,3 +1112,7 @@ button.qopt:not(:disabled):active { transform: translateY(4px); box-shadow: 0 1p
 .gbox { margin: 10px 0 0; }
 .gbox.in { display: flex; align-items: center; gap: 8px; background: var(--soft); border-radius: 14px; padding: 8px 10px; font-size: 14px; }
 .gbtn { display: flex; justify-content: center; min-height: 44px; }
+/* The Google button lives in an iframe: with a dark page the browser paints its background white unless it stays "light". */
+.gbtn, .gbtn iframe { color-scheme: light; }
+.gbtn iframe { background: transparent !important; }
+.gbtn > div { width: 100%; display: flex; justify-content: center; }

@@ -5472,7 +5472,8 @@ function googleMount() {
     const el = $('#gBtn');
     if (!el) return;
     google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: googleCredential, auto_select: false, cancel_on_tap_outside: true });
-    google.accounts.id.renderButton(el, { theme: isDark() ? 'filled_black' : 'outline', size: 'large', shape: 'pill', text: 'signin_with', locale: 'tr', width: 280 });
+    const w = Math.max(220, Math.min(400, Math.round(el.clientWidth || 300)));
+    google.accounts.id.renderButton(el, { theme: isDark() ? 'filled_black' : 'outline', size: 'large', shape: 'pill', text: 'signin_with', logo_alignment: 'center', locale: 'tr', width: w });
   }).catch(() => { const el = $('#gBtn'); if (el) el.innerHTML = '<p class="muted center" style="margin:0;font-size:13px">Google girişi şu an yüklenemedi.</p>'; });
 }
 
