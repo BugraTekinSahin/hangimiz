@@ -1123,7 +1123,7 @@ const App = {
 };
 
 // Google sign-in. The Client ID is public (not a secret); empty = the button is hidden.
-const GOOGLE_CLIENT_ID = '';
+const GOOGLE_CLIENT_ID = '965124560848-hb29u0mta3dm5on7u09ji0k2cr243aii.apps.googleusercontent.com';
 
 // Only Google profile photos are accepted as pictures, so nobody can slip other links into the room.
 function validPic(u) {
