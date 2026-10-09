@@ -1039,6 +1039,9 @@ function roomLink(code) {
 
 function avatarHTML(p, size = '') {
   if (!p) return '<span class="av ' + size + '">❔</span>';
+  if (p.pic && validPic(p.pic)) {
+    return '<span class="av pic ' + size + '" style="--c:' + esc(p.col) + '"><img src="' + esc(p.pic) + '" alt="" referrerpolicy="no-referrer" loading="lazy"></span>';
+  }
   return '<span class="av ' + size + '" style="--c:' + esc(p.col) + '">' + esc(p.av) + '</span>';
 }
 
@@ -1118,6 +1121,14 @@ const App = {
   wDone: false,        // "I'm done writing" flag
   draftTimer: null,
 };
+
+// Google sign-in. The Client ID is public (not a secret); empty = the button is hidden.
+const GOOGLE_CLIENT_ID = '';
+
+// Only Google profile photos are accepted as pictures, so nobody can slip other links into the room.
+function validPic(u) {
+  return typeof u === 'string' && u.length < 400 && /^https:\/\/lh\d\.googleusercontent\.com\/[A-Za-z0-9_\-/=.]+$/.test(u);
+}
 
 function validLook(l) {
   return !!l && AVATARS.includes(l.av) && COLORS.includes(l.col);
@@ -1278,7 +1289,7 @@ const Host = {
       p.badges = sanitizeBadges(msg.badges);
     } else if (S.phase === 'lobby') {
       p.name = name;
-      if (validLook(msg.look)) { p.av = msg.look.av; p.col = msg.look.col; }
+      if (validLook(msg.look)) { p.av = msg.look.av; p.col = msg.look.col; p.pic = validPic(msg.look.pic) ? msg.look.pic : null; }
       p.badges = sanitizeBadges(msg.badges);
     }
 
@@ -1306,7 +1317,7 @@ const Host = {
       col = COLORS[idx % COLORS.length];
     }
     const p = {
-      id, name, av, col,
+      id, name, av, col, pic: look && validPic(look.pic) ? look.pic : null,
       connected: false, ready: false, lastSeen: Date.now(), offSince: null,
     };
     S.players[id] = p;
@@ -1385,6 +1396,7 @@ const Host = {
         if (S.phase !== 'lobby' || !validLook(msg.look)) return;
         p.av = msg.look.av;
         p.col = msg.look.col;
+        p.pic = validPic(msg.look.pic) ? msg.look.pic : null;
         this.changed();
         return;
 
@@ -1996,7 +2008,7 @@ const Host = {
   pushChat(p, body) {
     const S = this.S;
     S.chatSeq = (S.chatSeq || 0) + 1;
-    S.chat = (S.chat || []).concat({ id: S.chatSeq, from: p.id, name: p.name, av: p.av, col: p.col, ...body }).slice(-CHAT_KEEP);
+    S.chat = (S.chat || []).concat({ id: S.chatSeq, from: p.id, name: p.name, av: p.av, col: p.col, pic: p.pic || null, ...body }).slice(-CHAT_KEEP);
     this.changed();
   },
 
@@ -2032,7 +2044,7 @@ const Host = {
     const names = {};
     for (const id of roster) {
       const p = S.players[id];
-      names[id] = { name: p.name, av: p.av, col: p.col };
+      names[id] = { name: p.name, av: p.av, col: p.col, pic: p.pic || null };
     }
     const now = Date.now();
     S.notice = null;
@@ -4270,7 +4282,7 @@ const Host = {
       } : null,
       players: S.order.map((id) => {
         const p = S.players[id];
-        return { id, name: p.name, av: p.av, col: p.col, connected: p.connected, ready: p.ready, inRound: !!(r && r.roster.includes(id)), badges: p.badges || null };
+        return { id, name: p.name, av: p.av, col: p.col, pic: p.pic || null, connected: p.connected, ready: p.ready, inRound: !!(r && r.roster.includes(id)), badges: p.badges || null };
       }),
       left: r && r.deadline && !this.untimedNow() ? Math.max(0, r.deadline - now) : null,
       total: r ? r.deadlineTotal : 0,
@@ -5365,6 +5377,7 @@ function showHome(err = '') {
     '<div class="card">' +
       '<label class="lbl" for="nm">Adın ne?</label>' +
       '<input id="nm" class="field" maxlength="' + MAX_NAME + '" autocomplete="nickname" placeholder="Örn: Tekin" value="' + esc(myName) + '">' +
+      '<div id="gBox">' + googleBoxHTML() + '</div>' +
       '<div id="lookBox">' + lookBoxHTML() + '</div>' +
       '<div style="height:12px"></div>' +
       '<button class="btn yellow big block" data-act="create">🎉 Oda Kur</button>' +
@@ -5386,6 +5399,7 @@ function showHome(err = '') {
     '<p class="foot">Oyun, odayı kuran kişinin tarayıcısında döner — o sayfayı kapatma 😉</p>'
   );
   $('#nm').addEventListener('keydown', (e) => { if (e.key === 'Enter') doAction('create'); });
+  googleMount();
   $('#cd').addEventListener('keydown', (e) => { if (e.key === 'Enter') doAction('joinCode'); });
   if (!myName) setTimeout(() => $('#nm') && $('#nm').focus(), 50);
 }
@@ -5393,16 +5407,78 @@ function showHome(err = '') {
 /* ---------- character picker ---------- */
 
 function lookPickerHTML() {
-  return '<div class="lookpick"><div class="lbl">Karakterin</div><div class="avgrid">' +
-    AVATARS.map((a) => '<button class="avopt ' + (a === App.look.av ? 'on' : '') + '" style="--c:' + App.look.col + '" data-act="pickav" data-v="' + a + '">' + a + '</button>').join('') +
+  const g = store.get('hz-google');
+  const photo = g && validPic(g.pic) ? '<button class="avopt ' + (App.look.pic ? 'on' : '') + '" data-act="pickpic" title="Google fotoğrafım">' +
+    avatarHTML({ pic: g.pic, col: App.look.col }) + '</button>' : '';
+  return '<div class="lookpick"><div class="lbl">Karakterin</div><div class="avgrid">' + photo +
+    AVATARS.map((a) => '<button class="avopt ' + (a === App.look.av && !App.look.pic ? 'on' : '') + '" style="--c:' + App.look.col + '" data-act="pickav" data-v="' + a + '">' + a + '</button>').join('') +
     '</div><div class="lbl">Rengin</div><div class="colgrid">' +
     COLORS.map((c) => '<button class="colopt ' + (c === App.look.col ? 'on' : '') + '" style="--c:' + c + '" data-act="pickcol" data-v="' + c + '" aria-label="renk"></button>').join('') +
     '</div></div>';
 }
 
+// "Sign in with Google": fills in the name and offers the profile photo as the avatar.
+function loadGIS() {
+  if (window.google && google.accounts) return Promise.resolve();
+  if (!App.gisP) {
+    App.gisP = new Promise((ok, fail) => {
+      const js = document.createElement('script');
+      js.src = 'https://accounts.google.com/gsi/client';
+      js.async = true;
+      js.onload = ok;
+      js.onerror = () => { App.gisP = null; fail(); };
+      document.head.appendChild(js);
+    });
+  }
+  return App.gisP;
+}
+
+function googleCredential(resp) {
+  try {
+    const part = resp.credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const bytes = Uint8Array.from(atob(part), (c) => c.charCodeAt(0));
+    const info = JSON.parse(new TextDecoder().decode(bytes));
+    const name = cleanName(info.given_name || info.name || '');
+    // Only the name and photo are kept; the e-mail is never stored or sent.
+    store.set('hz-google', { name, full: cleanName(info.name || ''), pic: validPic(info.picture) ? info.picture : null });
+    const nm = $('#nm');
+    if (nm && name) { nm.value = name; nm.dispatchEvent(new Event('input', { bubbles: true })); }
+    if (validPic(info.picture)) setLook({ pic: info.picture });
+    toast('✅ Google ile giriş yapıldı: ' + (info.name || name), 2600);
+    googleMount();
+  } catch {
+    toast('Google girişi okunamadı 😕');
+  }
+}
+
+function googleBoxHTML() {
+  if (!GOOGLE_CLIENT_ID) return '';
+  const g = store.get('hz-google');
+  if (g) {
+    return '<div class="gbox in">' + avatarHTML({ pic: g.pic, av: App.look.av, col: App.look.col }, 'sm') +
+      '<span class="grow">Google ile girildi: <b>' + esc(g.full || g.name) + '</b></span><button class="linkbtn" data-act="gOut">Çıkış</button></div>';
+  }
+  return '<div class="gbox"><div class="or" style="margin:4px 0 8px">ya da</div><div id="gBtn" class="gbtn"></div></div>';
+}
+
+function googleMount() {
+  const box = $('#gBox');
+  if (!box) return;
+  box.innerHTML = googleBoxHTML();
+  const lb = $('#lookBox');
+  if (lb) lb.innerHTML = lookBoxHTML();
+  if (!GOOGLE_CLIENT_ID || store.get('hz-google')) return;
+  loadGIS().then(() => {
+    const el = $('#gBtn');
+    if (!el) return;
+    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: googleCredential, auto_select: false, cancel_on_tap_outside: true });
+    google.accounts.id.renderButton(el, { theme: isDark() ? 'filled_black' : 'outline', size: 'large', shape: 'pill', text: 'signin_with', locale: 'tr', width: 280 });
+  }).catch(() => { const el = $('#gBtn'); if (el) el.innerHTML = '<p class="muted center" style="margin:0;font-size:13px">Google girişi şu an yüklenemedi.</p>'; });
+}
+
 function lookBoxHTML() {
   return '<div class="lookrow">' + avatarHTML(App.look, 'lg') +
-    '<div class="grow"><b>Karakterin</b><div class="muted" style="font-size:14px">Hayvanını ve rengini seç</div></div>' +
+    '<div class="grow"><b>Karakterin</b><div class="muted" style="font-size:14px">' + (App.look.pic ? 'Google fotoğrafın' : 'Hayvanını ve rengini seç') + '</div></div>' +
     '<button class="btn small ghost" data-act="toggleLook">' + (App.lookOpen ? 'Tamam ✓' : '🎨 Değiştir') + '</button></div>' +
     (App.lookOpen ? lookPickerHTML() : '');
 }
@@ -5429,6 +5505,7 @@ function showJoin(code, canRestore, err = '') {
       '<div style="height:12px"></div>' +
       '<label class="lbl" for="nm">Adın ne?</label>' +
       '<input id="nm" class="field" maxlength="' + MAX_NAME + '" autocomplete="nickname" placeholder="Örn: Naz" value="' + esc(myName) + '">' +
+      '<div id="gBox">' + googleBoxHTML() + '</div>' +
       '<div id="lookBox">' + lookBoxHTML() + '</div>' +
       '<div style="height:12px"></div>' +
       '<button class="btn yellow big block" data-act="join">Odaya Gir 🚪</button>' +
@@ -5438,6 +5515,7 @@ function showJoin(code, canRestore, err = '') {
     '<p class="foot"><a href="' + esc(location.pathname) + '" style="color:#fff">Kendi odanı kurmak için tıkla</a></p>'
   );
   $('#nm').addEventListener('keydown', (e) => { if (e.key === 'Enter') doAction('join'); });
+  googleMount();
   setTimeout(() => $('#nm') && $('#nm').focus(), 50);
 }
 
@@ -5627,7 +5705,7 @@ function chatEmoPaint(i) {
 }
 
 function chatMsgHTML(m, you) {
-  const who = { av: m.av, col: m.col };
+  const who = { av: m.av, col: m.col, pic: m.pic };
   const mine = m.from === you;
   return '<div class="cmsg ' + (mine ? 'me' : '') + (m.react ? ' react' : '') + '">' + avatarHTML(who, 'sm') +
     '<div class="bub">' + (mine ? '' : '<b>' + esc(m.name) + '</b>') + esc(m.react || m.text) + '</div></div>';
@@ -5706,7 +5784,7 @@ function onPrivate(msg) {
     const list = (s && s.chat) || [];
     const last = list.length ? list[list.length - 1].id : 0;
     App.chatShadows = (App.chatShadows || []).concat({
-      id: last + 0.001 * ((App.chatShadows || []).length + 1), from: s.you, name: mine.name, av: mine.av, col: mine.col, text: msg.text,
+      id: last + 0.001 * ((App.chatShadows || []).length + 1), from: s.you, name: mine.name, av: mine.av, col: mine.col, pic: mine.pic || null, text: msg.text,
     }).slice(-20);
     renderChatList(true);
     return;
@@ -9296,7 +9374,14 @@ const actions = {
     const box = $('#lookBox');
     if (box) box.innerHTML = lookBoxHTML(); else render();
   },
-  pickav(el) { setLook({ av: el.dataset.v }); if (!$('#lookBox')) render(); },
+  pickav(el) { setLook({ av: el.dataset.v, pic: null }); if (!$('#lookBox')) render(); },
+  pickpic() { const g = store.get('hz-google'); if (g && validPic(g.pic)) setLook({ pic: g.pic }); if (!$('#lookBox')) render(); },
+  gOut() {
+    store.del('hz-google');
+    setLook({ pic: null });
+    try { if (window.google) google.accounts.id.disableAutoSelect(); } catch { /* not loaded */ }
+    googleMount();
+  },
   pickcol(el) { setLook({ col: el.dataset.v }); if (!$('#lookBox')) render(); },
   create() {
     const name = readName();
