@@ -1116,4 +1116,3 @@ button.qopt:not(:disabled):active { transform: translateY(4px); box-shadow: 0 1p
 .gbtn, .gbtn iframe { color-scheme: light; }
 .gbtn iframe { background: transparent !important; }
 .gbtn > div { width: 100%; display: flex; justify-content: center; }
-.gnote { margin: 6px 0 0; font-size: 12px; color: var(--muted); text-align: center; line-height: 1.35; }
