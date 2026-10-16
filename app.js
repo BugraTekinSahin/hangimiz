@@ -250,7 +250,59 @@ GAMES.taklit = {
     { key: 'voteTime', label: 'Oylama süresi', type: 'num', def: 60, min: 20, max: 180, step: 10, unit: 'sn' },
   ],
 };
-const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir', 'zar', 'patates', 'taklit', 'quiz', 'cinayet', 'kafe'];
+const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir', 'zar', 'patates', 'taklit', 'quiz', 'cinayet', 'kafe', 'isik', 'bomba', 'kasa', 'balon', 'saniye'];
+GAMES.isik = {
+  name: 'Kırmızı Işık Yeşil Işık',
+  emoji: '🚦',
+  desc: 'Düğmeye basılı tut, koş! Işık kırmızıya dönünce hemen bırak, yoksa elenirsin. Işığın ne zaman döneceği belli değil…',
+  minPlayers: 2,
+  defs: [
+    { key: 'races', label: 'Yarış sayısı', type: 'num', def: 3, min: 1, max: 6, step: 1, unit: 'yarış' },
+    { key: 'length', label: 'Parkur', type: 'choice', def: 'normal', options: [['short', 'Kısa'], ['normal', 'Normal'], ['long', 'Uzun']] },
+  ],
+};
+GAMES.bomba = {
+  name: 'Bomba Sayısı',
+  emoji: '💥',
+  desc: 'Gizli bir bomba sayısı var! Sırayla sayı söyleyin, aralık daralsın. Bombayı söyleyen patlar.',
+  minPlayers: 2,
+  defs: [
+    { key: 'max', label: 'Sayı aralığı', type: 'choice', def: '100', options: [['50', '1-50'], ['100', '1-100'], ['200', '1-200']] },
+    { key: 'lives', label: 'Can', type: 'choice', def: '2', options: [['1', '1 can'], ['2', '2 can'], ['3', '3 can']] },
+    { key: 'moveTime', label: 'Hamle süresi', type: 'num', def: 15, min: 5, max: 60, step: 5, unit: 'sn' },
+  ],
+};
+GAMES.kasa = {
+  name: 'Açgözlü Kasa',
+  emoji: '💰',
+  desc: 'Mağarada hazine topluyorsunuz! Her kartta herkes aynı anda karar verir: devam mı, çekil mi? Aynı tehlike ikinci kez çıkarsa içeride kalanlar her şeyini kaybeder.',
+  minPlayers: 2,
+  defs: [
+    { key: 'rounds', label: 'Tur sayısı', type: 'num', def: 5, min: 2, max: 8, step: 1, unit: 'tur' },
+    { key: 'decideTime', label: 'Karar süresi', type: 'num', def: 12, min: 5, max: 40, step: 1, unit: 'sn' },
+  ],
+};
+GAMES.balon = {
+  name: 'Patlayan Balon',
+  emoji: '🎈',
+  desc: 'Balon elden ele dolaşıyor! Sıran gelince 1, 2 ya da 3 kez şişir. Kaçıncı pompada patlayacağı gizli, patlatan can kaybeder.',
+  minPlayers: 2,
+  defs: [
+    { key: 'lives', label: 'Can', type: 'choice', def: '2', options: [['1', '1 can'], ['2', '2 can'], ['3', '3 can']] },
+    { key: 'size', label: 'Balon', type: 'choice', def: 'normal', options: [['small', 'Küçük (çabuk patlar)'], ['normal', 'Normal'], ['big', 'Büyük']] },
+    { key: 'moveTime', label: 'Hamle süresi', type: 'num', def: 15, min: 5, max: 60, step: 5, unit: 'sn' },
+  ],
+};
+GAMES.saniye = {
+  name: 'Tam 10 Saniye',
+  emoji: '⏱️',
+  desc: 'Sayaç yok! İçinden say ve tam 10. saniyede dur. Hedefe en yakın olan kazanır.',
+  minPlayers: 2,
+  defs: [
+    { key: 'rounds', label: 'Tur sayısı', type: 'num', def: 5, min: 2, max: 10, step: 1, unit: 'tur' },
+    { key: 'mode', label: 'Hedef', type: 'choice', def: 'ten', options: [['ten', 'Hep 10 saniye'], ['mix', 'Karışık (5-15 sn)']] },
+  ],
+};
 GAMES.kafe = {
   name: 'Kafe Savaşları',
   emoji: '☕',
@@ -285,10 +337,10 @@ GAMES.quiz = {
 const GAME_COLORS = {
   hangimiz: '#8b5cf6', kimyazdi: '#6366f1', asla: '#f59e0b', komik: '#eab308', yalanci: '#ef4444', kackac: '#06b6d4',
   ikiz: '#ec4899', tele: '#d946ef', ayna: '#60a5fa', emoji: '#fb923c', cogunluk: '#22c55e', ikidogru: '#f43f5e',
-  sirala: '#84cc16', adam: '#b45309', vampir: '#b91c1c', zar: '#0f9488', patates: '#ea580c', taklit: '#2dd4bf', quiz: '#3b82f6', cinayet: '#64748b', kafe: '#a16207',
+  sirala: '#84cc16', adam: '#b45309', vampir: '#b91c1c', zar: '#0f9488', patates: '#ea580c', taklit: '#2dd4bf', quiz: '#3b82f6', cinayet: '#64748b', kafe: '#a16207', isik: '#16a34a', bomba: '#dc2626', kasa: '#ca8a04', balon: '#f472b6', saniye: '#0ea5e9',
 };
 // Games with their own flow instead of write → answer → results.
-const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp', zar: 'zar', patates: 'pat', taklit: 'tak', quiz: 'quiz', cinayet: 'cin', kafe: 'kafe' };
+const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp', zar: 'zar', patates: 'pat', taklit: 'tak', quiz: 'quiz', cinayet: 'cin', kafe: 'kafe', isik: 'isik', bomba: 'bomb', kasa: 'kasa', balon: 'bal', saniye: 'sn' };
 
 const EMO_POINTS = [300, 200];      // 1st and 2nd correct guess; everyone after gets EMO_POINTS_REST
 const EMO_POINTS_REST = 100;
@@ -307,6 +359,20 @@ const SIR_PERFECT_BONUS = 100;
 
 // t = answer shown, a = other accepted spellings.
 // EMO_ITEMS (Emojiyle Anlat titles) lives in emo-items.js, loaded before this file.
+
+/* ---------- Kırmızı Işık / Bomba / Kasa / Balon / Saniye ---------- */
+
+const ISIK_GRACE = 500;          // ms after the light turns red during which letting go still counts
+const ISIK_HOLD = { short: 8, normal: 12, long: 18 };   // seconds of running needed to finish
+const ISIK_MAX = 75000;          // a race never lasts longer than this
+const ISIK_POINTS = [300, 200, 150];
+const ISIK_FINISH_POINTS = 100;
+const KASA_HAZARDS = [{ e: '🐍', n: 'Yılan' }, { e: '🔥', n: 'Yangın' }, { e: '🕷️', n: 'Örümcek' }, { e: '💨', n: 'Zehirli gaz' }, { e: '🪨', n: 'Göçük' }];
+const KASA_GEMS = [1, 2, 3, 4, 5, 5, 7, 7, 9, 11, 13, 15, 17];
+const BAL_SIZE = { small: [3, 9], normal: [6, 16], big: [10, 24] };
+const SN_POINTS = [300, 200, 100];
+const SN_PERFECT = 50;           // within this many ms counts as perfect
+const SN_PERFECT_POINTS = 200;
 
 /* ---------- Kafe Savaşları data ---------- */
 
@@ -1561,6 +1627,49 @@ const Host = {
         return;
       }
 
+      case 'ihold': {
+        if (S.phase !== 'isik' || r.step !== 'race' || r.state[pid] !== 'run') return;
+        const now = Date.now();
+        this.isikSettle(pid, now);
+        if (msg.v && r.light === 'red' && now > r.redAt + ISIK_GRACE) { this.isikOut(pid); this.changed(); return; }
+        r.holdSince[pid] = msg.v ? now : null;
+        return;
+      }
+
+      case 'bguess': {
+        if (S.phase !== 'bomb' || r.step !== 'play' || pid !== r.turn) return;
+        const n = Math.round(Number(msg.n));
+        if (!(n >= r.lo && n <= r.hi)) return;
+        this.bombGuess(pid, n);
+        return;
+      }
+
+      case 'kdecide': {
+        if (S.phase !== 'kasa' || r.step !== 'decide' || !r.inCave.includes(pid)) return;
+        r.decisions[pid] = msg.go ? 'go' : 'leave';
+        this.changed();
+        this.kasaCheck();
+        return;
+      }
+
+      case 'bpump': {
+        if (S.phase !== 'bal' || r.step !== 'play' || pid !== r.turn) return;
+        const n = Math.round(Number(msg.n));
+        if (![1, 2, 3].includes(n)) return;
+        this.balPump(pid, n);
+        return;
+      }
+
+      case 'stime': {
+        if (S.phase !== 'sn' || r.step !== 'go' || !r.roster.includes(pid) || r.times[pid] != null) return;
+        const ms = Math.round(Number(msg.ms));
+        if (!(ms >= 0 && ms <= 120000)) return;
+        r.times[pid] = ms;
+        this.changed();
+        this.snCheck();
+        return;
+      }
+
       case 'kplan': {
         if (S.phase !== 'kafe' || r.step !== 'plan' || !r.roster.includes(pid)) return;
         const price = Math.round(Number(msg.price) / 5) * 5;
@@ -1930,6 +2039,11 @@ const Host = {
         else if (S.phase === 'quiz') this.quizSkip();
         else if (S.phase === 'cin') this.cinSkip();
         else if (S.phase === 'kafe') this.kafeSkip();
+        else if (S.phase === 'isik') this.isikSkip();
+        else if (S.phase === 'bomb') this.bombSkip();
+        else if (S.phase === 'kasa') this.kasaSkip();
+        else if (S.phase === 'bal') this.balSkip();
+        else if (S.phase === 'sn') this.snSkip();
         return;
       case 'lieReset':
         S.lieTotals = {};
@@ -1954,6 +2068,11 @@ const Host = {
         else if (S.phase === 'tak' && r.step === 'unmask') this.takFinish();
         else if (S.phase === 'quiz' && r.step === 'reveal') this.quizNext();
         else if (S.phase === 'kafe' && r.step === 'result') this.kafeNext();
+        else if (S.phase === 'isik' && r.step === 'reveal') this.isikNext();
+        else if (S.phase === 'bomb' && r.step === 'reveal') this.bombNext();
+        else if (S.phase === 'kasa' && r.step === 'end') this.kasaNext();
+        else if (S.phase === 'bal' && r.step === 'reveal') this.balNext();
+        else if (S.phase === 'sn' && r.step === 'reveal') this.snNext();
         return;
       case 'prev':
         if (S.phase === 'results' && r.revealIndex > 0) {
@@ -2091,6 +2210,11 @@ const Host = {
     if (S.game === 'quiz') this.setupQuiz(S.round);
     if (S.game === 'cinayet') this.setupCin(S.round);
     if (S.game === 'kafe') this.setupKafe(S.round);
+    if (S.game === 'isik') this.setupIsik(S.round);
+    if (S.game === 'bomba') this.setupBomb(S.round);
+    if (S.game === 'kasa') this.setupKasa(S.round);
+    if (S.game === 'balon') this.setupBal(S.round);
+    if (S.game === 'saniye') this.setupSn(S.round);
     S.phase = GAME_PHASE[S.game] || 'writing';
     this.changed();
   },
@@ -2663,6 +2787,393 @@ const Host = {
     const r = this.S.round;
     const live = this.liveIds();
     if (r.step === 'rank' && live.length && live.every((id) => r.ranks[id])) this.sirReveal();
+  },
+
+  /* ---------- shared: lives, seats, elimination ---------- */
+
+  livesSetup(r, lives) {
+    const alive = {};
+    const hearts = {};
+    for (const id of r.roster) { alive[id] = true; hearts[id] = lives; }
+    Object.assign(r, { seats: shuffle(r.roster), alive, hearts, maxH: lives, out: [], round: 0, history: [] });
+  },
+
+  livesNext(id) {
+    const r = this.S.round;
+    const i = r.seats.indexOf(id);
+    for (let k = 1; k <= r.seats.length; k++) {
+      const c = r.seats[(i + k) % r.seats.length];
+      if (r.alive[c]) return c;
+    }
+    return id;
+  },
+
+  livesHit(id) {
+    const r = this.S.round;
+    r.hearts[id]--;
+    if (r.hearts[id] <= 0) { r.alive[id] = false; r.out.push(id); }
+    r.pendingEnd = r.seats.filter((x) => r.alive[x]).length <= 1;
+    return !r.alive[id];
+  },
+
+  livesFinish(extra = {}) {
+    const r = this.S.round;
+    const ranking = r.seats.filter((id) => r.alive[id]).concat(r.out.slice().reverse());
+    const scores = {};
+    ranking.forEach((id, i) => { scores[id] = ranking.length - 1 - i; });
+    this.finishCustom({ ...extra, scores, ranking, rounds: r.round, history: r.history });
+  },
+
+  /* ---------- Kırmızı Işık Yeşil Işık ---------- */
+
+  setupIsik(r) {
+    Object.assign(r, { race: 0, races: r.cfg.races, scores: this.zeroScores(r), wins: this.zeroScores(r), outs: this.zeroScores(r), history: [] });
+    this.isikReady(true);
+  },
+
+  isikReady(silent) {
+    const r = this.S.round;
+    r.race++;
+    const prog = {};
+    const state = {};
+    const holdSince = {};
+    for (const id of r.roster) { prog[id] = 0; state[id] = 'run'; holdSince[id] = null; }
+    Object.assign(r, { step: 'ready', prog, state, holdSince, finish: [], light: 'red', redAt: 0, goAt: Date.now() + 3500, endAt: 0, result: null, deadline: null });
+    this.isikLoopStart();
+    if (!silent) this.changed();
+  },
+
+  // Light changes need finer timing than the half-second ticker, so the race has its own loop.
+  isikLoopStart() {
+    clearInterval(this.isikTimer);
+    this.isikTimer = setInterval(() => this.isikTick(), 100);
+  },
+
+  isikSettle(id, now) {
+    const r = this.S.round;
+    if (r.holdSince[id] == null) return;
+    if (r.light === 'green') {
+      const speed = 100 / (ISIK_HOLD[r.cfg.length] || 12) / 1000;
+      r.prog[id] = Math.min(100, r.prog[id] + (now - r.holdSince[id]) * speed);
+    }
+    r.holdSince[id] = now;
+    if (r.prog[id] >= 100 && r.state[id] === 'run') {
+      r.state[id] = 'done';
+      r.holdSince[id] = null;
+      r.finish.push(id);
+      // Once someone is through, the others get 10 more seconds.
+      if (!r.endAt) r.endAt = now + 10000;
+    }
+  },
+
+  isikOut(id) {
+    const r = this.S.round;
+    r.state[id] = 'out';
+    r.holdSince[id] = null;
+    r.outs[id]++;
+  },
+
+  isikTick() {
+    const S = this.S;
+    const r = S.round;
+    if (S.phase !== 'isik' || !r) { clearInterval(this.isikTimer); this.isikTimer = null; return; }
+    const now = Date.now();
+    if (r.step === 'ready') {
+      if (now >= r.goAt) {
+        Object.assign(r, { step: 'race', light: 'green', lightUntil: now + 2000 + Math.random() * 3000, raceStart: now });
+        this.changed();
+      }
+      return;
+    }
+    if (r.step !== 'race') { clearInterval(this.isikTimer); this.isikTimer = null; return; }
+    for (const id of r.roster) this.isikSettle(id, now);
+    if (now >= r.lightUntil) {
+      if (r.light === 'green') {
+        r.light = 'red';
+        r.redAt = now;
+        r.lightUntil = now + 1500 + Math.random() * 2000;
+      } else {
+        r.light = 'green';
+        r.lightUntil = now + 1200 + Math.random() * 4000;
+      }
+    }
+    // Still holding once the grace period after red is over: caught moving!
+    if (r.light === 'red' && now > r.redAt + ISIK_GRACE) for (const id of r.roster) if (r.state[id] === 'run' && r.holdSince[id] != null) this.isikOut(id);
+    const running = r.roster.filter((id) => r.state[id] === 'run' && S.players[id] && S.players[id].connected);
+    if (!running.length || now - r.raceStart > ISIK_MAX || (r.endAt && now >= r.endAt)) { this.isikEnd(); return; }
+    this.changed();
+  },
+
+  isikEnd() {
+    const r = this.S.round;
+    clearInterval(this.isikTimer);
+    this.isikTimer = null;
+    const delta = {};
+    r.finish.forEach((id, i) => { delta[id] = (ISIK_POINTS[i] || 0) + ISIK_FINISH_POINTS; });
+    if (r.finish[0]) r.wins[r.finish[0]]++;
+    this.addPoints(r, delta);
+    const order = r.finish.concat(r.roster.filter((id) => r.state[id] === 'run').sort((a, b) => r.prog[b] - r.prog[a]), r.roster.filter((id) => r.state[id] === 'out'));
+    r.result = { order, state: { ...r.state }, prog: Object.fromEntries(Object.entries(r.prog).map(([k, v]) => [k, Math.round(v)])), delta, scores: { ...r.scores } };
+    r.history.push({ race: r.race, winner: r.finish[0] || null });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  isikSkip() {
+    const r = this.S.round;
+    if (r.step === 'race' || r.step === 'ready') this.isikEnd();
+    else this.isikNext();
+  },
+
+  isikNext() {
+    const r = this.S.round;
+    if (r.race >= r.races) {
+      this.finishCustom({ scores: { ...r.scores }, wins: { ...r.wins }, outs: { ...r.outs }, history: r.history, ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a]) });
+      return;
+    }
+    this.isikReady();
+  },
+
+  /* ---------- Bomba Sayısı ---------- */
+
+  setupBomb(r) {
+    this.livesSetup(r, Number(r.cfg.lives) || 2);
+    this.bombStart(r.seats[0], true);
+  },
+
+  bombStart(starter, silent) {
+    const r = this.S.round;
+    const max = Number(r.cfg.max) || 100;
+    r.round++;
+    Object.assign(r, { max, bomb: 1 + Math.floor(Math.random() * max), lo: 1, hi: max, guesses: [], step: 'play', result: null, pendingEnd: false });
+    r.turn = r.alive[starter] ? starter : this.livesNext(starter);
+    this.setStepDeadline(r.cfg.moveTime);
+    if (!silent) this.changed();
+  },
+
+  bombGuess(pid, n) {
+    const r = this.S.round;
+    const hit = n === r.bomb;
+    r.guesses.push({ id: pid, n, dir: hit ? 0 : n < r.bomb ? 1 : -1 });
+    if (hit) {
+      const gone = this.livesHit(pid);
+      r.result = { victim: pid, bomb: r.bomb, gone, guesses: r.guesses };
+      r.history.push({ round: r.round, victim: pid, bomb: r.bomb, tries: r.guesses.length });
+      r.step = 'reveal';
+      this.revealDeadline();
+      this.changed();
+      return;
+    }
+    if (n < r.bomb) r.lo = n + 1; else r.hi = n - 1;
+    r.turn = this.livesNext(pid);
+    this.setStepDeadline(r.cfg.moveTime);
+    this.changed();
+  },
+
+  bombSkip() {
+    const r = this.S.round;
+    if (r.step === 'play') this.bombGuess(r.turn, r.lo + Math.floor(Math.random() * (r.hi - r.lo + 1)));
+    else this.bombNext();
+  },
+
+  bombNext() {
+    const r = this.S.round;
+    if (r.pendingEnd) { this.livesFinish(); return; }
+    this.bombStart(r.result.victim);
+  },
+
+  /* ---------- Açgözlü Kasa ---------- */
+
+  setupKasa(r) {
+    Object.assign(r, { round: 0, rounds: r.cfg.rounds, bank: this.zeroScores(r), busts: this.zeroScores(r), history: [] });
+    this.kasaStartRound(true);
+  },
+
+  kasaStartRound(silent) {
+    const r = this.S.round;
+    r.round++;
+    const carry = {};
+    for (const id of r.roster) carry[id] = 0;
+    Object.assign(r, { inCave: r.roster.slice(), carry, table: 0, path: [], seen: {}, left: [], lastLeft: [], result: null });
+    this.kasaDraw(silent);
+  },
+
+  // Turn over the next card: gems are shared by everyone still inside, a second hazard of a kind ends it all.
+  kasaDraw(silent) {
+    const r = this.S.round;
+    if (Math.random() < 0.6 || !r.path.length) {
+      const v = KASA_GEMS[Math.floor(Math.random() * KASA_GEMS.length)];
+      const n = r.inCave.length;
+      for (const id of r.inCave) r.carry[id] += Math.floor(v / n);
+      r.table += v % n;
+      r.path.push({ gem: v, each: Math.floor(v / n), rest: v % n });
+    } else {
+      const h = Math.floor(Math.random() * KASA_HAZARDS.length);
+      const bust = !!r.seen[h];
+      r.seen[h] = true;
+      r.path.push({ haz: h, bust });
+      if (bust) { this.kasaEnd(h); return; }
+    }
+    r.step = 'decide';
+    r.decisions = {};
+    this.setStepDeadline(r.cfg.decideTime);
+    if (!silent) this.changed();
+  },
+
+  kasaCheck() {
+    const r = this.S.round;
+    if (r.step !== 'decide') return;
+    const live = this.liveIds().filter((id) => r.inCave.includes(id));
+    if (live.every((id) => r.decisions[id])) this.kasaResolve();
+  },
+
+  // Everyone decides at the same time; those leaving split what is lying on the floor and keep their bag.
+  kasaResolve() {
+    const r = this.S.round;
+    const leavers = r.inCave.filter((id) => r.decisions[id] !== 'go');
+    if (leavers.length) {
+      const per = Math.floor(r.table / leavers.length);
+      r.table -= per * leavers.length;
+      for (const id of leavers) r.bank[id] += r.carry[id] + per;
+      r.inCave = r.inCave.filter((id) => !leavers.includes(id));
+      r.left = r.left.concat(leavers);
+    }
+    r.lastLeft = leavers;
+    if (!r.inCave.length) { this.kasaEnd(null); return; }
+    this.kasaDraw();
+  },
+
+  kasaEnd(hazard) {
+    const r = this.S.round;
+    const lost = {};
+    if (hazard != null) for (const id of r.inCave) { lost[id] = r.carry[id]; r.busts[id]++; }
+    r.result = { hazard, lost, path: r.path, bank: { ...r.bank } };
+    r.history.push({ round: r.round, hazard, caught: r.inCave.slice(), cards: r.path.length });
+    r.step = 'end';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  kasaSkip() {
+    const r = this.S.round;
+    if (r.step === 'decide') this.kasaResolve();
+    else this.kasaNext();
+  },
+
+  kasaNext() {
+    const r = this.S.round;
+    if (r.round >= r.rounds) {
+      this.finishCustom({ scores: { ...r.bank }, busts: { ...r.busts }, history: r.history, ranking: r.roster.slice().sort((a, b) => r.bank[b] - r.bank[a]) });
+      return;
+    }
+    this.kasaStartRound();
+  },
+
+  /* ---------- Patlayan Balon ---------- */
+
+  setupBal(r) {
+    this.livesSetup(r, Number(r.cfg.lives) || 2);
+    this.balStart(r.seats[0], true);
+  },
+
+  balStart(starter, silent) {
+    const r = this.S.round;
+    const [lo, hi] = BAL_SIZE[r.cfg.size] || BAL_SIZE.normal;
+    r.round++;
+    Object.assign(r, { limit: lo + Math.floor(Math.random() * (hi - lo + 1)), pumps: 0, log: [], step: 'play', result: null, pendingEnd: false });
+    r.turn = r.alive[starter] ? starter : this.livesNext(starter);
+    this.setStepDeadline(r.cfg.moveTime);
+    if (!silent) this.changed();
+  },
+
+  balPump(pid, n) {
+    const r = this.S.round;
+    for (let k = 1; k <= n; k++) {
+      r.pumps++;
+      if (r.pumps >= r.limit) {
+        r.log.push({ id: pid, n: k, pop: true });
+        const gone = this.livesHit(pid);
+        r.result = { victim: pid, limit: r.limit, gone, log: r.log };
+        r.history.push({ round: r.round, victim: pid, limit: r.limit });
+        r.step = 'reveal';
+        this.revealDeadline();
+        this.changed();
+        return;
+      }
+    }
+    r.log.push({ id: pid, n });
+    r.turn = this.livesNext(pid);
+    this.setStepDeadline(r.cfg.moveTime);
+    this.changed();
+  },
+
+  balSkip() {
+    const r = this.S.round;
+    if (r.step === 'play') this.balPump(r.turn, 1);
+    else this.balNext();
+  },
+
+  balNext() {
+    const r = this.S.round;
+    if (r.pendingEnd) { this.livesFinish(); return; }
+    this.balStart(r.result.victim);
+  },
+
+  /* ---------- Tam 10 Saniye ---------- */
+
+  setupSn(r) {
+    Object.assign(r, { round: 0, rounds: r.cfg.rounds, scores: this.zeroScores(r), perfect: this.zeroScores(r), best: {}, history: [] });
+    this.snStart(true);
+  },
+
+  snStart(silent) {
+    const r = this.S.round;
+    r.round++;
+    Object.assign(r, { target: r.cfg.mode === 'mix' ? 5 + Math.floor(Math.random() * 11) : 10, times: {}, step: 'ready', goAt: Date.now() + 3500, result: null, deadline: null });
+    if (!silent) this.changed();
+  },
+
+  snCheck() {
+    const r = this.S.round;
+    if (r.step !== 'go') return;
+    const live = this.liveIds();
+    if (live.length && live.every((id) => r.times[id] != null)) this.snReveal();
+  },
+
+  snReveal() {
+    const r = this.S.round;
+    const goal = r.target * 1000;
+    const ids = Object.keys(r.times).sort((a, b) => Math.abs(r.times[a] - goal) - Math.abs(r.times[b] - goal));
+    const delta = {};
+    ids.forEach((id, i) => {
+      const off = Math.abs(r.times[id] - goal);
+      let pts = SN_POINTS[i] || 0;
+      if (off <= SN_PERFECT) { pts += SN_PERFECT_POINTS; r.perfect[id]++; }
+      if (pts) delta[id] = pts;
+      if (r.best[id] == null || off < r.best[id]) r.best[id] = off;
+    });
+    this.addPoints(r, delta);
+    r.result = { target: r.target, times: { ...r.times }, order: ids, delta, scores: { ...r.scores } };
+    r.history.push({ round: r.round, target: r.target, winner: ids[0] || null, off: ids[0] ? Math.abs(r.times[ids[0]] - goal) : null });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  snSkip() {
+    const r = this.S.round;
+    if (r.step === 'go') this.snReveal();
+    else if (r.step === 'reveal') this.snNext();
+  },
+
+  snNext() {
+    const r = this.S.round;
+    if (r.round >= r.rounds) {
+      this.finishCustom({ scores: { ...r.scores }, perfect: { ...r.perfect }, best: { ...r.best }, history: r.history, ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a]) });
+      return;
+    }
+    this.snStart();
   },
 
   /* ---------- Kafe Savaşları ---------- */
@@ -4204,6 +4715,11 @@ const Host = {
       else if (S.phase === 'quiz' && now >= r.deadline) this.quizSkip();
       else if (S.phase === 'cin' && now >= r.deadline) this.cinSkip();
       else if (S.phase === 'kafe' && now >= r.deadline) this.kafeSkip();
+      else if (S.phase === 'isik' && now >= r.deadline && r.step === 'reveal') this.isikNext();
+      else if (S.phase === 'bomb' && now >= r.deadline) this.bombSkip();
+      else if (S.phase === 'kasa' && now >= r.deadline) this.kasaSkip();
+      else if (S.phase === 'bal' && now >= r.deadline) this.balSkip();
+      else if (S.phase === 'sn' && now >= r.deadline) this.snSkip();
     }
     if (S.phase === 'ikiz' && r) this.ikizCheck();
     if (S.phase === 'tele' && r) this.teleCheck();
@@ -4217,6 +4733,12 @@ const Host = {
     if (S.phase === 'quiz' && r) this.quizCheck();
     if (S.phase === 'cin' && r) this.cinCheck();
     if (S.phase === 'kafe' && r) this.kafeCheck();
+    if (S.phase === 'kasa' && r) this.kasaCheck();
+    // After the leader reloads mid-race, pick the race loop back up.
+    if (S.phase === 'isik' && r && (r.step === 'ready' || r.step === 'race') && !this.isikTimer) this.isikLoopStart();
+    if (S.phase === 'sn' && r) this.snCheck();
+    // The countdown before the stopwatch starts doesn't care about "Süresiz".
+    if (S.phase === 'sn' && r && r.step === 'ready' && now >= r.goAt) { r.step = 'go'; r.deadline = now + (r.target + 10) * 1000; r.deadlineTotal = (r.target + 10) * 1000; this.changed(); }
     // The bomb ignores "Süresiz": it is the whole game.
     if (S.phase === 'pat' && r && r.step === 'play' && now >= r.boomAt) this.patBoom();
     if (S.phase === 'kac' && r) {
@@ -4424,6 +4946,38 @@ const Host = {
         rankIds: r.step === 'rank' ? r.rankIds : null, myRank: (r.ranks && r.ranks[pid]) || null,
         result: r.step === 'reveal' ? r.history[r.history.length - 1] : null,
       };
+    } else if (S.phase === 'isik') {
+      pub.stepKey = r.step + r.race;
+      pub.isik = {
+        step: r.step, race: r.race, races: r.races, light: r.light, state: r.state, finish: r.finish, hurry: !!r.endAt,
+        prog: Object.fromEntries(Object.entries(r.prog).map(([k, v]) => [k, Math.round(v * 10) / 10])),
+        result: r.step === 'reveal' ? r.result : null, scores: r.scores,
+      };
+    } else if (S.phase === 'bomb') {
+      pub.stepKey = r.step + r.round;
+      pub.bomb = {
+        step: r.step, round: r.round, lo: r.lo, hi: r.hi, max: r.max, turn: r.turn, myTurn: r.turn === pid && r.step === 'play', guesses: r.guesses,
+        seats: r.seats, alive: r.alive, hearts: r.hearts, maxH: r.maxH, result: r.step === 'reveal' ? r.result : null, pendingEnd: r.step === 'reveal' && r.pendingEnd,
+      };
+    } else if (S.phase === 'kasa') {
+      const done = {};
+      for (const id of r.inCave) done[id] = !!(r.decisions && r.decisions[id]);
+      pub.stepKey = r.step + r.round + '-' + r.path.length;
+      pub.kasa = {
+        step: r.step, round: r.round, rounds: r.rounds, path: r.path, inCave: r.inCave, left: r.left, lastLeft: r.lastLeft, carry: r.carry, bank: r.bank,
+        table: r.table, seen: r.seen, done, myChoice: r.decisions ? r.decisions[pid] || null : null, result: r.step === 'end' ? r.result : null,
+      };
+    } else if (S.phase === 'bal') {
+      pub.stepKey = r.step + r.round;
+      pub.bal = {
+        step: r.step, round: r.round, pumps: r.pumps, turn: r.turn, myTurn: r.turn === pid && r.step === 'play', log: r.log,
+        seats: r.seats, alive: r.alive, hearts: r.hearts, maxH: r.maxH, result: r.step === 'reveal' ? r.result : null, pendingEnd: r.step === 'reveal' && r.pendingEnd,
+      };
+    } else if (S.phase === 'sn') {
+      const done = {};
+      for (const id of r.roster) done[id] = r.times[id] != null;
+      pub.stepKey = r.step + r.round;
+      pub.sn = { step: r.step, round: r.round, rounds: r.rounds, target: r.target, done, sent: r.times[pid] != null, result: r.step === 'reveal' ? r.result : null };
     } else if (S.phase === 'kafe') {
       // Plans stay secret until the day is over; everyone sees the cafés' money and stats.
       const done = {};
@@ -5660,15 +6214,15 @@ function render() {
   if (!s) return;
   const inRound = !!(s.roster && s.roster.includes(s.you));
   let screen = s.phase;
-  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin', 'kafe'].includes(s.phase) && !inRound) screen = 'spectate';
+  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin', 'kafe', 'isik', 'bomb', 'kasa', 'bal', 'sn'].includes(s.phase) && !inRound) screen = 'spectate';
   if (screen === 'lie') screen = 'lie:' + s.lie.step;
   if (screen === 'kac') screen = 'kac:' + s.kac.step;
-  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin', 'kafe'].includes(screen)) screen += ':' + s[screen].step;
+  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin', 'kafe', 'isik', 'bomb', 'kasa', 'bal', 'sn'].includes(screen)) screen += ':' + s[screen].step;
   let key = screen + ':' + (s.roundId || '');
   if (screen === 'results') key += ':' + s.reveal.index;
   if (screen === 'lie:clues') key += ':' + s.lie.turn;
   if (screen.startsWith('kac:')) key += ':' + s.kac.ti;
-  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp|zar|pat|tak|quiz|cin|kafe):/.test(screen)) key += ':' + s.stepKey;
+  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp|zar|pat|tak|quiz|cin|kafe|isik|bomb|kasa|bal|sn):/.test(screen)) key += ':' + s.stepKey;
   if (screen === 'writing' && s.writing.stage) key += ':' + s.writing.stage;
 
   const fresh = key !== App.screenKey;
@@ -6967,6 +7521,340 @@ function sirFinalMount(s) {
     true
   );
 }
+
+/* ---------- shared screens for the quick games ---------- */
+
+function livesTable(D) {
+  return '<div class="ztable">' + D.seats.map((id) => '<span class="zp ' + (D.alive[id] ? '' : 'out') + (D.turn === id && D.step === 'play' ? ' turn' : '') + '">' +
+    avatarHTML(nameOf(id), 'sm') + esc(nameOf(id).name) + ' <b>' + (D.alive[id] ? '❤️'.repeat(D.hearts[id]) + '🖤'.repeat(D.maxH - D.hearts[id]) : '💀') + '</b></span>').join('') + '</div>';
+}
+
+function quickFinalMount(s) {
+  const F = s.final;
+  const sub = (id) => s.game === 'kasa' ? F.scores[id] + ' 💎' : ['isik', 'saniye'].includes(s.game) ? F.scores[id] + ' puan' : (F.ranking.indexOf(id) + 1) + '.';
+  const extra = (id) => s.game === 'isik' ? F.wins[id] + ' kez birinci · ' + F.outs[id] + ' kez yakalandı'
+    : s.game === 'kasa' ? F.busts[id] + ' kez mağarada kaldı'
+    : s.game === 'saniye' ? (F.best[id] != null ? 'en iyi: ' + (F.best[id] / 1000).toFixed(2).replace('.', ',') + ' sn sapma' : '—') + (F.perfect[id] ? ' · 🎯×' + F.perfect[id] : '')
+    : F.ranking.indexOf(id) === 0 ? 'son kalan 🏆' : 'elendi';
+  const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
+    '<span class="nm">' + esc(nameOf(id).name) + '<small>' + extra(id) + '</small></span><b>' + sub(id) + '</b></div>').join('');
+  const w = F.ranking[0];
+  mount(
+    header() +
+    '<div class="phase-title"><h1>' + esc(nameOf(w).av) + ' ' + esc(nameOf(w).name) + ' kazandı!</h1><p>' + esc(GAMES[s.game].emoji + ' ' + GAMES[s.game].name) + '</p></div>' +
+    podiumHTML(F.ranking, sub) +
+    '<div class="card" style="border-top-left-radius:0;border-top-right-radius:0"><h2>Sıralama 🏅</h2><div class="board">' + board + '</div></div>' +
+    finalFooter(),
+    true
+  );
+}
+
+/* ---------- Kırmızı Işık Yeşil Işık ---------- */
+
+function isikHold(v) {
+  const I = App.state && App.state.isik;
+  if (!I || I.step !== 'race' || I.state[App.state.you] !== 'run') v = false;
+  if (!!App.isHold === v) return;
+  App.isHold = v;
+  send({ t: 'ihold', v });
+  const b = $('#isikBtn');
+  if (b) b.classList.toggle('down', v);
+}
+
+// One set of listeners for the whole page: letting go anywhere counts.
+function isikListeners() {
+  if (App.isikWired) return;
+  App.isikWired = true;
+  const up = () => isikHold(false);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
+  window.addEventListener('blur', up);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) up(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.code === 'Space' && App.state && App.state.phase === 'isik' && !/^(INPUT|TEXTAREA)$/.test(document.activeElement.tagName)) { e.preventDefault(); isikHold(true); }
+  });
+  document.addEventListener('keyup', (e) => { if (e.code === 'Space') isikHold(false); });
+}
+
+function isikTrack(s) {
+  const I = s.isik;
+  return s.roster.map((id) => {
+    const st = I.state[id];
+    const pct = Math.min(100, I.prog[id] || 0);
+    return '<div class="itrack ' + st + (id === s.you ? ' me' : '') + '"><span class="iname">' + esc(nameOf(id).name) + '</span><div class="ilane"><span class="irunner" style="left:calc(' + pct + '% - 15px)">' +
+      avatarHTML(nameOf(id), 'sm') + '</span><span class="iflag">🏁</span></div><span class="istate">' + (st === 'out' ? '💀' : st === 'done' ? '🏆' : Math.floor(pct) + '%') + '</span></div>';
+  }).join('');
+}
+
+Views['isik:ready'] = {
+  mount(s) {
+    const I = s.isik;
+    App.isHold = false;
+    isikListeners();
+    mount(header() + '<div class="vbar day isikbar"><b>🚦 Yarış ' + I.race + ' / ' + I.races + '</b><span>Bas, koş… ve dur!</span></div>' +
+      '<div class="card center ilight wait"><div class="ibig">⏳</div><h1 style="margin:0">Hazır ol!</h1><p class="muted">Işık yeşil olunca düğmeye <b>basılı tut</b>, kırmızı olunca <b>hemen bırak</b>.</p></div>' +
+      '<div class="card">' + isikTrack(s) + '</div>');
+    Sound.beep(440, 0.15, 'triangle', 0.06);
+  },
+};
+
+Views['isik:race'] = {
+  mount(s) {
+    App.isikLight = null;
+    isikListeners();
+    const me = s.roster.includes(s.you);
+    mount(header() + '<div class="card center ilight" id="isikLight"></div>' +
+      '<div class="card" id="isikTrack"></div>' +
+      (me ? '<button class="isikbtn" id="isikBtn">🏃<span>BASILI TUT</span></button>' : '') + hostSkip('Yarışı bitir'));
+    const b = $('#isikBtn');
+    if (b) {
+      b.addEventListener('pointerdown', (e) => { e.preventDefault(); isikHold(true); });
+      b.addEventListener('contextmenu', (e) => e.preventDefault());
+    }
+  },
+  update(s) {
+    const I = s.isik;
+    const st = I.state[s.you];
+    if (I.light !== App.isikLight) {
+      App.isikLight = I.light;
+      const box = $('#isikLight');
+      box.className = 'card center ilight ' + I.light;
+      box.innerHTML = I.light === 'green' ? '<div class="ibig">🟢</div><h1 style="margin:0">KOŞ!</h1>' : '<div class="ibig">🔴</div><h1 style="margin:0">DUR!</h1>';
+      if (I.light === 'green') Sound.beep(880, 0.12, 'triangle', 0.07); else { Sound.beep(160, 0.35, 'sawtooth', 0.07); buzz(120); }
+    }
+    $('#isikTrack').innerHTML = (I.hurry ? '<p class="ihurry">⏳ ' + esc(nameOf(I.finish[0]).name) + ' bitirdi! Diğerlerine son 10 saniye!</p>' : '') + isikTrack(s);
+    const b = $('#isikBtn');
+    if (b && st !== 'run') {
+      b.disabled = true;
+      b.innerHTML = st === 'out' ? '💀<span>YAKALANDIN!</span>' : '🏆<span>BİTİRDİN!</span>';
+      if (App.isHold) isikHold(false);
+    }
+  },
+};
+
+Views['isik:reveal'] = {
+  mount(s) {
+    const I = s.isik;
+    const R = I.result;
+    const rows = R.order.map((id, i) => '<div class="srow">' + '<span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) +
+      '<small>' + (R.state[id] === 'done' ? '🏁 bitirdi' : R.state[id] === 'out' ? '💀 kırmızıda yakalandı (' + R.prog[id] + '%)' : '⏱️ yetişemedi (' + R.prog[id] + '%)') + '</small></span>' +
+      (R.delta[id] ? '<span class="dl">+' + R.delta[id] + '</span>' : '') + '</div>').join('');
+    mount(header() + revealTimer(s) + '<div class="vbar day isikbar"><b>🚦 Yarış ' + I.race + ' sonucu</b><span></span></div>' +
+      '<div class="card"><h2>Yarış</h2><div class="board">' + rows + '</div></div>' +
+      '<div class="card"><h2>Puan durumu</h2>' + scoreBoard(s, R.scores, R.delta) + '</div>' +
+      hostNext(s, I.race >= I.races ? '🏆 Sonuçlar' : '🚦 Sonraki yarış'));
+    Sound.fanfare();
+  },
+};
+
+/* ---------- Bomba Sayısı ---------- */
+
+function bombGuessList(list) {
+  return list.length ? '<div class="bglist">' + list.slice().reverse().map((g) => '<span class="bg ' + (g.dir === 0 ? 'boom' : '') + '">' + esc(nameOf(g.id).name) + ': <b>' + g.n + '</b> ' +
+    (g.dir === 0 ? '💥' : g.dir > 0 ? '⬆️' : '⬇️') + '</span>').join('') + '</div>' : '<p class="muted center" style="margin:0">Henüz kimse sayı söylemedi.</p>';
+}
+
+Views['bomb:play'] = {
+  mount(s) {
+    App.bombSeen = '';
+    mount(header() + timerHTML('Hamle süresi') + '<div class="vbar day bombbar"><b>💥 Tur ' + s.bomb.round + '</b><span>Bomba 1 ile ' + s.bomb.max + ' arasında bir yerde</span></div>' +
+      '<div class="card center"><div class="muted" style="font-weight:700">Bomba bu aralıkta</div><div class="brange" id="bombRange"></div><div class="bheat"><i id="bombHeat"></i></div></div>' +
+      '<div id="bombMain"></div><div class="card"><h2>Söylenenler</h2><div id="bombList"></div><p class="muted" style="margin:8px 0 0;font-size:13px">⬆️ bomba daha büyük · ⬇️ bomba daha küçük</p></div>' +
+      '<div class="card"><h2>Oyuncular</h2><div id="bombTable"></div></div>' + OFFLINE_NOTE + hostSkip('Rastgele sayı söylet'));
+  },
+  update(s) {
+    const B = s.bomb;
+    const size = B.hi - B.lo + 1;
+    $('#bombRange').innerHTML = B.lo === B.hi ? '<b>' + B.lo + '</b>' : '<b>' + B.lo + '</b> — <b>' + B.hi + '</b>';
+    $('#bombHeat').style.width = Math.max(4, 100 - size / B.max * 100) + '%';
+    $('#bombList').innerHTML = bombGuessList(B.guesses);
+    $('#bombTable').innerHTML = livesTable(B);
+    const key = B.turn + ':' + B.guesses.length;
+    if (key !== App.bombSeen) {
+      App.bombSeen = key;
+      $('#bombMain').innerHTML = B.myTurn
+        ? '<div class="card myturn center"><h2 style="margin:0 0 8px">Sıra sende! 😰</h2>' + (B.lo === B.hi ? '<p class="err" style="margin:0 0 8px">Tek sayı kaldı… kaçış yok!</p>' : '') +
+          '<div class="row"><input id="bombIn" class="field grow" type="number" inputmode="numeric" min="' + B.lo + '" max="' + B.hi + '" placeholder="' + B.lo + ' - ' + B.hi + '">' +
+          '<button class="dice" data-act="bRand" title="Rastgele">🎲</button><button class="btn red" data-act="bSay">Söyle</button></div></div>'
+        : '<div class="card center"><div class="kasker">Sıra: ' + avatarHTML(nameOf(B.turn)) + '<b>' + esc(nameOf(B.turn).name) + '</b></div></div>';
+      if (B.myTurn) { Sound.join(); focusFine('#bombIn', true); } else if (B.guesses.length) Sound.tick();
+    }
+    updateOffline(s, [B.turn]);
+  },
+};
+
+Views['bomb:reveal'] = {
+  mount(s) {
+    const B = s.bomb;
+    const R = B.result;
+    mount(header() + revealTimer(s) +
+      '<div class="card center patboom"><div class="bomb">💥</div><h1 style="margin:0">BOOM!</h1><div style="font-size:20px;margin-top:6px">Bomba: <b>' + R.bomb + '</b></div>' +
+        '<div class="kasker" style="margin-top:8px">Patlayan: ' + avatarHTML(nameOf(R.victim)) + '<b>' + esc(nameOf(R.victim).name) + '</b></div>' +
+        '<p style="margin:8px 0 0">' + (R.gone ? '💀 Canı bitti, oyundan çıktı!' : 'Bir can kaybetti') + '</p></div>' +
+      '<div class="card"><h2>Söylenenler</h2>' + bombGuessList(R.guesses) + '</div>' +
+      '<div class="card"><h2>Oyuncular</h2>' + livesTable(B) + '</div>' + hostNext(s, B.pendingEnd ? '🏆 Sonuçlar' : '💣 Yeni bomba'));
+    Sound.beep(90, 0.6, 'sawtooth', 0.09);
+    if (R.victim === s.you) buzz([200, 80, 400]);
+  },
+};
+
+/* ---------- Açgözlü Kasa ---------- */
+
+function kasaCard(c, last) {
+  if (c.gem != null) return '<span class="kcard gem ' + (last ? 'new' : '') + '"><b>💎 ' + c.gem + '</b><small>kişi başı ' + c.each + (c.rest ? ' · ' + c.rest + ' yerde' : '') + '</small></span>';
+  const h = KASA_HAZARDS[c.haz];
+  return '<span class="kcard haz ' + (c.bust ? 'bust ' : '') + (last ? 'new' : '') + '"><b>' + h.e + '</b><small>' + esc(h.n) + (c.bust ? ' · 2. kez!' : '') + '</small></span>';
+}
+
+function kasaPlayers(s) {
+  const K = s.kasa;
+  return '<div class="board">' + s.roster.slice().sort((a, b) => K.bank[b] - K.bank[a]).map((id) => {
+    const inside = K.inCave.includes(id);
+    return '<div class="srow">' + avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) +
+      '<small>' + (inside ? '⛏️ mağarada · çantasında ' + K.carry[id] + ' 💎' : '🏕️ kampa döndü') + '</small></span><b>' + K.bank[id] + ' 💎</b></div>';
+  }).join('') + '</div>';
+}
+
+Views['kasa:decide'] = {
+  mount(s) {
+    const K = s.kasa;
+    const inside = K.inCave.includes(s.you);
+    const seen = Object.keys(K.seen).map((h) => KASA_HAZARDS[h].e).join(' ');
+    const left = K.lastLeft.length ? '<p class="kleft">🏃 Çekilenler: ' + K.lastLeft.map((id) => esc(nameOf(id).name)).join(', ') + '</p>' : '';
+    mount(header() + timerHTML('Karar süresi') +
+      '<div class="vbar day kasabar"><b>⛏️ Mağara · Tur ' + K.round + ' / ' + K.rounds + '</b><span>Yerde: ' + K.table + ' 💎</span></div>' +
+      '<div class="card"><div class="kpath">' + K.path.map((c, i) => kasaCard(c, i === K.path.length - 1)).join('') + '</div>' + left +
+        (seen ? '<p class="kwarn">⚠️ Görülen tehlikeler: ' + seen + ' — biri <b>ikinci kez</b> çıkarsa içeridekiler her şeyini kaybeder!</p>' : '') + '</div>' +
+      (inside ? '<div class="card center myturn"><div class="muted" style="font-weight:700">Çantanda</div><div class="kbag">' + K.carry[s.you] + ' 💎</div>' +
+          '<div class="kchoice"><button class="btn green big" data-act="kGo" data-v="1">⛏️ Devam</button><button class="btn yellow big" data-act="kGo" data-v="0">🏃 Çekil</button></div>' +
+          '<p class="muted center" id="kasaMine" style="margin:8px 0 0"></p></div>'
+        : '<div class="card center"><div class="ibig">🏕️</div><b>Kamptasın</b><p class="muted" style="margin:4px 0 0">Kasanda ' + (K.bank[s.you] || 0) + ' 💎 güvende. İçeridekileri izle!</p></div>') +
+      '<div class="card"><h2>Kim karar verdi?</h2><div class="chips" id="kasaChips"></div></div>' +
+      '<div class="card"><h2>Kâşifler</h2>' + kasaPlayers(s) + '</div>' + hostSkip('Kararları aç'));
+    const last = K.path[K.path.length - 1];
+    if (last && last.haz != null) { Sound.beep(200, 0.25, 'sawtooth', 0.05); buzz(80); } else Sound.beep(988, 0.1, 'triangle', 0.06);
+  },
+  update(s) {
+    const K = s.kasa;
+    $('#kasaChips').innerHTML = doneChips(s, K.done, K.inCave);
+    if ($('#kasaMine')) $('#kasaMine').textContent = K.myChoice ? (K.myChoice === 'go' ? '⛏️ Devam dedin' : '🏃 Çekil dedin') + ' (süre bitene kadar değiştirebilirsin)' : '';
+    $$('[data-act=kGo]').forEach((b) => b.classList.toggle('picked', (b.dataset.v === '1') === (K.myChoice === 'go') && !!K.myChoice));
+  },
+};
+
+Views['kasa:end'] = {
+  mount(s) {
+    const K = s.kasa;
+    const R = K.result;
+    const lost = Object.keys(R.lost);
+    const head = R.hazard != null
+      ? '<div class="ibig">' + KASA_HAZARDS[R.hazard].e + '</div><h1 style="margin:0">' + esc(KASA_HAZARDS[R.hazard].n) + ' ikinci kez çıktı!</h1>' +
+        (lost.length ? '<p>İçeride kalanlar çantalarını kaybetti: ' + lost.map((id) => '<b>' + esc(nameOf(id).name) + '</b> (−' + R.lost[id] + ' 💎)').join(', ') + '</p>' : '')
+      : '<div class="ibig">🏕️</div><h1 style="margin:0">Herkes sağ salim çıktı!</h1>';
+    mount(header() + revealTimer(s) +
+      '<div class="card center ' + (R.hazard != null ? 'patboom' : '') + '">' + head + '</div>' +
+      '<div class="card"><h2>Mağara</h2><div class="kpath">' + R.path.map((c) => kasaCard(c, false)).join('') + '</div></div>' +
+      '<div class="card"><h2>Kasalar</h2>' + kasaPlayers(s) + '</div>' + hostNext(s, K.round >= K.rounds ? '🏆 Sonuçlar' : '⛏️ Sonraki tur'));
+    if (R.hazard != null) Sound.beep(90, 0.6, 'sawtooth', 0.09); else Sound.fanfare();
+  },
+};
+
+/* ---------- Patlayan Balon ---------- */
+
+Views['bal:play'] = {
+  mount(s) {
+    App.balSeen = '';
+    mount(header() + timerHTML('Hamle süresi') + '<div class="vbar day balbar"><b>🎈 Balon ' + s.bal.round + '</b><span>Ne zaman patlayacağı gizli…</span></div>' +
+      '<div class="card center"><div class="balloon" id="balBig">🎈</div><div class="bpumps" id="balCount"></div></div>' +
+      '<div id="balMain"></div><div class="card"><h2>Pompalar</h2><div id="balLog"></div></div>' +
+      '<div class="card"><h2>Oyuncular</h2><div id="balTable"></div></div>' + OFFLINE_NOTE + hostSkip('1 pompa bastır'));
+  },
+  update(s) {
+    const B = s.bal;
+    const big = $('#balBig');
+    big.style.fontSize = Math.min(200, 70 + B.pumps * 9) + 'px';
+    big.classList.toggle('shake', B.pumps >= 6);
+    $('#balCount').textContent = B.pumps + ' pompa basıldı';
+    $('#balLog').innerHTML = B.log.length ? '<div class="bglist">' + B.log.slice().reverse().map((l) => '<span class="bg">' + esc(nameOf(l.id).name) + ': <b>+' + l.n + '</b></span>').join('') + '</div>' : '<p class="muted" style="margin:0">Henüz kimse şişirmedi.</p>';
+    $('#balTable').innerHTML = livesTable(B);
+    const key = B.turn + ':' + B.pumps;
+    if (key !== App.balSeen) {
+      App.balSeen = key;
+      $('#balMain').innerHTML = B.myTurn
+        ? '<div class="card myturn center"><h2 style="margin:0 0 10px">Sıra sende! Kaç kez şişireceksin?</h2><div class="kchoice">' +
+          [1, 2, 3].map((n) => '<button class="btn big ' + ['green', 'yellow', 'red'][n - 1] + '" data-act="pPump" data-n="' + n + '">' + '💨'.repeat(n) + ' ' + n + '</button>').join('') + '</div></div>'
+        : '<div class="card center"><div class="kasker">Sıra: ' + avatarHTML(nameOf(B.turn)) + '<b>' + esc(nameOf(B.turn).name) + '</b></div></div>';
+      if (B.myTurn) Sound.join();
+    }
+    updateOffline(s, [B.turn]);
+  },
+};
+
+Views['bal:reveal'] = {
+  mount(s) {
+    const B = s.bal;
+    const R = B.result;
+    mount(header() + revealTimer(s) +
+      '<div class="card center patboom"><div class="bomb">💥</div><h1 style="margin:0">PAT!</h1><div style="font-size:18px;margin-top:6px">Balon <b>' + R.limit + '.</b> pompada patladı</div>' +
+        '<div class="kasker" style="margin-top:8px">Patlatan: ' + avatarHTML(nameOf(R.victim)) + '<b>' + esc(nameOf(R.victim).name) + '</b></div>' +
+        '<p style="margin:8px 0 0">' + (R.gone ? '💀 Canı bitti, oyundan çıktı!' : 'Bir can kaybetti') + '</p></div>' +
+      '<div class="card"><h2>Oyuncular</h2>' + livesTable(B) + '</div>' + hostNext(s, B.pendingEnd ? '🏆 Sonuçlar' : '🎈 Yeni balon'));
+    Sound.beep(120, 0.5, 'sawtooth', 0.09);
+    if (R.victim === s.you) buzz([200, 80, 400]);
+  },
+};
+
+/* ---------- Tam 10 Saniye ---------- */
+
+const secTxt = (ms) => (ms / 1000).toFixed(2).replace('.', ',');
+
+function snPaint() {
+  const box = $('#snBox');
+  if (!box) return;
+  box.innerHTML = App.snSent
+    ? '<div class="ibig">✅</div><h2 style="margin:0">Durdun!</h2><p class="muted">Süren sonuçta açıklanacak 🤫</p>'
+    : '<button class="snbtn" data-act="snStop">⏱️<span>DUR!</span></button><p class="muted snhint">İçinden say…</p>';
+}
+
+Views['sn:ready'] = {
+  mount(s) {
+    mount(header() + '<div class="vbar day snbar"><b>⏱️ Tur ' + s.sn.round + ' / ' + s.sn.rounds + '</b><span></span></div>' +
+      '<div class="card center"><div class="muted" style="font-weight:700">Hedef</div><div class="sntarget">' + s.sn.target + ' saniye</div>' +
+        '<h2 class="snget">Hazırlan…</h2><p class="muted">Ekran değişince içinden saymaya başla ve tam ' + s.sn.target + '. saniyede <b>DUR</b>\'a bas!</p></div>');
+    Sound.beep(440, 0.15, 'triangle', 0.06);
+  },
+};
+
+Views['sn:go'] = {
+  mount(s) {
+    // Measured on this device only, so network lag doesn't matter.
+    App.snT0 = performance.now();
+    App.snSent = s.sn.sent;
+    mount(header() + '<div class="vbar day snbar"><b>⏱️ Hedef: ' + s.sn.target + ' sn</b><span>Sayaç yok, içinden say!</span></div>' +
+      '<div class="card center sngo" id="snBox"></div><div class="card"><h2>Kim durdu?</h2><div class="chips" id="snChips"></div></div>' + hostSkip('Sonuçları aç'));
+    snPaint();
+    Sound.beep(988, 0.2, 'triangle', 0.08);
+  },
+  update(s) { $('#snChips').innerHTML = doneChips(s, s.sn.done); },
+};
+
+Views['sn:reveal'] = {
+  mount(s) {
+    const S2 = s.sn;
+    const R = S2.result;
+    const goal = R.target * 1000;
+    const rows = R.order.map((id, i) => {
+      const off = R.times[id] - goal;
+      return '<div class="srow ' + (Math.abs(off) <= SN_PERFECT ? 'win' : '') + '"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) +
+        '<small>' + secTxt(R.times[id]) + ' sn · ' + (off === 0 ? 'tam isabet!' : (off > 0 ? '+' : '−') + secTxt(Math.abs(off)) + ' sn') + (Math.abs(off) <= SN_PERFECT ? ' 🎯' : '') + '</small></span>' +
+        (R.delta[id] ? '<span class="dl">+' + R.delta[id] + '</span>' : '') + '</div>';
+    }).join('');
+    mount(header() + revealTimer(s) + '<div class="vbar day snbar"><b>⏱️ Tur ' + S2.round + ' sonucu</b><span>Hedef ' + R.target + ' sn</span></div>' +
+      '<div class="card"><h2>Kim ne zaman durdu?</h2><div class="board">' + (rows || '<p class="muted" style="margin:0">Kimse durmadı 😅</p>') + '</div></div>' +
+      '<div class="card"><h2>Puan durumu</h2>' + scoreBoard(s, R.scores, R.delta) + '</div>' + hostNext(s, S2.round >= S2.rounds ? '🏆 Sonuçlar' : '⏱️ Sonraki tur'));
+    Sound.fanfare();
+  },
+};
 
 /* ---------- Kafe Savaşları ---------- */
 
@@ -8750,6 +9638,7 @@ Views.final = {
     else if (s.game === 'quiz') quizFinalMount(s);
     else if (s.game === 'cinayet') cinFinalMount(s);
     else if (s.game === 'kafe') kafeFinalMount(s);
+    else if (['isik', 'bomba', 'kasa', 'balon', 'saniye'].includes(s.game)) quickFinalMount(s);
     else hangimizFinalMount(s);
     confetti();
     Sound.fanfare();
@@ -8827,6 +9716,13 @@ function shareLines(s) {
       break;
     case 'sirala':
       for (const r of F.recap) if (r.top) L.push(n(r.asker) + ': ' + r.q + ' → 👑 ' + n(r.top));
+      break;
+    case 'isik':
+    case 'bomba':
+    case 'kasa':
+    case 'balon':
+    case 'saniye':
+      F.ranking.slice(0, 3).forEach((id, i) => L.push(['🥇', '🥈', '🥉'][i] + ' ' + n(id)));
       break;
     case 'kafe':
       F.ranking.slice(0, 3).forEach((id, i) => L.push(['🥇', '🥈', '🥉'][i] + ' ' + F.cafes[id].e + ' ' + F.cafes[id].name + ' · ' + F.scores[id].toLocaleString('tr-TR') + '₺'));
@@ -9595,6 +10491,30 @@ const actions = {
   },
   sreset() { App.sirOrder = []; sirPaint(); },
   srank() { Sound.click(); send({ t: 'srank', order: App.sirOrder }); },
+  bSay() {
+    const el = $('#bombIn');
+    const B = App.state.bomb;
+    const n = Math.round(Number(el && el.value));
+    if (!(n >= B.lo && n <= B.hi)) { toast(B.lo + ' ile ' + B.hi + ' arasında bir sayı söyle'); return; }
+    Sound.click();
+    send({ t: 'bguess', n });
+  },
+  bRand() {
+    const B = App.state.bomb;
+    $('#bombIn').value = B.lo + Math.floor(Math.random() * (B.hi - B.lo + 1));
+    Sound.click();
+  },
+  kGo(el) { Sound.click(); send({ t: 'kdecide', go: el.dataset.v === '1' }); },
+  pPump(el) { Sound.beep(500 + 120 * Number(el.dataset.n), 0.08, 'triangle', 0.07); send({ t: 'bpump', n: Number(el.dataset.n) }); },
+  snStop() {
+    if (App.snSent || App.snT0 == null) return;
+    App.snSent = true;
+    const ms = Math.round(performance.now() - App.snT0);
+    Sound.click();
+    buzz(60);
+    send({ t: 'stime', ms });
+    snPaint();
+  },
   kPrice(el) {
     App.kPrice = Math.max(15, Math.min(150, App.kPrice + Number(el.dataset.d)));
     kafePaint();
@@ -9802,6 +10722,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && (e.target.id === 'adamWord' || e.target.id === 'adamHint')) { e.preventDefault(); doAction('hmWord'); return; }
   if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'takReal') { e.preventDefault(); $('#takFake').focus(); return; }
   if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'takFake') { e.preventDefault(); doAction('takSend'); return; }
+  if (e.key === 'Enter' && e.target.id === 'bombIn') { e.preventDefault(); doAction('bSay'); return; }
   if (e.key === 'Enter' && e.target.id === 'patIn') { e.preventDefault(); doAction('pSend'); return; }
   if (e.key === 'Enter' && e.target.id === 'vchatIn') { e.preventDefault(); doAction('vChat'); return; }
   if (e.key === 'Enter' && e.target.id === 'adamSolve') { e.preventDefault(); doAction('hmSolve'); return; }
