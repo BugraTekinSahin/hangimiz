@@ -250,7 +250,58 @@ GAMES.taklit = {
     { key: 'voteTime', label: 'Oylama süresi', type: 'num', def: 60, min: 20, max: 180, step: 10, unit: 'sn' },
   ],
 };
-const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir', 'zar', 'patates', 'taklit', 'quiz', 'cinayet', 'kafe', 'isik', 'bomba', 'kasa', 'balon', 'saniye'];
+const GAME_ORDER = ['hangimiz', 'kimyazdi', 'asla', 'komik', 'yalanci', 'kackac', 'ikiz', 'tele', 'ayna', 'emoji', 'cogunluk', 'ikidogru', 'sirala', 'adam', 'vampir', 'zar', 'patates', 'taklit', 'quiz', 'cinayet', 'kafe', 'isik', 'bomba', 'kasa', 'balon', 'saniye', 'sandalye', 'hafiza', 'sifre', 'kablo', 'ada'];
+GAMES.sandalye = {
+  name: 'Sandalye Kapmaca',
+  emoji: '🪑',
+  desc: 'Müzik çalıyor, sandalyeler bir eksik! Müzik durunca hemen bir sandalyeye dokun. En yavaş kalan elenir, son kalan kazanır.',
+  minPlayers: 2,
+  defs: [
+    { key: 'music', label: 'Müzik süresi', type: 'choice', def: 'normal', options: [['short', 'Kısa (3-7 sn)'], ['normal', 'Normal (4-12 sn)'], ['long', 'Uzun (8-18 sn)']] },
+  ],
+};
+GAMES.hafiza = {
+  name: 'Hafıza Zinciri',
+  emoji: '🧠',
+  desc: 'Renkler sırayla yanıp söner. Sırası gelen hepsini tekrar edip bir renk daha ekler. Zincir uzadıkça unutmamak zorlaşır!',
+  minPlayers: 2,
+  defs: [
+    { key: 'lives', label: 'Can', type: 'choice', def: '1', options: [['1', '1 can'], ['2', '2 can']] },
+    { key: 'speed', label: 'Hız', type: 'choice', def: 'normal', options: [['slow', 'Yavaş'], ['normal', 'Normal'], ['fast', 'Hızlı']] },
+  ],
+};
+GAMES.sifre = {
+  name: 'Şifre Kırma',
+  emoji: '🔐',
+  desc: 'Gizli bir şifre var. Herkes aynı anda tahmin eder, her tahminde ipucu gelir: 🟢 doğru yer, 🟡 var ama yeri yanlış. İlk kıran kazanır!',
+  minPlayers: 2,
+  defs: [
+    { key: 'digits', label: 'Hane sayısı', type: 'choice', def: '4', options: [['3', '3 hane (kolay)'], ['4', '4 hane'], ['5', '5 hane (zor)']] },
+    { key: 'rounds', label: 'Tur sayısı', type: 'num', def: 3, min: 1, max: 6, step: 1, unit: 'tur' },
+    { key: 'time', label: 'Tur süresi', type: 'num', def: 180, min: 60, max: 600, step: 30, unit: 'sn' },
+  ],
+};
+GAMES.kablo = {
+  name: 'Kablo Kes',
+  emoji: '✂️',
+  desc: 'Bombanın renkli kablolarından sadece biri onu patlatıyor! Sırayla bir kablo kesin. Kesildikçe risk büyür.',
+  minPlayers: 2,
+  defs: [
+    { key: 'lives', label: 'Can', type: 'choice', def: '2', options: [['1', '1 can'], ['2', '2 can'], ['3', '3 can']] },
+    { key: 'moveTime', label: 'Hamle süresi', type: 'num', def: 15, min: 5, max: 60, step: 5, unit: 'sn' },
+  ],
+};
+GAMES.ada = {
+  name: 'Ada Batıyor',
+  emoji: '🏝️',
+  desc: 'Ada her tur biraz batıyor! Herkes gizlice bir kareye geçer. Çatlak ve kalabalık kareler daha kolay batar. Herkes batarsa en hızlı karar veren kurtulur. Son kalan kazanır.',
+  minPlayers: 2,
+  defs: [
+    { key: 'size', label: 'Ada', type: 'choice', def: '5', options: [['4', 'Küçük (4×4)'], ['5', 'Orta (5×5)'], ['6', 'Büyük (6×6)']] },
+    { key: 'lives', label: 'Can', type: 'choice', def: '1', options: [['1', '1 can'], ['2', '2 can']] },
+    { key: 'moveTime', label: 'Karar süresi', type: 'num', def: 15, min: 5, max: 60, step: 5, unit: 'sn' },
+  ],
+};
 GAMES.isik = {
   name: 'Kırmızı Işık Yeşil Işık',
   emoji: '🚦',
@@ -337,10 +388,10 @@ GAMES.quiz = {
 const GAME_COLORS = {
   hangimiz: '#8b5cf6', kimyazdi: '#6366f1', asla: '#f59e0b', komik: '#eab308', yalanci: '#ef4444', kackac: '#06b6d4',
   ikiz: '#ec4899', tele: '#d946ef', ayna: '#60a5fa', emoji: '#fb923c', cogunluk: '#22c55e', ikidogru: '#f43f5e',
-  sirala: '#84cc16', adam: '#b45309', vampir: '#b91c1c', zar: '#0f9488', patates: '#ea580c', taklit: '#2dd4bf', quiz: '#3b82f6', cinayet: '#64748b', kafe: '#a16207', isik: '#16a34a', bomba: '#dc2626', kasa: '#ca8a04', balon: '#f472b6', saniye: '#0ea5e9',
+  sirala: '#84cc16', adam: '#b45309', vampir: '#b91c1c', zar: '#0f9488', patates: '#ea580c', taklit: '#2dd4bf', quiz: '#3b82f6', cinayet: '#64748b', kafe: '#a16207', isik: '#16a34a', bomba: '#dc2626', kasa: '#ca8a04', balon: '#f472b6', saniye: '#0ea5e9', sandalye: '#8b5cf6', hafiza: '#e11d48', sifre: '#10b981', kablo: '#f97316', ada: '#06b6d4',
 };
 // Games with their own flow instead of write → answer → results.
-const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp', zar: 'zar', patates: 'pat', taklit: 'tak', quiz: 'quiz', cinayet: 'cin', kafe: 'kafe', isik: 'isik', bomba: 'bomb', kasa: 'kasa', balon: 'bal', saniye: 'sn' };
+const GAME_PHASE = { yalanci: 'lie', kackac: 'kac', ikiz: 'ikiz', tele: 'tele', ayna: 'ayna', emoji: 'emo', cogunluk: 'cog', ikidogru: 'iky', sirala: 'sir', adam: 'adam', vampir: 'vamp', zar: 'zar', patates: 'pat', taklit: 'tak', quiz: 'quiz', cinayet: 'cin', kafe: 'kafe', isik: 'isik', bomba: 'bomb', kasa: 'kasa', balon: 'bal', saniye: 'sn', sandalye: 'chair', hafiza: 'sim', sifre: 'kod', kablo: 'wire', ada: 'ada' };
 
 const EMO_POINTS = [300, 200];      // 1st and 2nd correct guess; everyone after gets EMO_POINTS_REST
 const EMO_POINTS_REST = 100;
@@ -359,6 +410,19 @@ const SIR_PERFECT_BONUS = 100;
 
 // t = answer shown, a = other accepted spellings.
 // EMO_ITEMS (Emojiyle Anlat titles) lives in emo-items.js, loaded before this file.
+
+/* ---------- Sandalye / Hafıza / Şifre / Kablo / Ada ---------- */
+
+const CHAIR_MUSIC = { short: [3, 7], normal: [4, 12], long: [8, 18] };
+const CHAIR_GRAB_MS = 5000;      // after the music stops, this long to sit down
+const CHAIR_EARLY_MS = 1000;     // touching a chair while the music plays costs a second
+const SIM_FLASH = { slow: 800, normal: 600, fast: 420 };
+const SIM_COLORS = [{ e: '🟥', c: '#ef4444', f: 330 }, { e: '🟦', c: '#3b82f6', f: 440 }, { e: '🟩', c: '#22c55e', f: 554 }, { e: '🟨', c: '#eab308', f: 659 }];
+const CODE_POINTS = [300, 200, 150];
+const CODE_SOLVE_POINTS = 100;
+const CODE_LATE_MS = 30000;      // after the first crack, the others get this long
+const WIRE_COLORS = [{ e: '🔴', c: '#ef4444', n: 'Kırmızı' }, { e: '🔵', c: '#3b82f6', n: 'Mavi' }, { e: '🟢', c: '#22c55e', n: 'Yeşil' }, { e: '🟡', c: '#eab308', n: 'Sarı' },
+  { e: '🟣', c: '#a855f7', n: 'Mor' }, { e: '🟠', c: '#f97316', n: 'Turuncu' }, { e: '⚪', c: '#e5e7eb', n: 'Beyaz' }, { e: '⚫', c: '#374151', n: 'Siyah' }];
 
 /* ---------- Kırmızı Işık / Bomba / Kasa / Balon / Saniye ---------- */
 
@@ -1627,6 +1691,58 @@ const Host = {
         return;
       }
 
+      case 'cearly': {
+        if (S.phase !== 'chair' || r.step !== 'music' || !r.alive[pid]) return;
+        r.early[pid] = true;
+        return;
+      }
+
+      case 'cgrab': {
+        if (S.phase !== 'chair' || r.step !== 'grab' || !r.alive[pid] || r.claims[pid]) return;
+        const c = Math.round(Number(msg.c));
+        const rt = Math.round(Number(msg.rt));
+        if (!(c >= 0 && c < r.chairs) || !(rt >= 0 && rt <= 20000)) return;
+        r.claims[pid] = { c, rt: rt + (r.early[pid] ? CHAIR_EARLY_MS : 0) };
+        this.changed();
+        this.chairCheck();
+        return;
+      }
+
+      case 'stap': {
+        if (S.phase !== 'sim' || r.step !== 'input' || pid !== r.turn) return;
+        const c = Math.round(Number(msg.c));
+        if (!(c >= 0 && c < 4)) return;
+        this.simTap(pid, c);
+        return;
+      }
+
+      case 'cguess': {
+        if (S.phase !== 'kod' || r.step !== 'play' || !r.roster.includes(pid) || r.solved[pid]) return;
+        const g = String(msg.g || '');
+        if (!new RegExp('^\\d{' + r.len + '}$').test(g) || new Set(g).size !== g.length) return;
+        this.codeGuess(pid, g);
+        return;
+      }
+
+      case 'wcut': {
+        if (S.phase !== 'wire' || r.step !== 'play' || pid !== r.turn) return;
+        const i = Math.round(Number(msg.i));
+        if (!(i >= 0 && i < r.wires) || r.cut.some((x) => x.i === i)) return;
+        this.wireCut(pid, i);
+        return;
+      }
+
+      case 'amove': {
+        if (S.phase !== 'ada' || r.step !== 'move' || !r.alive[pid]) return;
+        const t = Math.round(Number(msg.tile));
+        if (!r.land.includes(t)) return;
+        r.picks[pid] = t;
+        r.pickAt[pid] = Date.now();
+        this.changed();
+        this.adaCheck();
+        return;
+      }
+
       case 'ihold': {
         if (S.phase !== 'isik' || r.step !== 'race' || r.state[pid] !== 'run') return;
         const now = Date.now();
@@ -2044,6 +2160,11 @@ const Host = {
         else if (S.phase === 'kasa') this.kasaSkip();
         else if (S.phase === 'bal') this.balSkip();
         else if (S.phase === 'sn') this.snSkip();
+        else if (S.phase === 'chair') this.chairSkip();
+        else if (S.phase === 'sim') this.simSkip();
+        else if (S.phase === 'kod') this.codeSkip();
+        else if (S.phase === 'wire') this.wireSkip();
+        else if (S.phase === 'ada') this.adaSkip();
         return;
       case 'lieReset':
         S.lieTotals = {};
@@ -2073,6 +2194,11 @@ const Host = {
         else if (S.phase === 'kasa' && r.step === 'end') this.kasaNext();
         else if (S.phase === 'bal' && r.step === 'reveal') this.balNext();
         else if (S.phase === 'sn' && r.step === 'reveal') this.snNext();
+        else if (S.phase === 'chair' && r.step === 'reveal') this.chairNext();
+        else if (S.phase === 'sim' && r.step === 'fail') this.simAfterFail();
+        else if (S.phase === 'kod' && r.step === 'reveal') this.codeNext();
+        else if (S.phase === 'wire' && r.step === 'reveal') this.wireNext();
+        else if (S.phase === 'ada' && r.step === 'reveal') this.adaNext();
         return;
       case 'prev':
         if (S.phase === 'results' && r.revealIndex > 0) {
@@ -2215,6 +2341,11 @@ const Host = {
     if (S.game === 'kasa') this.setupKasa(S.round);
     if (S.game === 'balon') this.setupBal(S.round);
     if (S.game === 'saniye') this.setupSn(S.round);
+    if (S.game === 'sandalye') this.setupChair(S.round);
+    if (S.game === 'hafiza') this.setupSim(S.round);
+    if (S.game === 'sifre') this.setupCode(S.round);
+    if (S.game === 'kablo') this.setupWire(S.round);
+    if (S.game === 'ada') this.setupAda(S.round);
     S.phase = GAME_PHASE[S.game] || 'writing';
     this.changed();
   },
@@ -3174,6 +3305,329 @@ const Host = {
       return;
     }
     this.snStart();
+  },
+
+  /* ---------- Sandalye Kapmaca ---------- */
+
+  setupChair(r) {
+    this.livesSetup(r, 1);
+    this.chairStart(true);
+  },
+
+  chairStart(silent) {
+    const r = this.S.round;
+    const [lo, hi] = CHAIR_MUSIC[r.cfg.music] || CHAIR_MUSIC.normal;
+    r.round++;
+    Object.assign(r, { chairs: r.seats.filter((id) => r.alive[id]).length - 1, step: 'music', stopAt: Date.now() + (lo + Math.random() * (hi - lo)) * 1000,
+      claims: {}, early: {}, result: null, pendingEnd: false, deadline: null });
+    if (!silent) this.changed();
+  },
+
+  chairTick(now) {
+    const r = this.S.round;
+    if (r.step === 'music' && now >= r.stopAt) { r.step = 'grab'; r.grabUntil = now + CHAIR_GRAB_MS; this.changed(); return; }
+    if (r.step === 'grab' && now >= r.grabUntil) this.chairResolve();
+  },
+
+  chairCheck() {
+    const r = this.S.round;
+    if (r.step !== 'grab') return;
+    const live = this.liveIds().filter((id) => r.alive[id]);
+    if (live.every((id) => r.claims[id])) this.chairResolve();
+  },
+
+  // Fastest first: each sits on the chair they touched, or slides onto a free one if it was taken.
+  chairResolve() {
+    const r = this.S.round;
+    const order = Object.keys(r.claims).sort((a, b) => r.claims[a].rt - r.claims[b].rt);
+    const seats = {};
+    const taken = {};
+    for (const id of order) {
+      let c = r.claims[id].c;
+      if (taken[c] != null) c = [...Array(r.chairs).keys()].find((x) => taken[x] == null);
+      if (c == null) continue;
+      taken[c] = id;
+      seats[id] = c;
+    }
+    const alive = r.seats.filter((id) => r.alive[id]);
+    let losers = alive.filter((id) => seats[id] == null);
+    if (losers.length === alive.length) losers = [];   // nobody sat down: nobody is out
+    for (const id of losers) this.livesHit(id);
+    if (!losers.length) r.pendingEnd = false;
+    r.result = { taken, losers, rts: Object.fromEntries(order.map((id) => [id, r.claims[id].rt])), early: Object.keys(r.early) };
+    r.history.push({ round: r.round, losers });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  chairSkip() {
+    const r = this.S.round;
+    if (r.step === 'music') { r.stopAt = 0; this.chairTick(Date.now()); }
+    else if (r.step === 'grab') this.chairResolve();
+    else this.chairNext();
+  },
+
+  chairNext() {
+    const r = this.S.round;
+    if (r.pendingEnd) { this.livesFinish(); return; }
+    this.chairStart();
+  },
+
+  /* ---------- Hafıza Zinciri ---------- */
+
+  setupSim(r) {
+    this.livesSetup(r, Number(r.cfg.lives) || 1);
+    Object.assign(r, { seq: [Math.floor(Math.random() * 4)], best: 1, flash: SIM_FLASH[r.cfg.speed] || 600, longest: {} });
+    this.simTurn(r.seats[0], true);
+  },
+
+  simTurn(id, silent) {
+    const r = this.S.round;
+    r.turn = r.alive[id] ? id : this.livesNext(id);
+    Object.assign(r, { input: [], step: 'show', showUntil: Date.now() + r.seq.length * r.flash + 1200, result: null, deadline: null, showId: (r.showId || 0) + 1 });
+    if (!silent) this.changed();
+  },
+
+  simInput() {
+    const r = this.S.round;
+    r.step = 'input';
+    this.setStepDeadline(6 + Math.ceil(r.seq.length * 1.2));
+    this.changed();
+  },
+
+  simTap(pid, c) {
+    const r = this.S.round;
+    r.input.push(c);
+    const i = r.input.length - 1;
+    if (i < r.seq.length && c !== r.seq[i]) { this.simFail(pid, i, c); return; }
+    if (r.input.length === r.seq.length + 1) {
+      r.seq.push(c);
+      r.best = Math.max(r.best, r.seq.length);
+      r.longest[pid] = Math.max(r.longest[pid] || 0, r.seq.length);
+      this.simTurn(this.livesNext(pid));
+      return;
+    }
+    this.changed();
+  },
+
+  simFail(pid, at, wrong) {
+    const r = this.S.round;
+    const gone = this.livesHit(pid);
+    r.result = { id: pid, at, wrong, right: r.seq[at], gone, len: r.seq.length, timeout: wrong == null };
+    r.history.push({ id: pid, len: r.seq.length });
+    r.step = 'fail';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  simAfterFail() {
+    const r = this.S.round;
+    if (r.pendingEnd) { this.livesFinish({ best: r.best }); return; }
+    this.simTurn(this.livesNext(r.result.id));
+  },
+
+  simSkip() {
+    const r = this.S.round;
+    if (r.step === 'show') this.simInput();
+    else if (r.step === 'input') this.simFail(r.turn, r.input.length, null);
+    else this.simAfterFail();
+  },
+
+  /* ---------- Şifre Kırma ---------- */
+
+  setupCode(r) {
+    Object.assign(r, { round: 0, rounds: r.cfg.rounds, len: Number(r.cfg.digits) || 4, scores: this.zeroScores(r), cracks: this.zeroScores(r), history: [] });
+    this.codeStart(true);
+  },
+
+  codeStart(silent) {
+    const r = this.S.round;
+    r.round++;
+    const guesses = {};
+    for (const id of r.roster) guesses[id] = [];
+    Object.assign(r, { code: shuffle([...'0123456789']).slice(0, r.len).join(''), guesses, solved: {}, order: [], step: 'play', start: Date.now(), endAt: 0, result: null });
+    this.setStepDeadline(r.cfg.time);
+    if (!silent) this.changed();
+  },
+
+  codeGuess(pid, g) {
+    const r = this.S.round;
+    let b = 0;
+    let c = 0;
+    for (let i = 0; i < g.length; i++) {
+      if (g[i] === r.code[i]) b++;
+      else if (r.code.includes(g[i])) c++;
+    }
+    r.guesses[pid].push({ g, b, c });
+    if (b === r.len) {
+      r.solved[pid] = { tries: r.guesses[pid].length, ms: Date.now() - r.start };
+      r.order.push(pid);
+      if (!r.endAt) r.endAt = Date.now() + CODE_LATE_MS;
+    }
+    const live = this.liveIds();
+    if (live.length && live.every((id) => r.solved[id])) { this.codeReveal(); return; }
+    this.changed();
+  },
+
+  codeReveal() {
+    const r = this.S.round;
+    if (r.step !== 'play') return;
+    const delta = {};
+    r.order.forEach((id, i) => { delta[id] = (CODE_POINTS[i] || 0) + CODE_SOLVE_POINTS; r.cracks[id]++; });
+    this.addPoints(r, delta);
+    const best = {};
+    for (const id of r.roster) {
+      const gs = r.guesses[id];
+      best[id] = gs.length ? gs.reduce((a, x) => (x.b * 2 + x.c > a.b * 2 + a.c ? x : a)) : null;
+    }
+    r.result = { code: r.code, order: r.order, solved: { ...r.solved }, tries: Object.fromEntries(r.roster.map((id) => [id, r.guesses[id].length])), best, delta, scores: { ...r.scores } };
+    r.history.push({ round: r.round, code: r.code, winner: r.order[0] || null });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  codeSkip() {
+    const r = this.S.round;
+    if (r.step === 'play') this.codeReveal();
+    else this.codeNext();
+  },
+
+  codeNext() {
+    const r = this.S.round;
+    if (r.round >= r.rounds) {
+      this.finishCustom({ scores: { ...r.scores }, cracks: { ...r.cracks }, history: r.history, ranking: r.roster.slice().sort((a, b) => r.scores[b] - r.scores[a]) });
+      return;
+    }
+    this.codeStart();
+  },
+
+  /* ---------- Kablo Kes ---------- */
+
+  setupWire(r) {
+    this.livesSetup(r, Number(r.cfg.lives) || 2);
+    this.wireStart(r.seats[0], true);
+  },
+
+  wireStart(starter, silent) {
+    const r = this.S.round;
+    r.round++;
+    const n = Math.max(5, Math.min(8, r.seats.filter((id) => r.alive[id]).length + 3));
+    Object.assign(r, { wires: n, colors: shuffle(WIRE_COLORS.map((_, i) => i)).slice(0, n), boom: Math.floor(Math.random() * n), cut: [], step: 'play', result: null, pendingEnd: false });
+    r.turn = r.alive[starter] ? starter : this.livesNext(starter);
+    this.setStepDeadline(r.cfg.moveTime);
+    if (!silent) this.changed();
+  },
+
+  wireCut(pid, i) {
+    const r = this.S.round;
+    r.cut.push({ i, id: pid });
+    if (i === r.boom) {
+      const gone = this.livesHit(pid);
+      r.result = { victim: pid, boom: i, gone, cuts: r.cut.length };
+      r.history.push({ round: r.round, victim: pid, cuts: r.cut.length });
+      r.step = 'reveal';
+      this.revealDeadline();
+      this.changed();
+      return;
+    }
+    r.turn = this.livesNext(pid);
+    this.setStepDeadline(r.cfg.moveTime);
+    this.changed();
+  },
+
+  wireSkip() {
+    const r = this.S.round;
+    if (r.step === 'play') {
+      const left = [...Array(r.wires).keys()].filter((i) => !r.cut.some((x) => x.i === i));
+      this.wireCut(r.turn, left[Math.floor(Math.random() * left.length)]);
+    } else this.wireNext();
+  },
+
+  wireNext() {
+    const r = this.S.round;
+    if (r.pendingEnd) { this.livesFinish(); return; }
+    this.wireStart(r.result.victim);
+  },
+
+  /* ---------- Ada Batıyor ---------- */
+
+  setupAda(r) {
+    this.livesSetup(r, Number(r.cfg.lives) || 1);
+    const N = Number(r.cfg.size) || 5;
+    const land = [...Array(N * N).keys()];
+    const pos = {};
+    for (const id of r.roster) pos[id] = land[Math.floor(Math.random() * land.length)];
+    Object.assign(r, { N, land, pos, sunkAll: [] });
+    this.adaRound(true);
+  },
+
+  adaRound(silent) {
+    const r = this.S.round;
+    r.round++;
+    const nCrack = Math.max(1, Math.round(r.land.length * 0.2));
+    Object.assign(r, { cracked: shuffle(r.land).slice(0, nCrack), picks: {}, pickAt: {}, step: 'move', result: null, pendingEnd: false });
+    this.setStepDeadline(r.cfg.moveTime);
+    if (!silent) this.changed();
+  },
+
+  adaCheck() {
+    const r = this.S.round;
+    if (r.step !== 'move') return;
+    const live = this.liveIds().filter((id) => r.alive[id]);
+    if (live.length && live.every((id) => r.picks[id] != null)) this.adaSink();
+  },
+
+  // Pick the tiles that go under: cracked tiles and crowded tiles are likelier to sink.
+  adaSink() {
+    const r = this.S.round;
+    const alive = r.seats.filter((id) => r.alive[id]);
+    for (const id of alive) if (r.picks[id] != null) r.pos[id] = r.picks[id];
+    const crowd = {};
+    for (const id of alive) crowd[r.pos[id]] = (crowd[r.pos[id]] || 0) + 1;
+    const k = Math.max(1, Math.min(r.land.length, Math.round(r.land.length * (0.18 + 0.03 * r.round))));
+    const pool = r.land.map((t) => ({ t, w: (r.cracked.includes(t) ? 3 : 1) + Math.max(0, (crowd[t] || 0) - 1) * 1.5 }));
+    const sunk = [];
+    for (let n = 0; n < k && pool.length; n++) {
+      const total = pool.reduce((a, x) => a + x.w, 0);
+      let x = Math.random() * total;
+      const i = pool.findIndex((p) => (x -= p.w) <= 0);
+      sunk.push(pool.splice(i < 0 ? 0 : i, 1)[0].t);
+    }
+    // If everyone would go under, whoever made up their mind first clings on.
+    let victims = alive.filter((id) => sunk.includes(r.pos[id]));
+    let saved = null;
+    if (victims.length && victims.length === alive.length) {
+      saved = victims.slice().sort((a, b) => (r.pickAt[a] ?? Infinity) - (r.pickAt[b] ?? Infinity))[0];
+      victims = victims.filter((id) => id !== saved);
+    }
+    r.land = r.land.filter((t) => !sunk.includes(t));
+    r.sunkAll = r.sunkAll.concat(sunk);
+    for (const id of victims) {
+      const gone = this.livesHit(id);
+      // Still alive: swims to a random tile that is still dry.
+      if (!gone && r.land.length) r.pos[id] = r.land[Math.floor(Math.random() * r.land.length)];
+    }
+    if (saved != null && r.land.length) r.pos[saved] = r.land[Math.floor(Math.random() * r.land.length)];
+    if (!r.land.length) r.pendingEnd = true;
+    r.result = { sunk, victims, saved, pos: { ...r.pos } };
+    r.history.push({ round: r.round, victims });
+    r.step = 'reveal';
+    this.revealDeadline();
+    this.changed();
+  },
+
+  adaSkip() {
+    const r = this.S.round;
+    if (r.step === 'move') this.adaSink();
+    else this.adaNext();
+  },
+
+  adaNext() {
+    const r = this.S.round;
+    if (r.pendingEnd) { this.livesFinish(); return; }
+    this.adaRound();
   },
 
   /* ---------- Kafe Savaşları ---------- */
@@ -4720,6 +5174,11 @@ const Host = {
       else if (S.phase === 'kasa' && now >= r.deadline) this.kasaSkip();
       else if (S.phase === 'bal' && now >= r.deadline) this.balSkip();
       else if (S.phase === 'sn' && now >= r.deadline) this.snSkip();
+      else if (S.phase === 'chair' && now >= r.deadline && r.step === 'reveal') this.chairNext();
+      else if (S.phase === 'sim' && now >= r.deadline) this.simSkip();
+      else if (S.phase === 'kod' && now >= r.deadline) this.codeSkip();
+      else if (S.phase === 'wire' && now >= r.deadline) this.wireSkip();
+      else if (S.phase === 'ada' && now >= r.deadline) this.adaSkip();
     }
     if (S.phase === 'ikiz' && r) this.ikizCheck();
     if (S.phase === 'tele' && r) this.teleCheck();
@@ -4734,6 +5193,11 @@ const Host = {
     if (S.phase === 'cin' && r) this.cinCheck();
     if (S.phase === 'kafe' && r) this.kafeCheck();
     if (S.phase === 'kasa' && r) this.kasaCheck();
+    // Timers these games keep even in "Süresiz": the music, the color show and the last 30 seconds.
+    if (S.phase === 'chair' && r) this.chairTick(now);
+    if (S.phase === 'sim' && r && r.step === 'show' && now >= r.showUntil) this.simInput();
+    if (S.phase === 'kod' && r && r.step === 'play' && r.endAt && now >= r.endAt) this.codeReveal();
+    if (S.phase === 'ada' && r) this.adaCheck();
     // After the leader reloads mid-race, pick the race loop back up.
     if (S.phase === 'isik' && r && (r.step === 'ready' || r.step === 'race') && !this.isikTimer) this.isikLoopStart();
     if (S.phase === 'sn' && r) this.snCheck();
@@ -4978,6 +5442,36 @@ const Host = {
       for (const id of r.roster) done[id] = r.times[id] != null;
       pub.stepKey = r.step + r.round;
       pub.sn = { step: r.step, round: r.round, rounds: r.rounds, target: r.target, done, sent: r.times[pid] != null, result: r.step === 'reveal' ? r.result : null };
+    } else if (S.phase === 'chair') {
+      const done = {};
+      for (const id of r.seats) if (r.alive[id]) done[id] = !!r.claims[id];
+      pub.stepKey = r.step + r.round;
+      pub.chair = { step: r.step, round: r.round, chairs: r.chairs, seats: r.seats, alive: r.alive, hearts: r.hearts, maxH: r.maxH, done,
+        myClaim: r.claims[pid] ? r.claims[pid].c : null, result: r.step === 'reveal' ? r.result : null, pendingEnd: r.step === 'reveal' && r.pendingEnd };
+    } else if (S.phase === 'sim') {
+      pub.stepKey = r.step + (r.showId || 0);
+      pub.sim = { step: r.step, seq: r.seq, input: r.input, turn: r.turn, myTurn: r.turn === pid, flash: r.flash, best: r.best, seats: r.seats, alive: r.alive,
+        hearts: r.hearts, maxH: r.maxH, result: r.step === 'fail' ? r.result : null, pendingEnd: r.step === 'fail' && r.pendingEnd };
+    } else if (S.phase === 'kod') {
+      const others = {};
+      for (const id of r.roster) {
+        const gs = r.guesses[id];
+        const best = gs.length ? gs.reduce((a, x) => (x.b * 2 + x.c > a.b * 2 + a.c ? x : a)) : null;
+        others[id] = { tries: gs.length, best: best ? { b: best.b, c: best.c } : null, solved: !!r.solved[id] };
+      }
+      pub.stepKey = r.step + r.round;
+      pub.kod = { step: r.step, round: r.round, rounds: r.rounds, len: r.len, mine: r.guesses[pid] || [], solved: r.solved[pid] || null, others, hurry: !!r.endAt,
+        firstSolver: r.order[0] || null, result: r.step === 'reveal' ? r.result : null };
+    } else if (S.phase === 'wire') {
+      pub.stepKey = r.step + r.round;
+      pub.wire = { step: r.step, round: r.round, wires: r.wires, colors: r.colors, cut: r.cut, turn: r.turn, myTurn: r.turn === pid && r.step === 'play',
+        seats: r.seats, alive: r.alive, hearts: r.hearts, maxH: r.maxH, result: r.step === 'reveal' ? r.result : null, pendingEnd: r.step === 'reveal' && r.pendingEnd };
+    } else if (S.phase === 'ada') {
+      const done = {};
+      for (const id of r.seats) if (r.alive[id]) done[id] = r.picks[id] != null;
+      pub.stepKey = r.step + r.round;
+      pub.ada = { step: r.step, round: r.round, N: r.N, land: r.land, sunkAll: r.sunkAll, cracked: r.cracked, pos: r.pos, myPick: r.picks[pid] ?? null, done,
+        seats: r.seats, alive: r.alive, hearts: r.hearts, maxH: r.maxH, result: r.step === 'reveal' ? r.result : null, pendingEnd: r.step === 'reveal' && r.pendingEnd };
     } else if (S.phase === 'kafe') {
       // Plans stay secret until the day is over; everyone sees the cafés' money and stats.
       const done = {};
@@ -6212,17 +6706,18 @@ function nameOf(id) {
 function render() {
   const s = App.state;
   if (!s) return;
+  if (App.music && !(s.phase === 'chair' && s.chair && s.chair.step === 'music')) chairMusic(false);
   const inRound = !!(s.roster && s.roster.includes(s.you));
   let screen = s.phase;
-  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin', 'kafe', 'isik', 'bomb', 'kasa', 'bal', 'sn'].includes(s.phase) && !inRound) screen = 'spectate';
+  if (['writing', 'answering', 'lie', 'kac', 'ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin', 'kafe', 'isik', 'bomb', 'kasa', 'bal', 'sn', 'chair', 'sim', 'kod', 'wire', 'ada'].includes(s.phase) && !inRound) screen = 'spectate';
   if (screen === 'lie') screen = 'lie:' + s.lie.step;
   if (screen === 'kac') screen = 'kac:' + s.kac.step;
-  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin', 'kafe', 'isik', 'bomb', 'kasa', 'bal', 'sn'].includes(screen)) screen += ':' + s[screen].step;
+  if (['ikiz', 'tele', 'ayna', 'emo', 'cog', 'iky', 'sir', 'adam', 'vamp', 'zar', 'pat', 'tak', 'quiz', 'cin', 'kafe', 'isik', 'bomb', 'kasa', 'bal', 'sn', 'chair', 'sim', 'kod', 'wire', 'ada'].includes(screen)) screen += ':' + s[screen].step;
   let key = screen + ':' + (s.roundId || '');
   if (screen === 'results') key += ':' + s.reveal.index;
   if (screen === 'lie:clues') key += ':' + s.lie.turn;
   if (screen.startsWith('kac:')) key += ':' + s.kac.ti;
-  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp|zar|pat|tak|quiz|cin|kafe|isik|bomb|kasa|bal|sn):/.test(screen)) key += ':' + s.stepKey;
+  if (/^(ikiz|tele|ayna|emo|cog|iky|sir|adam|vamp|zar|pat|tak|quiz|cin|kafe|isik|bomb|kasa|bal|sn|chair|sim|kod|wire|ada):/.test(screen)) key += ':' + s.stepKey;
   if (screen === 'writing' && s.writing.stage) key += ':' + s.writing.stage;
 
   const fresh = key !== App.screenKey;
@@ -7531,9 +8026,10 @@ function livesTable(D) {
 
 function quickFinalMount(s) {
   const F = s.final;
-  const sub = (id) => s.game === 'kasa' ? F.scores[id] + ' 💎' : ['isik', 'saniye'].includes(s.game) ? F.scores[id] + ' puan' : (F.ranking.indexOf(id) + 1) + '.';
+  const sub = (id) => s.game === 'kasa' ? F.scores[id] + ' 💎' : ['isik', 'saniye', 'sifre'].includes(s.game) ? F.scores[id] + ' puan' : (F.ranking.indexOf(id) + 1) + '.';
   const extra = (id) => s.game === 'isik' ? F.wins[id] + ' kez birinci · ' + F.outs[id] + ' kez yakalandı'
     : s.game === 'kasa' ? F.busts[id] + ' kez mağarada kaldı'
+    : s.game === 'sifre' ? F.cracks[id] + ' şifre kırdı'
     : s.game === 'saniye' ? (F.best[id] != null ? 'en iyi: ' + (F.best[id] / 1000).toFixed(2).replace('.', ',') + ' sn sapma' : '—') + (F.perfect[id] ? ' · 🎯×' + F.perfect[id] : '')
     : F.ranking.indexOf(id) === 0 ? 'son kalan 🏆' : 'elendi';
   const board = F.ranking.map((id, i) => '<div class="srow big"><span class="rk">' + (i + 1) + '</span>' + avatarHTML(nameOf(id)) +
@@ -7853,6 +8349,293 @@ Views['sn:reveal'] = {
       '<div class="card"><h2>Kim ne zaman durdu?</h2><div class="board">' + (rows || '<p class="muted" style="margin:0">Kimse durmadı 😅</p>') + '</div></div>' +
       '<div class="card"><h2>Puan durumu</h2>' + scoreBoard(s, R.scores, R.delta) + '</div>' + hostNext(s, S2.round >= S2.rounds ? '🏆 Sonuçlar' : '⏱️ Sonraki tur'));
     Sound.fanfare();
+  },
+};
+
+/* ---------- Sandalye Kapmaca ---------- */
+
+function chairMusic(on) {
+  if (!on) { clearInterval(App.music); App.music = null; return; }
+  if (App.music) return;
+  const notes = [523, 659, 784, 659, 587, 698, 880, 698, 523, 784, 659, 523];
+  let i = 0;
+  App.music = setInterval(() => Sound.beep(notes[i++ % notes.length], 0.16, 'triangle', 0.05), 230);
+}
+
+function chairPaint() {
+  const C = App.state.chair;
+  const box = $('#chairs');
+  if (!box) return;
+  const res = C.result;
+  box.innerHTML = [...Array(C.chairs).keys()].map((c) => {
+    const who = res ? res.taken[c] : App.chSat === c ? App.state.you : null;
+    return '<button class="chair ' + (C.step === 'grab' && App.chSat == null ? 'live' : '') + (who ? ' sat' : '') + '" data-act="chTap" data-c="' + c + '">' +
+      (who ? avatarHTML(nameOf(who)) : '<span class="ce">🪑</span>') + '</button>';
+  }).join('');
+}
+
+Views['chair:music'] = {
+  mount(s) {
+    const C = s.chair;
+    App.chSat = null;
+    App.chEarly = false;
+    const dancers = C.seats.filter((id) => C.alive[id]).map((id, i) => '<span class="dancer" style="animation-delay:' + (i * 0.15).toFixed(2) + 's">' + avatarHTML(nameOf(id)) + '</span>').join('');
+    mount(header() + '<div class="vbar day chairbar"><b>🪑 Tur ' + C.round + '</b><span>' + C.chairs + ' sandalye, ' + (C.chairs + 1) + ' kişi</span></div>' +
+      '<div class="card center chairmusic"><div class="ibig">🎵</div><h1 style="margin:0">Müzik çalıyor…</h1><p class="muted">Müzik durunca hemen bir sandalyeye dokun! Erken dokunursan ceza yersin.</p>' +
+        '<div class="dancers">' + dancers + '</div></div>' +
+      '<div class="card"><div class="chairs" id="chairs"></div></div>' +
+      '<div class="card"><h2>Oyuncular</h2>' + livesTable({ ...C, turn: null }) + '</div>' + hostSkip('Müziği durdur'));
+    chairPaint();
+    chairMusic(true);
+  },
+};
+
+Views['chair:grab'] = {
+  mount(s) {
+    // Reaction time is measured from the moment this screen appears on this device.
+    App.chT0 = performance.now();
+    chairMusic(false);
+    const me = s.chair.alive[s.you];
+    mount(header() + '<div class="card center chairstop"><div class="ibig">🛑</div><h1 style="margin:0">MÜZİK DURDU!</h1><p style="margin:4px 0 0">' + (me ? 'Hemen bir sandalyeye dokun!' : 'İzliyorsun 👀') + '</p></div>' +
+      '<div class="card"><div class="chairs" id="chairs"></div></div><div class="card"><h2>Kim oturdu?</h2><div class="chips" id="chChips"></div></div>');
+    chairPaint();
+    Sound.beep(200, 0.25, 'square', 0.07);
+    buzz(100);
+  },
+  update(s) { $('#chChips').innerHTML = doneChips(s, s.chair.done, Object.keys(s.chair.done)); },
+};
+
+Views['chair:reveal'] = {
+  mount(s) {
+    const C = s.chair;
+    const R = C.result;
+    const rows = Object.keys(R.rts).sort((a, b) => R.rts[a] - R.rts[b]).map((id) => '<div class="srow">' + avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) +
+      '<small>' + (R.rts[id] / 1000).toFixed(2).replace('.', ',') + ' sn' + (R.early.includes(id) ? ' (erken oturma cezası dahil)' : '') + '</small></span></div>').join('');
+    mount(header() + revealTimer(s) +
+      '<div class="card center ' + (R.losers.length ? 'patboom' : '') + '">' + (R.losers.length
+        ? '<div class="ibig">😵</div><h1 style="margin:0">Sandalyesiz kaldı:</h1><div class="kasker" style="margin-top:8px">' + R.losers.map((id) => avatarHTML(nameOf(id)) + '<b>' + esc(nameOf(id).name) + '</b>').join(' ') + '</div>'
+        : '<div class="ibig">🤷</div><h1 style="margin:0">Kimse oturmadı, kimse elenmedi!</h1>') + '</div>' +
+      '<div class="card"><div class="chairs" id="chairs"></div></div>' +
+      '<div class="card"><h2>Tepki süreleri</h2><div class="board">' + (rows || '<p class="muted" style="margin:0">—</p>') + '</div></div>' +
+      hostNext(s, C.pendingEnd ? '🏆 Sonuçlar' : '🎵 Sonraki tur'));
+    chairPaint();
+    if (R.losers.includes(s.you)) buzz([200, 80, 400]);
+  },
+};
+
+/* ---------- Hafıza Zinciri ---------- */
+
+function simFlash(c, ms) {
+  const pad = $('.simpad[data-c="' + c + '"]');
+  Sound.beep(SIM_COLORS[c].f, ms / 1000, 'triangle', 0.08);
+  if (!pad) return;
+  pad.classList.add('lit');
+  setTimeout(() => pad.classList.remove('lit'), ms);
+}
+
+function simPads(active) {
+  return '<div class="simpads">' + SIM_COLORS.map((col, i) => '<button class="simpad ' + (active ? 'on' : '') + '" style="--c:' + col.c + '" data-act="simPad" data-c="' + i + '"></button>').join('') + '</div>';
+}
+
+function simTop(s, timer) {
+  const M = s.sim;
+  return header() + timer + '<div class="vbar day simbar"><b>🧠 Zincir: ' + M.seq.length + ' renk</b><span>Rekor: ' + M.best + '</span></div>';
+}
+
+Views['sim:show'] = {
+  mount(s) {
+    const M = s.sim;
+    mount(simTop(s, '') + '<div class="card center"><div class="kasker">Sıra: ' + avatarHTML(nameOf(M.turn)) + '<b>' + esc(nameOf(M.turn).name) + '</b></div>' +
+      '<h2 style="margin:8px 0 0">👀 Sırayı izle!</h2></div>' + simPads(false) +
+      '<div class="card"><h2>Oyuncular</h2>' + livesTable({ ...M, step: 'play' }) + '</div>');
+    M.seq.forEach((c, i) => setTimeout(() => simFlash(c, M.flash * 0.7), 700 + i * M.flash));
+  },
+};
+
+Views['sim:input'] = {
+  mount(s) {
+    const M = s.sim;
+    App.simSeen = M.input.length;
+    mount(simTop(s, timerHTML('Süre')) + '<div class="card center ' + (M.myTurn ? 'myturn' : '') + '">' +
+      (M.myTurn ? '<h2 style="margin:0">Sıra sende! Tekrar et, sonra <b>bir renk ekle</b></h2>' : '<div class="kasker">' + avatarHTML(nameOf(M.turn)) + '<b>' + esc(nameOf(M.turn).name) + '</b> basıyor…</div>') +
+      '<div class="simdots" id="simDots"></div></div>' + simPads(M.myTurn) +
+      '<div class="card"><h2>Oyuncular</h2>' + livesTable({ ...M, step: 'play' }) + '</div>' + OFFLINE_NOTE + hostSkip('Sırayı geç'));
+    if (M.myTurn) Sound.join();
+  },
+  update(s) {
+    const M = s.sim;
+    $('#simDots').innerHTML = [...Array(M.seq.length + 1).keys()].map((i) => '<i class="' + (i < M.input.length ? 'on' : '') + (i === M.seq.length ? ' add' : '') + '"></i>').join('');
+    // Watchers see each press light up.
+    if (!M.myTurn && M.input.length > App.simSeen) simFlash(M.input[M.input.length - 1], 220);
+    App.simSeen = M.input.length;
+    updateOffline(s, [M.turn]);
+  },
+};
+
+Views['sim:fail'] = {
+  mount(s) {
+    const M = s.sim;
+    const R = M.result;
+    mount(simTop(s, revealTimer(s)) + '<div class="card center patboom"><div class="ibig">❌</div><h1 style="margin:0">' + esc(nameOf(R.id).name) + (R.timeout ? ' süreyi kaçırdı!' : ' yanlış bastı!') + '</h1>' +
+      '<p style="font-size:18px;margin:4px 0 0">' + (R.timeout ? 'Sıradaki renk ' : 'Basılan ' + SIM_COLORS[R.wrong].e + ' · doğrusu ') + (SIM_COLORS[R.right] ? SIM_COLORS[R.right].e : '➕ yeni renk') + '</p>' +
+      '<p class="muted" style="margin:8px 0 0">' + (R.gone ? '💀 Oyundan çıktı' : 'Bir can kaybetti') + ' · zincir ' + R.len + ' renkte kaldı</p></div>' +
+      '<div class="card"><h2>Oyuncular</h2>' + livesTable({ ...M, step: 'play' }) + '</div>' + hostNext(s, M.pendingEnd ? '🏆 Sonuçlar' : '🧠 Devam'));
+    Sound.beep(150, 0.4, 'sawtooth', 0.07);
+    if (R.id === s.you) buzz([200, 80, 300]);
+  },
+};
+
+/* ---------- Şifre Kırma ---------- */
+
+function codeFb(x) {
+  return '🟢'.repeat(x.b) + '🟡'.repeat(x.c) + (x.b + x.c === 0 ? '⚫' : '');
+}
+
+Views['kod:play'] = {
+  mount(s) {
+    const C = s.kod;
+    mount(header() + timerHTML('Tur süresi') + '<div class="vbar day codebar"><b>🔐 Tur ' + C.round + ' / ' + C.rounds + '</b><span>' + C.len + ' haneli, rakamlar farklı</span></div>' +
+      '<div id="codeHurry"></div><div class="card center"><div class="codelock">' + '❓'.repeat(C.len) + '</div><div id="codeMain"></div></div>' +
+      '<div class="card"><h2>Tahminlerin</h2><div id="codeMine"></div><p class="muted" style="margin:8px 0 0;font-size:13px">🟢 doğru rakam doğru yerde · 🟡 rakam var ama yeri yanlış · ⚫ hiçbiri yok</p></div>' +
+      '<div class="card"><h2>Rakipler</h2><div id="codeOthers"></div></div>' + hostSkip('Turu bitir'));
+    this.paintMain(s);
+  },
+  paintMain(s) {
+    const C = s.kod;
+    $('#codeMain').innerHTML = C.solved
+      ? '<div class="ibig">🔓</div><h2 style="margin:0">Kırdın! ' + C.solved.tries + ' denemede</h2><p class="muted">Diğerleri bekleniyor…</p>'
+      : '<div class="row" style="justify-content:center"><input id="codeIn" class="field codein" inputmode="numeric" maxlength="' + C.len + '" placeholder="' + '•'.repeat(C.len) + '" autocomplete="off">' +
+        '<button class="btn green" data-act="cdSend">Dene</button></div><div class="codekeys">' + '1234567890'.split('').map((k) => '<button data-act="cdKey" data-k="' + k + '">' + k + '</button>').join('') +
+        '<button data-act="cdKey" data-k="del">⌫</button></div>';
+    App.codeSolved = !!C.solved;
+  },
+  update(s) {
+    const C = s.kod;
+    if (!!C.solved !== App.codeSolved) this.paintMain(s);
+    $('#codeMine').innerHTML = C.mine.length ? '<div class="codehist">' + C.mine.slice().reverse().map((x) => '<div><b>' + x.g.split('').join(' ') + '</b><span>' + codeFb(x) + '</span></div>').join('') + '</div>'
+      : '<p class="muted" style="margin:0">Henüz tahmin yok.</p>';
+    $('#codeOthers').innerHTML = '<div class="board">' + s.roster.filter((id) => id !== s.you).map((id) => {
+      const o = C.others[id];
+      return '<div class="srow">' + avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) + '<small>' + o.tries + ' deneme' + (o.best ? ' · en iyi: ' + codeFb(o.best) : '') + '</small></span>' +
+        (o.solved ? '<b>🔓</b>' : '') + '</div>';
+    }).join('') + '</div>';
+    $('#codeHurry').innerHTML = C.hurry ? '<p class="ihurry">🔓 ' + esc(nameOf(C.firstSolver).name) + ' şifreyi kırdı! Diğerlerine son 30 saniye!</p>' : '';
+    if (C.mine.length !== App.codeTries) {
+      const last = C.mine[C.mine.length - 1];
+      if (last) Sound.beep(last.b === C.len ? 1047 : 440 + last.b * 120, 0.15, 'triangle', 0.06);
+      App.codeTries = C.mine.length;
+    }
+  },
+};
+
+Views['kod:reveal'] = {
+  mount(s) {
+    const C = s.kod;
+    const R = C.result;
+    const rows = s.roster.slice().sort((a, b) => (R.order.indexOf(a) + 1 || 99) - (R.order.indexOf(b) + 1 || 99)).map((id) => '<div class="srow ' + (R.order[0] === id ? 'win' : '') + '">' +
+      avatarHTML(nameOf(id), 'sm') + '<span class="nm">' + esc(nameOf(id).name) + '<small>' + (R.solved[id] ? '🔓 ' + R.solved[id].tries + ' denemede · ' + Math.round(R.solved[id].ms / 1000) + ' sn'
+        : '🔒 kıramadı · ' + R.tries[id] + ' deneme' + (R.best[id] ? ' · en iyi ' + codeFb(R.best[id]) : '')) + '</small></span>' + (R.delta[id] ? '<span class="dl">+' + R.delta[id] + '</span>' : '') + '</div>').join('');
+    mount(header() + revealTimer(s) + '<div class="card center"><div class="muted" style="font-weight:700">Şifre</div><div class="codelock open">' + R.code.split('').join(' ') + '</div></div>' +
+      '<div class="card"><h2>Kim kırdı?</h2><div class="board">' + rows + '</div></div><div class="card"><h2>Puan durumu</h2>' + scoreBoard(s, R.scores, R.delta) + '</div>' +
+      hostNext(s, C.round >= C.rounds ? '🏆 Sonuçlar' : '🔐 Sonraki şifre'));
+    Sound.fanfare();
+  },
+};
+
+/* ---------- Kablo Kes ---------- */
+
+function wireBomb(W, result) {
+  return '<div class="wirebomb"><div class="wbox">💣<span>' + (result ? '💥' : '⏱️') + '</span></div><div class="wires">' + [...Array(W.wires).keys()].map((i) => {
+    const col = WIRE_COLORS[W.colors[i]];
+    const cut = W.cut.find((x) => x.i === i);
+    const boom = result && result.boom === i;
+    return '<button class="wire ' + (cut ? 'cut' : '') + (boom ? ' boom' : '') + '" style="--c:' + col.c + '" data-act="wCut" data-i="' + i + '"' + (W.myTurn && !cut ? '' : ' disabled') + '>' +
+      '<span class="wl"></span><span class="wt">' + (cut ? (boom ? '💥' : '✂️ ' + esc(nameOf(cut.id).name)) : esc(col.n)) + '</span></button>';
+  }).join('') + '</div></div>';
+}
+
+Views['wire:play'] = {
+  mount(s) {
+    App.wireSeen = -1;
+    mount(header() + timerHTML('Hamle süresi') + '<div class="vbar day wirebar"><b>✂️ Bomba ' + s.wire.round + '</b><span id="wireOdds"></span></div>' +
+      '<div class="card" id="wireBomb"></div><div id="wireMain"></div><div class="card"><h2>Oyuncular</h2><div id="wireTable"></div></div>' + OFFLINE_NOTE + hostSkip('Rastgele kablo kestir'));
+  },
+  update(s) {
+    const W = s.wire;
+    const left = W.wires - W.cut.length;
+    $('#wireOdds').textContent = 'Patlama ihtimali: %' + Math.round(100 / left);
+    $('#wireBomb').innerHTML = wireBomb(W, null);
+    $('#wireTable').innerHTML = livesTable(W);
+    if (W.cut.length !== App.wireSeen) {
+      if (App.wireSeen >= 0) Sound.beep(1200, 0.06, 'square', 0.05);
+      App.wireSeen = W.cut.length;
+      $('#wireMain').innerHTML = W.myTurn ? '<div class="card myturn center"><h2 style="margin:0">Sıra sende! 😰 Bir kablo seç ve kes</h2></div>'
+        : '<div class="card center"><div class="kasker">Sıra: ' + avatarHTML(nameOf(W.turn)) + '<b>' + esc(nameOf(W.turn).name) + '</b></div></div>';
+      if (W.myTurn) Sound.join();
+    }
+    updateOffline(s, [W.turn]);
+  },
+};
+
+Views['wire:reveal'] = {
+  mount(s) {
+    const W = s.wire;
+    const R = W.result;
+    mount(header() + revealTimer(s) + '<div class="card center patboom"><div class="bomb">💥</div><h1 style="margin:0">BOOM!</h1>' +
+      '<div class="kasker" style="margin-top:8px">' + esc(WIRE_COLORS[W.colors[R.boom]].n) + ' kabloyu kesen: ' + avatarHTML(nameOf(R.victim)) + '<b>' + esc(nameOf(R.victim).name) + '</b></div>' +
+      '<p style="margin:8px 0 0">' + (R.gone ? '💀 Canı bitti, oyundan çıktı!' : 'Bir can kaybetti') + ' · ' + R.cuts + '. kesişte patladı</p></div>' +
+      '<div class="card">' + wireBomb(W, R) + '</div><div class="card"><h2>Oyuncular</h2>' + livesTable(W) + '</div>' + hostNext(s, W.pendingEnd ? '🏆 Sonuçlar' : '💣 Yeni bomba'));
+    Sound.beep(90, 0.6, 'sawtooth', 0.09);
+    if (R.victim === s.you) buzz([200, 80, 400]);
+  },
+};
+
+/* ---------- Ada Batıyor ---------- */
+
+function adaGrid(A, pos, opts = {}) {
+  const who = {};
+  for (const id of A.seats) if (A.alive[id] || (opts.victims || []).includes(id)) (who[pos[id]] = who[pos[id]] || []).push(id);
+  let html = '<div class="adagrid" style="--n:' + A.N + '">';
+  for (let t = 0; t < A.N * A.N; t++) {
+    const dry = A.land.includes(t);
+    const sinking = (opts.sunk || []).includes(t);
+    const cls = sinking ? 'sinking' : dry ? 'land' + (A.cracked.includes(t) && A.step === 'move' ? ' crack' : '') : 'water';
+    const mine = opts.mine === t;
+    html += '<button class="atile ' + cls + (mine ? ' mine' : '') + '" data-act="aPick" data-t="' + t + '"' + (opts.pickable && dry ? '' : ' disabled') + '>' +
+      (who[t] ? '<span class="aw">' + who[t].slice(0, 4).map((id) => avatarHTML(nameOf(id), 'sm')).join('') + '</span>' : sinking ? '🌊' : dry && A.cracked.includes(t) && A.step === 'move' ? '⚠️' : '') + '</button>';
+  }
+  return html + '</div>';
+}
+
+Views['ada:move'] = {
+  mount(s) {
+    const A = s.ada;
+    mount(header() + timerHTML('Karar süresi') + '<div class="vbar day adabar"><b>🏝️ Tur ' + A.round + '</b><span>Kalan kara: ' + A.land.length + ' kare</span></div>' +
+      '<div class="card center"><p style="margin:0 0 8px">' + (A.alive[s.you] ? 'Bir kareye dokun, oraya geçeceksin. <b>⚠️ Çatlak</b> ve <b>kalabalık</b> kareler daha kolay batar! Herkes batarsa en hızlı karar veren kurtulur.' : 'Elendin, izliyorsun 👀') + '</p>' +
+        '<div id="adaGrid"></div><p class="muted" id="adaMine" style="margin:8px 0 0"></p></div>' +
+      '<div class="card"><h2>Kim karar verdi?</h2><div class="chips" id="adaChips"></div></div>' +
+      '<div class="card"><h2>Oyuncular</h2>' + livesTable({ ...A, turn: null }) + '</div>' + hostSkip('Adayı batır'));
+  },
+  update(s) {
+    const A = s.ada;
+    // Before the reveal everyone sees where people stood last round; my own new choice is shown as a ring.
+    $('#adaGrid').innerHTML = adaGrid(A, A.pos, { pickable: A.alive[s.you], mine: A.myPick });
+    $('#adaChips').innerHTML = doneChips(s, A.done, Object.keys(A.done));
+    $('#adaMine').textContent = A.myPick != null ? '✅ Seçtin (süre bitene kadar değiştirebilirsin)' : '';
+  },
+};
+
+Views['ada:reveal'] = {
+  mount(s) {
+    const A = s.ada;
+    const R = A.result;
+    mount(header() + revealTimer(s) + '<div class="vbar day adabar"><b>🌊 ' + R.sunk.length + ' kare battı!</b><span>Kalan kara: ' + A.land.length + '</span></div>' +
+      '<div class="card center">' + adaGrid(A, R.pos, { sunk: R.sunk, victims: R.victims }) +
+        '<p style="margin:10px 0 0;font-weight:800">' + (R.victims.length ? '🌊 Suya düşenler: ' + R.victims.map((id) => esc(nameOf(id).name)).join(', ') : '😮‍💨 Bu tur kimse düşmedi!') + '</p>' +
+        (R.saved ? '<p class="muted" style="margin:4px 0 0">🏃 Herkes batıyordu! En hızlı karar veren son anda kurtuldu: <b>' + esc(nameOf(R.saved).name) + '</b></p>' : '') + '</div>' +
+      '<div class="card"><h2>Oyuncular</h2>' + livesTable({ ...A, turn: null }) + '</div>' + hostNext(s, A.pendingEnd ? '🏆 Sonuçlar' : '🏝️ Sonraki tur'));
+    Sound.beep(R.victims.length ? 120 : 660, 0.4, R.victims.length ? 'sawtooth' : 'triangle', 0.07);
+    if (R.victims.includes(s.you)) buzz([200, 80, 400]);
   },
 };
 
@@ -9638,7 +10421,7 @@ Views.final = {
     else if (s.game === 'quiz') quizFinalMount(s);
     else if (s.game === 'cinayet') cinFinalMount(s);
     else if (s.game === 'kafe') kafeFinalMount(s);
-    else if (['isik', 'bomba', 'kasa', 'balon', 'saniye'].includes(s.game)) quickFinalMount(s);
+    else if (['isik', 'bomba', 'kasa', 'balon', 'saniye', 'sandalye', 'hafiza', 'sifre', 'kablo', 'ada'].includes(s.game)) quickFinalMount(s);
     else hangimizFinalMount(s);
     confetti();
     Sound.fanfare();
@@ -9722,6 +10505,11 @@ function shareLines(s) {
     case 'kasa':
     case 'balon':
     case 'saniye':
+    case 'sandalye':
+    case 'hafiza':
+    case 'sifre':
+    case 'kablo':
+    case 'ada':
       F.ranking.slice(0, 3).forEach((id, i) => L.push(['🥇', '🥈', '🥉'][i] + ' ' + n(id)));
       break;
     case 'kafe':
@@ -10491,6 +11279,49 @@ const actions = {
   },
   sreset() { App.sirOrder = []; sirPaint(); },
   srank() { Sound.click(); send({ t: 'srank', order: App.sirOrder }); },
+  chTap(el) {
+    const C = App.state.chair;
+    if (!C.alive[App.state.you]) return;
+    if (C.step === 'music') {
+      if (App.chEarly) return;
+      App.chEarly = true;
+      send({ t: 'cearly' });
+      toast('🙊 Müzik bitmeden oturdun! +1 saniye ceza', 2200);
+      buzz(150);
+      return;
+    }
+    if (C.step !== 'grab' || App.chSat != null) return;
+    App.chSat = Number(el.dataset.c);
+    send({ t: 'cgrab', c: App.chSat, rt: Math.round(performance.now() - App.chT0) });
+    Sound.click();
+    chairPaint();
+  },
+  simPad(el) {
+    const M = App.state.sim;
+    if (M.step !== 'input' || !M.myTurn) return;
+    const c = Number(el.dataset.c);
+    simFlash(c, 220);
+    send({ t: 'stap', c });
+  },
+  cdKey(el) {
+    const inp = $('#codeIn');
+    const L = App.state.kod.len;
+    if (el.dataset.k === 'del') inp.value = inp.value.slice(0, -1);
+    else if (inp.value.length < L && !inp.value.includes(el.dataset.k)) inp.value += el.dataset.k;
+    Sound.beep(700, 0.03, 'triangle', 0.04);
+  },
+  cdSend() {
+    const inp = $('#codeIn');
+    const L = App.state.kod.len;
+    const g = (inp.value || '').trim();
+    if (!new RegExp('^\\d{' + L + '}$').test(g)) { toast(L + ' haneli bir sayı yaz'); return; }
+    if (new Set(g).size !== L) { toast('Rakamlar birbirinden farklı olmalı'); return; }
+    inp.value = '';
+    Sound.click();
+    send({ t: 'cguess', g });
+  },
+  wCut(el) { Sound.beep(900, 0.05, 'square', 0.05); send({ t: 'wcut', i: Number(el.dataset.i) }); },
+  aPick(el) { Sound.click(); send({ t: 'amove', tile: Number(el.dataset.t) }); },
   bSay() {
     const el = $('#bombIn');
     const B = App.state.bomb;
@@ -10722,6 +11553,7 @@ document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && (e.target.id === 'adamWord' || e.target.id === 'adamHint')) { e.preventDefault(); doAction('hmWord'); return; }
   if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'takReal') { e.preventDefault(); $('#takFake').focus(); return; }
   if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'takFake') { e.preventDefault(); doAction('takSend'); return; }
+  if (e.key === 'Enter' && e.target.id === 'codeIn') { e.preventDefault(); doAction('cdSend'); return; }
   if (e.key === 'Enter' && e.target.id === 'bombIn') { e.preventDefault(); doAction('bSay'); return; }
   if (e.key === 'Enter' && e.target.id === 'patIn') { e.preventDefault(); doAction('pSend'); return; }
   if (e.key === 'Enter' && e.target.id === 'vchatIn') { e.preventDefault(); doAction('vChat'); return; }
